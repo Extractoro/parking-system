@@ -42,7 +42,9 @@
 ## Після кожної ЛР
 
 Один звіт на команду на кожну ЛР (титулка з обома). Структура джерела —
-`docs/plans/stage-R-report-pipeline.md` §2, зразок — `docs/reports/web-lr1.md`.
+`docs/plans/stage-R-report-pipeline.md` §2, **форма тексту — строго `docs/reports/STYLE.md`**
+(нумерація «1.2.N», без кодів пунктів і жирних міток, без шляхів до файлів, без тире «—»/«–»),
+зразок — `docs/reports/web-lr1.md`. Перевірка: `uv run scripts/build_report.py <джерело> --lint-only`.
 1. Зберегти виводи перевірок у `results/<web|dpc>-lrN/` (`| tee`); знімки клієнта — у `docs/reports/img/`.
 2. Написати `docs/reports/<web|dpc>-lrN.md`: front matter (`course`, `lab`, `title`, повний `commit`
    перевірок, `date`), `## Мета роботи`, `## Хід роботи` (по `###` на кожен виконаний пункт: що зроблено,

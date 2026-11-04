@@ -7,11 +7,17 @@
     uv run scripts/build_report.py docs/reports/web-lr1.md            # -> docs/reports/out/Звіт_Web_ЛР1.docx
     uv run scripts/build_report.py docs/reports/web-lr1.md --pdf      # + PDF and page PNGs to check by eye
 
+    uv run scripts/build_report.py docs/reports/web-lr1.md --lint-only # only the style check
+
 The template (docs/reports/template.docx) is opened, never recreated: margins, fonts and the title
 page stay the department's. The source has fixed sections (see docs/plans/stage-R-report-pipeline.md):
 front matter (course, lab, title, commit, date) and `## Мета роботи`, `## Хід роботи`,
 `## Код програми`, `## Висновки`. Listings are not copied by hand: a marker
 `<!-- code: path#L10-L40 -->` takes the lines from `git show <commit>:<path>`.
+
+Before building, the source is checked against docs/reports/STYLE.md (section 7): no item codes,
+no bold labels, no long or middle dashes, no internal paths or file names outside «Код програми»,
+no mentions of AI. After building, the text of the .docx is checked for dashes once more.
 """
 
 from __future__ import annotations
@@ -55,6 +61,67 @@ CODE_MARKER = re.compile(r"<!--\s*code:\s*(?P<path>[^#\s]+)#L(?P<a>\d+)-L(?P<b>\
 
 class ReportError(Exception):
     """The source cannot be built: a missing section, picture, code range or commit."""
+
+
+class StyleError(ReportError):
+    """The source or the built .docx breaks docs/reports/STYLE.md; `problems` lists the lines."""
+
+    def __init__(self, where: str, problems: list[str]):
+        super().__init__(f"{where}: {len(problems)} style problem(s)\n" + "\n".join(f"  {p}" for p in problems))
+        self.problems = problems
+
+
+# ---------------------------------------------------------------------------------------------
+# style linter (docs/reports/STYLE.md, section 7)
+# ---------------------------------------------------------------------------------------------
+DASHES = re.compile("[—–]")  # — and –
+STYLE_EVERYWHERE = [
+    (re.compile(r"\*\*(Що зроблено|Де\.|Як перевірено|Очікуваний|Фактичний)"), "bold label"),
+    (re.compile(r"(?<!\w)[ОДOD]\d\.\d+(?!\w)"), "item code of the guide"),
+    (re.compile(r"\(Ядро\)"), "«(Ядро)»"),
+    (DASHES, "long or middle dash (use a hyphen)"),
+    # whole words, case as written: «ші» inside «гроші» is not «ШІ», «API» is not «AI»
+    (re.compile(r"(?<!\w)(Claude|ШІ|AI)(?!\w)"), "mention of AI"),
+    (re.compile(r"асистент|згенерован", re.I), "mention of AI"),
+]
+# internal files and paths: allowed only in «Код програми» (listing captions and code markers)
+STYLE_OUTSIDE_CODE = [
+    (re.compile(r"README|decisions\.md|CLAUDE\.md|docs/|results/|migrations/|(?<![\w.])web/|(?<![\w.])dpc/|scripts/"),
+     "internal document or path"),
+    (re.compile(r"test_|\.py(?!\w)|\.sql(?!\w)|\.yaml(?!\w)"), "test or file name"),
+]
+
+
+def lint_source(path: Path) -> list[str]:
+    """Problems as 'line N: what: text'; an empty list means the source follows STYLE.md."""
+    problems: list[str] = []
+    section = ""
+    in_front_matter = False
+    for n, line in enumerate(path.read_text(encoding="utf-8").splitlines(), start=1):
+        if n == 1 and line.strip() == "---":
+            in_front_matter = True
+            continue
+        if in_front_matter:
+            if line.strip() == "---":
+                in_front_matter = False
+            continue
+        m = re.match(r"^## +(.+?)\s*$", line)
+        if m:
+            section = m.group(1)
+        rules = STYLE_EVERYWHERE + ([] if section == "Код програми" else STYLE_OUTSIDE_CODE)
+        for rx, what in rules:
+            hit = rx.search(line)
+            if hit:
+                problems.append(f"line {n}: {what} «{hit.group(0)}»: {line.strip()[:100]}")
+    return problems
+
+
+def lint_docx(path: Path) -> list[str]:
+    """Word or a converter may put dashes in by itself: check the text of the built document."""
+    doc = Document(str(path))
+    texts = [p.text for p in doc.paragraphs]
+    texts += [p.text for t in doc.tables for row in t.rows for c in row.cells for p in c.paragraphs]
+    return [f"paragraph: {t.strip()[:100]}" for t in texts if DASHES.search(t)]
 
 
 # ---------------------------------------------------------------------------------------------
@@ -167,7 +234,8 @@ class Writer:
         self.cursor = None
         self.figures = 0
         self.listings = 0
-        self.md = MarkdownIt("commonmark").enable("table")
+        # typographer off: no automatic "smart" dashes or quotes (STYLE.md, section 7)
+        self.md = MarkdownIt("commonmark", {"typographer": False}).enable("table")
 
     # -- placing -------------------------------------------------------------------------------
     def _place(self, element):
@@ -246,7 +314,7 @@ class Writer:
             pic.height = int(pic.height * ratio)
         cap = self.paragraph()
         body_format(cap, indent=False, align=WD_ALIGN_PARAGRAPH.CENTER, after=Pt(10))
-        style_run(cap.add_run(f"Рисунок {self.figures} — {caption}"), size=Pt(12))
+        style_run(cap.add_run(f"Рисунок {self.figures} - {caption}"), size=Pt(12))
 
     def bullet(self, children, marker):
         p = self.paragraph()
@@ -299,7 +367,7 @@ class Writer:
         p = self.paragraph()
         body_format(p, indent=False, align=WD_ALIGN_PARAGRAPH.LEFT, after=Pt(2))
         p.paragraph_format.keep_with_next = True
-        style_run(p.add_run(text), bold=True, size=Pt(12))
+        style_run(p.add_run(text), size=Pt(12))  # «Лістинг N - Опис (file)», regular weight (STYLE.md 6)
 
     # -- one section ----------------------------------------------------------------------------
     def render(self, markdown, *, code_section=False):
@@ -330,7 +398,7 @@ class Writer:
                     elif tk.type in ("bullet_list_close", "ordered_list_close"):
                         depth -= 1
                     elif tk.type == "inline":
-                        self.bullet(tk.children, f"{n}." if ordered else "–")
+                        self.bullet(tk.children, f"{n}." if ordered else "•")
                         n += 1
                     i += 1
                 i += 1
@@ -358,7 +426,7 @@ class Writer:
                     lines = listing(self.src.meta["commit"], rel, a, b)
                     self.listings += 1
                     title = pending_caption or f"Лістинг {self.listings}"
-                    self.listing_caption(f"{title}. Файл: {rel}, рядки {a}–{b}")
+                    self.listing_caption(f"{title} ({Path(rel).name})")
                     self.code(lines, keep=len(lines) <= 30)
                     pending_caption = None
                 i += 1
@@ -386,6 +454,9 @@ def find(doc, startswith):
 
 
 def build(src_path: Path, out_dir: Path = OUT_DIR) -> Path:
+    problems = lint_source(src_path)
+    if problems:
+        raise StyleError(str(src_path), problems)
     src = read_source(src_path)
     commit = str(src.meta["commit"])
     git("cat-file", "-e", f"{commit}^{{commit}}")  # the commit must exist
@@ -421,7 +492,13 @@ def build(src_path: Path, out_dir: Path = OUT_DIR) -> Path:
 
     out_dir.mkdir(parents=True, exist_ok=True)
     out = out_dir / f"Звіт_{code}_ЛР{lab}.docx"
-    doc.save(str(out))
+    try:
+        doc.save(str(out))
+    except PermissionError:
+        raise ReportError(f"{out} is open in another program (Word?): close it and build again") from None
+    problems = lint_docx(out)
+    if problems:
+        raise StyleError(str(out), problems)
     return out
 
 
@@ -463,10 +540,18 @@ def main() -> int:
     ap = argparse.ArgumentParser(description=__doc__.split("\n\n")[0])
     ap.add_argument("source", type=Path)
     ap.add_argument("--pdf", action="store_true", help="also convert to PDF and print page PNGs")
+    ap.add_argument("--lint-only", action="store_true", help="only check the source against STYLE.md")
+    ap.add_argument("--out-dir", type=Path, default=OUT_DIR, help="where to write the .docx (default: docs/reports/out)")
     ap.add_argument("--png-dir", type=Path, default=None, help="where to put page PNGs (default: next to the PDF)")
     args = ap.parse_args()
     try:
-        out = build(args.source.resolve())
+        if args.lint_only:
+            problems = lint_source(args.source.resolve())
+            if problems:
+                raise StyleError(str(args.source), problems)
+            print("style: ok")
+            return 0
+        out = build(args.source.resolve(), out_dir=args.out_dir.resolve())
     except ReportError as e:
         print(f"error: {e}", file=sys.stderr)
         return 1
