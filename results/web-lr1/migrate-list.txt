@@ -1,0 +1,5 @@
+applied  001_c09_catalog.sql
+applied  002_c09_booking.sql
+applied  003_c09_booking_list_index.notx.sql
+applied  900_c09_seed.sql
+applied  901_c09_seed_en.sql

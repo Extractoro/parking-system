@@ -1,0 +1,2 @@
+{"time": "2026-11-04T15:36:01.446+00:00", "instance": "app-a", "event": "http.request", "request_id": "5e07ff0653f1235577ace96c9b81741f", "method": "GET", "route": "/v1/bookings", "status": 400, "duration_ms": 1.9}
+{"time": "2026-11-04T15:36:04.427+00:00", "instance": "app-a", "event": "http.request", "request_id": "6ebb2b1ee1a894be8aede71a7107dc6d", "method": "DELETE", "route": "/v1/bookings", "status": 405, "duration_ms": 0.8}

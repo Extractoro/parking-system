@@ -1,0 +1,4 @@
+validating openapi.yaml...
+openapi.yaml: validated in 162ms
+Woohoo! Your API description is valid. 🎉
+You have 16 warnings.

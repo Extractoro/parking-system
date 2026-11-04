@@ -1,0 +1,41 @@
+201  good                                   {}
+422  empty object                           {"type": "https://example.edu/problems/invalid-request", "title": "Invalid request data", "errors": [{"field": "body.level_id", "message": "Field required"}, {"field": "body.from_hour", "mes
+422  no body                                {"type": "https://example.edu/problems/invalid-request", "title": "Invalid request data", "errors": [{"field": "body", "message": "Field required"}]}
+422  json array                             {"type": "https://example.edu/problems/invalid-request", "title": "Invalid request data", "errors": [{"field": "body", "message": "Input should be a valid dictionary or object to extract fie
+422  json null                              {"type": "https://example.edu/problems/invalid-request", "title": "Invalid request data", "errors": [{"field": "body", "message": "Field required"}]}
+422  text/plain body                        {"type": "https://example.edu/problems/invalid-request", "title": "Invalid request data", "errors": [{"field": "body", "message": "Input should be a valid dictionary or object to extract fie
+201  extra field ignored                    {}
+422  level_id 65 chars                      {"type": "https://example.edu/problems/invalid-request", "title": "Invalid request data", "errors": [{"field": "body.level_id", "message": "String should have at most 64 characters"}]}
+422  level_id empty                         {"type": "https://example.edu/problems/invalid-request", "title": "Invalid request data", "errors": [{"field": "body.level_id", "message": "String should have at least 1 character"}]}
+422  level_id number                        {"type": "https://example.edu/problems/invalid-request", "title": "Invalid request data", "errors": [{"field": "body.level_id", "message": "Input should be a valid string"}]}
+422  hours float 2.0                        {"type": "https://example.edu/problems/invalid-request", "title": "Invalid request data", "errors": [{"field": "body.hours", "message": "Input should be a valid integer"}]}
+422  hours null                             {"type": "https://example.edu/problems/invalid-request", "title": "Invalid request data", "errors": [{"field": "body.hours", "message": "Input should be a valid integer"}]}
+422  hours -1                               {"type": "https://example.edu/problems/invalid-request", "title": "Invalid request data", "errors": [{"field": "body.hours", "message": "Input should be greater than or equal to 1"}]}
+422  hours bool true                        {"type": "https://example.edu/problems/invalid-request", "title": "Invalid request data", "errors": [{"field": "body.hours", "message": "Input should be a valid integer"}]}
+422  plate 13 chars                         {"type": "https://example.edu/problems/invalid-request", "title": "Invalid request data", "errors": [{"field": "body.plate", "message": "String should have at most 12 characters"}]}
+422  plate 1 char                           {"type": "https://example.edu/problems/invalid-request", "title": "Invalid request data", "errors": [{"field": "body.plate", "message": "String should have at least 2 characters"}]}
+201  plate with spaces (10)                 {}
+422  plate only spaces                      {"type": "https://example.edu/problems/invalid-request", "title": "Invalid request data", "errors": [{"field": "body.plate", "message": "String should have at least 2 characters"}]}
+201  plate html                             {}
+422  from_hour garbage                      {"type": "https://example.edu/problems/invalid-request", "title": "Invalid request data", "errors": [{"field": "body.from_hour", "message": "Input should be a valid datetime or date, input i
+422  from_hour date only                    {"type": "https://example.edu/problems/invalid-request", "title": "Invalid request data", "errors": [{"field": "body.from_hour", "message": "Input should have timezone info"}]}
+201  from_hour UTC Z                        {}
+422  from_hour odd offset +05:30            {"type": "https://example.edu/problems/invalid-request", "title": "Invalid request data", "errors": [{"field": "body.from_hour", "message": "Value error, must be the start of an hour (minute
+422  from_hour year 9999                    {"type": "https://example.edu/problems/invalid-request", "title": "Invalid request data", "errors": [{"field": "body.from_hour", "message": "Value error, is out of the supported range"}]}
+422  from_hour year 1                       {"type": "https://example.edu/problems/invalid-request", "title": "Invalid request data", "errors": [{"field": "body.from_hour", "message": "Value error, is out of the supported range"}]}
+401  no user header                         {"type": "https://example.edu/problems/unauthorized", "title": "Authentication required", "detail": "Send X-User-Id of an existing user"}
+401  unknown user                           {"type": "https://example.edu/problems/unauthorized", "title": "Authentication required", "detail": "Send X-User-Id of an existing user"}
+201  no idempotency key                     {}
+422  hours day=9999-12-31                   {"type": "https://example.edu/problems/invalid-request", "title": "Invalid request data", "errors": [{"field": "query.day", "message": "is out of the supported range"}]}
+422  hours day=0001-01-01                   {"type": "https://example.edu/problems/invalid-request", "title": "Invalid request data", "errors": [{"field": "query.day", "message": "is out of the supported range"}]}
+422  hours no day                           {"type": "https://example.edu/problems/invalid-request", "title": "Invalid request data", "errors": [{"field": "query.day", "message": "Field required"}]}
+422  hours day=2026-02-30                   {"type": "https://example.edu/problems/invalid-request", "title": "Invalid request data", "errors": [{"field": "query.day", "message": "Input should be a valid date or datetime, day value is
+422  list limit=abc                         {"type": "https://example.edu/problems/invalid-request", "title": "Invalid request data", "errors": [{"field": "query.limit", "message": "Input should be a valid integer, unable to parse str
+422  list limit=1.5                         {"type": "https://example.edu/problems/invalid-request", "title": "Invalid request data", "errors": [{"field": "query.limit", "message": "Input should be a valid integer, unable to parse str
+400  list cursor %%%                        {"type": "https://example.edu/problems/invalid-cursor", "title": "Invalid cursor", "detail": "Use next_cursor of the previous page as is"}
+404  get id with slash                      {"type": "https://example.edu/problems/not-found", "title": "Not Found"}
+404  get id 1000 chars                      {"type": "https://example.edu/problems/booking-not-found", "title": "Booking not found", "detail": "No booking with this id for this user"}
+404  unknown route                          {"type": "https://example.edu/problems/not-found", "title": "Not Found"}
+400  CORS evil origin allow-origin = None
+200  CORS client origin allow-origin = http://localhost:5173
+405  DELETE /v1/bookings                    {"type": "https://example.edu/problems/method-not-allowed", "title": "Method Not Allowed"}
