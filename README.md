@@ -71,7 +71,7 @@ stateDiagram-v2
 
 | Параметр | Значення |
 |---|---|
-| Паркінги | `mall` «ТЦ Південний», `center` «Центр», зона `Europe/Kyiv` |
+| Паркінги | `mall` «South Mall», `center` «City Centre», зона `Europe/Kyiv` (назви англійською, як в інтерфейсі клієнта) |
 | Рівні | `mall-1` 40 місць, `mall-2` 40, `mall-one` 1 (для досліду гонки), `center-1` 20 |
 | Тариф | `mall` 3000 коп./год, `center` 4000 коп./год, UAH |
 | Тривалість бронювання | 1–24 години |
@@ -214,7 +214,7 @@ docker compose run --rm migrate sh /migrate/migrate.sh --list
 | Пункт | Де реалізовано | Перевірка та свідчення |
 |---|---|---|
 | О1.1 Модель області | розділ 2 цього README, [docs/decisions.md](docs/decisions.md) (M1–M11) | діаграма станів, інваріанти, числові параметри |
-| О1.2 Схема БД | `migrations/001_c09_catalog.sql`, `002_c09_booking.sql`, `003_c09_booking_list_index.notx.sql`, `900_c09_seed.sql` | PK/FK, NOT NULL, CHECK (`free >= 0`, початок години, `price = tariff × hours`, `expires_at`), UNIQUE; застосування з нуля — `docker compose up -d` на порожній базі |
+| О1.2 Схема БД | `migrations/001_c09_catalog.sql`, `002_c09_booking.sql`, `003_c09_booking_list_index.notx.sql`, `900_c09_seed.sql`, `901_c09_seed_en.sql` | PK/FK, NOT NULL, CHECK (`free >= 0`, початок години, `price = tariff × hours`, `expires_at`), UNIQUE; застосування з нуля — `docker compose up -d` на порожній базі |
 | О1.3 Контракт API | `web/openapi.yaml` (`x-course: main/list/object`, приклади `normal`/`scarce`/`missing`) | `npx @redocly/cli lint web/openapi.yaml` — valid, 0 помилок |
 | О1.4 Головна операція | `web/server/app/bookings.py` (`create_booking`, `_reserve_hours`) | тести 1–4, 7: 201 + `Location`; 409 без зміни жодної години; 400/404/422 |
 | О1.5 Список із курсором | `web/server/app/bookings.py` (`list_bookings`), `web/server/app/cursor.py` | тест 5: 7 бронювань, `limit=3` → 3 сторінки без пропусків і повторів, зокрема з однаковим `created_at`; пошкоджений курсор — 400 |

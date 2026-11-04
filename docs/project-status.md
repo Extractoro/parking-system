@@ -4,7 +4,7 @@
 
 | Перевірка | Результат |
 |---|---|
-| Міграції з нуля (порожній том pgdata) | 001, 002, 003 (notx), 900 — applied |
+| Міграції з нуля (порожній том pgdata) | 001, 002, 003 (notx), 900 — applied; 901 (англійські назви) — applied пізніше |
 | `npx @redocly/cli lint web/openapi.yaml` | valid, 0 помилок, 16 попереджень (службові маршрути й компоненти каркаса) |
 | `pytest web/server/tests` (стенд `docker compose up -d nginx`) | 8 passed |
 | Гонка: 20 одночасних запитів на 1 місце через app-a і app-b | 1×201, 19×409, `free = 0` |
