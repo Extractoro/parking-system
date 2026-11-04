@@ -93,7 +93,7 @@ async function request<T>(path: string, init: RequestInit = {}, userId?: string)
   try {
     response = await fetch(API_URL + path, { ...init, headers })
   } catch {
-    throw new ApiError(0, { title: 'Сервер недоступний', detail: `Немає зв'язку з ${API_URL}` }, null)
+    throw new ApiError(0, { title: 'Сервер недоступний' }, null)
   }
 
   const text = await response.text()

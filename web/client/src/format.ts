@@ -1,27 +1,74 @@
-// Money is integer kopecks + currency; moments are shown in the zone of the garage, not of the browser.
+// Money is integer kopecks + currency; moments are shown in the zone of the garage (garage.tz),
+// never the browser's. Everything goes through Intl, no hand-built date or number strings.
+
+const HOUR_MS = 3_600_000
+
+const cache = new Map<string, Intl.DateTimeFormat>()
+function dtf(tz: string, opts: Intl.DateTimeFormatOptions): Intl.DateTimeFormat {
+  const key = tz + JSON.stringify(opts)
+  let f = cache.get(key)
+  if (!f) {
+    f = new Intl.DateTimeFormat('uk-UA', { timeZone: tz, ...opts })
+    cache.set(key, f)
+  }
+  return f
+}
 
 export function money(minor: number, currency: string): string {
-  const units = Math.trunc(minor / 100)
-  const cents = Math.abs(minor % 100).toString().padStart(2, '0')
-  return `${units}.${cents} ${currency}`
+  return new Intl.NumberFormat('uk-UA', { style: 'currency', currency }).format(minor / 100)
 }
 
-export function timeIn(iso: string, tz: string): string {
-  return new Intl.DateTimeFormat('uk-UA', { timeZone: tz, hour: '2-digit', minute: '2-digit' }).format(new Date(iso))
+export function time(iso: string | number, tz: string): string {
+  return dtf(tz, { hour: '2-digit', minute: '2-digit' }).format(new Date(iso))
 }
 
-export function dateTimeIn(iso: string, tz: string): string {
-  return new Intl.DateTimeFormat('uk-UA', {
-    timeZone: tz,
-    day: '2-digit',
-    month: '2-digit',
-    year: 'numeric',
-    hour: '2-digit',
-    minute: '2-digit',
-  }).format(new Date(iso))
+/** YYYY-MM-DD of a moment in the zone. */
+export function dayOf(moment: string | number | Date, tz: string): string {
+  return new Intl.DateTimeFormat('en-CA', { timeZone: tz }).format(new Date(moment))
 }
 
-/** Today's date (YYYY-MM-DD) in the zone of the garage. */
 export function todayIn(tz: string): string {
-  return new Intl.DateTimeFormat('en-CA', { timeZone: tz }).format(new Date())
+  return dayOf(Date.now(), tz)
 }
+
+/** Calendar arithmetic on YYYY-MM-DD (no time zone involved). */
+export function addDays(day: string, n: number): string {
+  const [y, m, d] = day.split('-').map(Number)
+  return new Date(Date.UTC(y, m - 1, d + n)).toISOString().slice(0, 10)
+}
+
+// a calendar date is formatted at UTC noon, so the zone never shifts it to another day
+function noon(day: string): Date {
+  const [y, m, d] = day.split('-').map(Number)
+  return new Date(Date.UTC(y, m - 1, d, 12))
+}
+
+export function weekdayShort(day: string): string {
+  return dtf('UTC', { weekday: 'short' }).format(noon(day))
+}
+
+export function dayNumber(day: string): string {
+  return dtf('UTC', { day: 'numeric' }).format(noon(day))
+}
+
+export function monthShort(day: string): string {
+  return dtf('UTC', { month: 'short' }).format(noon(day)).replace('.', '')
+}
+
+export function dateLong(day: string): string {
+  return dtf('UTC', { weekday: 'short', day: 'numeric', month: 'long' }).format(noon(day))
+}
+
+export function dateFull(day: string): string {
+  return dtf('UTC', { weekday: 'long', day: 'numeric', month: 'long' }).format(noon(day))
+}
+
+export function hoursLabel(n: number): string {
+  return `${n} год`
+}
+
+export function plusHours(iso: string, hours: number): number {
+  return Date.parse(iso) + hours * HOUR_MS
+}
+
+export { HOUR_MS }
