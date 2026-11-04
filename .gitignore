@@ -40,3 +40,7 @@ Thumbs.db
 docs/reports/out/*.pdf
 docs/reports/out/pages/
 docs/reports/out/~$*
+
+# Internal working material: stage plans and lab reports stay local only
+docs/plans/
+docs/reports/

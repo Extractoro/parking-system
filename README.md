@@ -209,7 +209,7 @@ docker compose run --rm migrate sh /migrate/migrate.sh --list
 
 #### ЛР1. Контракт, модель і перша операція
 
-Відповідальна: Дарина. Звіт — [docs/reports/web-lr1.md](docs/reports/web-lr1.md).
+Відповідальна: Дарина. Звіт з ЛР здається окремим документом.
 
 | Пункт | Де реалізовано | Перевірка та свідчення |
 |---|---|---|
@@ -219,7 +219,7 @@ docker compose run --rm migrate sh /migrate/migrate.sh --list
 | О1.4 Головна операція | `web/server/app/bookings.py` (`create_booking`, `_reserve_hours`) | тести 1–4, 7: 201 + `Location`; 409 без зміни жодної години; 400/404/422 |
 | О1.5 Список із курсором | `web/server/app/bookings.py` (`list_bookings`), `web/server/app/cursor.py` | тест 5: 7 бронювань, `limit=3` → 3 сторінки без пропусків і повторів, зокрема з однаковим `created_at`; пошкоджений курсор — 400 |
 | О1.6 Система, `/health`, журнал | каркас (`service.py`, `middleware.py`, `jsonlog.py`) | `docker compose up -d nginx` піднімає nginx, app-a, app-b, postgres; `/health` на :8080/:8001/:8002; рядок журналу JSON з `time`, `instance`, `route`, `status`, `duration_ms`, без `X-User-Id` |
-| О1.7 Клієнт | `web/client/` (React + TypeScript + Vite) | бронювання, 409 як Problem Details, «Мої бронювання» читає всі сторінки — знімки в `docs/reports/img/web-lr1-*.jpg` |
+| О1.7 Клієнт | `web/client/` (React + TypeScript + Vite) | бронювання, 409 як Problem Details, «Мої бронювання» читає всі сторінки — знімки у звіті ЛР1 |
 | Д1.1 Правило за часом | `web/server/app/rules.py` (`booking_start_error(from_hour, now)`), PC-1 | `test_rules.py` (межі з фіксованим `now`), `test_lr1.py::test_8` (минула година → 422) |
 
 Тести: `web/server/tests/test_lr1.py` — 10 тестів проти запущеного стенда, `test_rules.py` — 7 тестів
@@ -282,7 +282,8 @@ _Заповнюється в ЛР2–ЛР6._
 
 ## 9. Внесок учасників
 
-_Заповнюється в кожній ЛР._ Розподіл зон – `docs/plans/00-initial-analysis.md`, §14.
+_Заповнюється в кожній ЛР._ Розподіл ЛР: Дарина — Web ЛР1, ЛР3, ЛР6; DPC ЛР1, ЛР2, ЛР4 і екрани
+клієнта; Вадим — Web ЛР2, ЛР4, ЛР5; DPC ЛР3, ЛР5, ЛР6, інфраструктура, зв'язок Web↔DPC.
 
 ### Використані бібліотеки
 
