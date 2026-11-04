@@ -151,14 +151,14 @@ async def _reserve_unprotected(conn: AsyncConnection, level_id: str, start: date
 async def create_booking(
     body: BookingCreate,
     user: CurrentUser,
-    # TODO (O2.2): the idempotency mechanism (lab 2). Accepted and not used yet.
+    # TODO: the idempotency mechanism comes with the next lab; the header is accepted and not used yet.
     idempotency_key: Annotated[str | None, Header(alias="Idempotency-Key")] = None,
 ) -> JSONResponse:
     start = body.from_hour.astimezone(UTC)
     end = start + timedelta(hours=body.hours)
     booking_id = str(uuid.uuid4())
 
-    # the time rule is a pure function; the route gives it the server clock (PC-1, D1.1)
+    # the time rule is a pure function; the route gives it the server clock
     reason = rules.booking_start_error(start, datetime.now(UTC))
     if reason:
         raise Problem(
