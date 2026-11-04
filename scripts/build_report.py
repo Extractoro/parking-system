@@ -439,7 +439,8 @@ class Writer:
             p = self.paragraph()
             body_format(p)
             style_run(p.add_run("Фрагменти взято з коміту "))
-            style_run(p.add_run(str(commit)), mono=True, size=Pt(11))
+            # the short hash: a full one stretches a justified line
+            style_run(p.add_run(str(commit)[:7]), mono=True, size=Pt(11))
             style_run(p.add_run(" гілки main репозиторію проєкту."))
 
 
