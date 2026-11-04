@@ -1,11 +1,11 @@
 # Settings for the teacher's checker, joint project C09 «Паркінги» (Web + DPC).
 # From joint/checks-template.yaml of both kits. The core of each course is always checked;
-# `items` lists only the chosen items outside the core that are actually done (stage 0: none).
+# `items` lists only the chosen items outside the core that are actually done.
 # OpenAPI paths are relative to this file; URLs must be reachable by the checker.
 web:
   openapi: web/openapi.yaml
   base: http://localhost:8080
-  items: []
+  items: [О1.5, О1.6]
   # services: {app-a: web-app-a, app-b: web-app-b}
 dpc:
   openapi: dpc/openapi.yaml

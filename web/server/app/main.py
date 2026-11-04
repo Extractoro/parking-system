@@ -15,8 +15,9 @@ from collections.abc import AsyncIterator
 from contextlib import asynccontextmanager
 
 from fastapi import FastAPI
+from fastapi.middleware.cors import CORSMiddleware
 
-from . import cache, db, metrics, middleware, problems, service, telemetry
+from . import bookings, cache, catalog, config, db, metrics, middleware, problems, service, telemetry
 from .jsonlog import log
 
 
@@ -40,4 +41,17 @@ problems.install(app)
 app.include_router(service.router)
 app.include_router(metrics.router)
 telemetry.install(app)
-# app.include_router(your_module.router)
+app.include_router(catalog.router)
+app.include_router(bookings.router)
+
+# The browser client (Vite, outside Compose) calls the API through nginx from CLIENT_ORIGIN only, never "*".
+# Added last, so it is the outermost middleware: preflight and error answers also get the CORS headers.
+# TODO (O3.3): credentials, Origin / Sec-Fetch-Site checks for state-changing requests.
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=[config.CLIENT_ORIGIN],
+    allow_methods=["GET", "POST", "PATCH", "DELETE", "OPTIONS"],
+    allow_headers=["Content-Type", "X-User-Id", "Idempotency-Key", "If-Match", "X-Request-ID"],
+    expose_headers=["Location", "X-Request-ID", "X-Instance", "ETag", "Retry-After"],
+    max_age=600,
+)

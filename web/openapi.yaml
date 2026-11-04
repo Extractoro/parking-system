@@ -1,0 +1,935 @@
+# Contract of the Web part of C09 «Паркінги» (OpenAPI 3.1). Built from openapi.example.yaml of the kit:
+# the service routes (/health ... /v1/ws) are kept as in the example; /v1/auth/*, /v1/me and the
+# WebSocket routes are implemented in labs 3 and 5. Until lab 3 the user is the header X-User-Id.
+# Request examples (normal, scarce, missing) refer to the demo data migrations/900_c09_seed.sql.
+openapi: 3.1.0
+info:
+  title: C09 Паркінги — Web API
+  version: 1.0.0
+  description: |
+    Бронювання місць на рівнях паркінгу на кілька годин. Помилки — Problem Details (RFC 9457,
+    `application/problem+json`). Ідентифікатори — рядки. Гроші — ціле число копійок і валюта.
+    Час — RFC 3339 зі зміщенням зони паркінгу; інтервали — `[початок, кінець)` у цілих годинах.
+  license:
+    name: MIT
+    identifier: MIT
+servers:
+  - url: http://localhost:8080
+security:
+  - userId: []
+
+tags:
+  - name: service
+    description: Службові маршрути, однакові для всіх тем
+  - name: auth
+    description: Вхід і поточний користувач (ЛР3)
+  - name: catalog
+    description: Паркінги, рівні й вільні місця за годинами
+  - name: bookings
+    description: Бронювання місця на рівні на кілька годин
+  - name: notifications
+    description: Сповіщення через WebSocket (ЛР5)
+
+paths:
+  /health:
+    get:
+      tags:
+        - service
+      operationId: getHealth
+      summary: Перевірка живучості процесу, без звернення до бази
+      security: []
+      responses:
+        "200":
+          description: Процес відповідає
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                  instance:
+                    type: string
+  /ready:
+    get:
+      tags:
+        - service
+      operationId: getReady
+      summary: Готовність приймати запити (база доступна, процес не завершується)
+      security: []
+      responses:
+        "200":
+          description: Готовий
+        "503":
+          $ref: "#/components/responses/Unavailable"
+
+  /v1/auth/login:
+    post:
+      tags:
+        - auth
+      operationId: login
+      summary: Вхід
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - login
+                - password
+              properties:
+                login:
+                  type: string
+                password:
+                  type: string
+                  format: password
+            examples:
+              user:
+                value:
+                  login: user1
+                  password: user1-pass
+              staff:
+                value:
+                  login: staff1
+                  password: staff1-pass
+      responses:
+        "200":
+          description: Вхід виконано (токен у тілі або cookie сесії — оберіть одне)
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  access_token:
+                    type: string
+                  token_type:
+                    type: string
+                    examples:
+                      - Bearer
+                  expires_at:
+                    type: string
+                    format: date-time
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+  /v1/auth/logout:
+    post:
+      tags:
+        - auth
+      operationId: logout
+      summary: Вихід
+      responses:
+        "204":
+          description: Вихід виконано
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+  /v1/me:
+    get:
+      tags:
+        - auth
+      operationId: getMe
+      summary: Поточна особа й роль
+      responses:
+        "200":
+          description: Поточний користувач
+          content:
+            application/json:
+              schema:
+                type: object
+                required:
+                  - id
+                  - role
+                properties:
+                  id:
+                    type: string
+                  name:
+                    type: string
+                  role:
+                    type: string
+                    enum:
+                      - user
+                      - staff
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+
+  /v1/garages:
+    get:
+      tags:
+        - catalog
+      operationId: listGarages
+      summary: Паркінги з рівнями, місцями й поточним тарифом
+      security: []
+      responses:
+        "200":
+          description: Усі паркінги
+          content:
+            application/json:
+              schema:
+                type: object
+                required:
+                  - items
+                properties:
+                  items:
+                    type: array
+                    items:
+                      $ref: "#/components/schemas/Garage"
+              examples:
+                demo:
+                  value:
+                    items:
+                      - id: mall
+                        name: ТЦ Південний
+                        tz: Europe/Kyiv
+                        tariff_minor_per_hour: 3000
+                        currency: UAH
+                        spots: 81
+                        levels:
+                          - id: mall-1
+                            name: Рівень 1
+                            spots: 40
+                            closed: false
+                          - id: mall-one
+                            name: Рівень VIP (1 місце)
+                            spots: 1
+                            closed: false
+
+  /v1/levels/{id}/hours:
+    parameters:
+      - $ref: "#/components/parameters/Id"
+    get:
+      tags:
+        - catalog
+      operationId: getLevelHours
+      summary: Вільні місця рівня за годинами локальної доби
+      description: |
+        `day` — календарна дата в зоні паркінгу (`garage.tz`). Доба має 24 години, а в дні переходу
+        на літній/зимовий час — 23 або 25. Година без бронювань має `free = spots`.
+      security: []
+      parameters:
+        - name: day
+          in: query
+          required: true
+          schema:
+            type: string
+            format: date
+          example: "2027-06-15"
+      responses:
+        "200":
+          description: Години доби
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/LevelHours"
+              examples:
+                demo:
+                  value:
+                    level_id: mall-1
+                    garage_id: mall
+                    day: "2027-06-15"
+                    tz: Europe/Kyiv
+                    spots: 40
+                    closed: false
+                    hours:
+                      - hour: "2027-06-15T00:00:00+03:00"
+                        free: 40
+                        spots: 40
+                      - hour: "2027-06-15T18:00:00+03:00"
+                        free: 39
+                        spots: 40
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "422":
+          $ref: "#/components/responses/Unprocessable"
+
+  /v1/bookings:
+    get:
+      tags:
+        - bookings
+      operationId: listBookings
+      summary: Мої бронювання, від найновіших (курсор за парою created_at, id)
+      x-course: list
+      parameters:
+        - $ref: "#/components/parameters/Cursor"
+        - $ref: "#/components/parameters/Limit"
+      responses:
+        "200":
+          description: Сторінка списку
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/BookingPage"
+              examples:
+                last-page:
+                  value:
+                    items:
+                      - id: 9fdea44f-e38c-4b74-94c6-4885894dd722
+                        level_id: mall-1
+                        garage_id: mall
+                        plate: AT1234BC
+                        from_hour: "2027-06-15T18:00:00+03:00"
+                        to_hour: "2027-06-15T21:00:00+03:00"
+                        hours: 3
+                        tariff_minor_per_hour: 3000
+                        price_minor: 9000
+                        currency: UAH
+                        status: confirmed
+                        version: 1
+                        created_at: "2026-11-04T13:21:37.111357+02:00"
+                        expires_at: "2027-06-15T21:00:00+03:00"
+                    next_cursor: null
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "422":
+          $ref: "#/components/responses/Unprocessable"
+    post:
+      tags:
+        - bookings
+      operationId: createBooking
+      summary: Забронювати місце на рівні на кілька годин (усі години або жодної)
+      description: |
+        В одній транзакції: блокування рядків `level_hour` усіх годин інтервалу в порядку годин,
+        перевірка, що в кожній годині є вільне місце, зменшення `free` у кожній годині й запис
+        бронювання зі станом `confirmed`. Відповідь 201 — лише після фіксації.
+        Інтервал `[from_hour, from_hour + hours)` у цілих годинах; `from_hour` — початок години з
+        зоною. Ціна = тариф паркінгу × `hours` (неповна година рахується як повна), у копійках.
+        `Idempotency-Key` обов'язковий; механізм повтору — ЛР2.
+      x-course: main
+      parameters:
+        - $ref: "#/components/parameters/IdempotencyKey"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/BookingCreate"
+            examples:
+              normal:
+                summary: Рівень на 40 місць — вільних місць достатньо
+                value:
+                  level_id: mall-1
+                  from_hour: "2027-06-15T18:00:00+03:00"
+                  hours: 3
+                  plate: AT1234BC
+              scarce:
+                summary: Рівень з одним місцем — для досліду гонки
+                value:
+                  level_id: mall-one
+                  from_hour: "2027-06-15T18:00:00+03:00"
+                  hours: 2
+                  plate: AT1234BC
+                x-capacity: 1
+              missing:
+                summary: Такого рівня немає — 404
+                value:
+                  level_id: no-such-level
+                  from_hour: "2027-06-15T18:00:00+03:00"
+                  hours: 1
+                  plate: AT1234BC
+      responses:
+        "201":
+          description: Бронювання створено й зафіксовано
+          headers:
+            Location:
+              description: /v1/bookings/{id}
+              schema:
+                type: string
+            X-Request-ID:
+              $ref: "#/components/headers/RequestId"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Booking"
+              examples:
+                created:
+                  value:
+                    id: 9fdea44f-e38c-4b74-94c6-4885894dd722
+                    level_id: mall-1
+                    garage_id: mall
+                    plate: AT1234BC
+                    from_hour: "2027-06-15T18:00:00+03:00"
+                    to_hour: "2027-06-15T21:00:00+03:00"
+                    hours: 3
+                    tariff_minor_per_hour: 3000
+                    price_minor: 9000
+                    currency: UAH
+                    status: confirmed
+                    version: 1
+                    created_at: "2026-11-04T13:21:37.111357+02:00"
+                    expires_at: "2027-06-15T21:00:00+03:00"
+        "400":
+          description: Пошкоджений JSON
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/Problem"
+              examples:
+                malformed:
+                  value:
+                    type: https://example.edu/problems/malformed-json
+                    title: Request body is not valid JSON
+                    status: 400
+                    instance: /v1/bookings
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "404":
+          description: Рівня немає
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/Problem"
+              examples:
+                missing:
+                  value:
+                    type: https://example.edu/problems/level-not-found
+                    title: Level not found
+                    status: 404
+                    detail: No level 'no-such-level'
+                    instance: /v1/bookings
+        "409":
+          description: Місць не вистачає хоча б в одній годині або рівень закрито; жодна година не змінена
+          content:
+            application/problem+json:
+              schema:
+                allOf:
+                  - $ref: "#/components/schemas/Problem"
+                  - type: object
+                    properties:
+                      hour:
+                        type: string
+                        format: date-time
+                        description: Перша година без вільних місць (для no-free-spots)
+              examples:
+                no-free-spots:
+                  value:
+                    type: https://example.edu/problems/no-free-spots
+                    title: No free spots
+                    status: 409
+                    detail: No free spots at 2027-06-15T19:00:00+03:00
+                    instance: /v1/bookings
+                    hour: "2027-06-15T19:00:00+03:00"
+                level-closed:
+                  value:
+                    type: https://example.edu/problems/level-closed
+                    title: Level is closed
+                    status: 409
+                    detail: The level takes no new bookings
+                    instance: /v1/bookings
+        "422":
+          description: Неправильні дані (поля й причини в `errors`)
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/ValidationProblem"
+              examples:
+                not-start-of-hour:
+                  value:
+                    type: https://example.edu/problems/invalid-request
+                    title: Invalid request data
+                    status: 422
+                    instance: /v1/bookings
+                    errors:
+                      - field: body.from_hour
+                        message: "Value error, must be the start of an hour (minutes and seconds = 0)"
+
+  /v1/bookings/{id}:
+    parameters:
+      - $ref: "#/components/parameters/Id"
+    get:
+      tags:
+        - bookings
+      operationId: getBooking
+      summary: Одне власне бронювання (чуже й відсутнє — однаковий 404)
+      x-course: object
+      responses:
+        "200":
+          description: Бронювання
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Booking"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "404":
+          $ref: "#/components/responses/NotFound"
+  /v1/ws-tickets:
+    post:
+      tags:
+        - notifications
+      operationId: createWsTicket
+      summary: Одноразовий квиток для WebSocket
+      responses:
+        "201":
+          description: Квиток
+          content:
+            application/json:
+              schema:
+                type: object
+                required:
+                  - ticket
+                  - expires_at
+                properties:
+                  ticket:
+                    type: string
+                  expires_at:
+                    type: string
+                    format: date-time
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+  /v1/ws:
+    get:
+      tags:
+        - notifications
+      operationId: openNotificationChannel
+      summary: Канал сповіщень WebSocket через шлюз
+      description: Квиток передається в `?ticket=`. `Origin` — лише походження клієнта. Формат кадрів описано тут або 
+        в AsyncAPI.
+      security: []
+      parameters:
+        - name: ticket
+          in: query
+          required: true
+          schema:
+            type: string
+      responses:
+        "101":
+          description: З'єднання встановлено (WebSocket)
+        "403":
+          $ref: "#/components/responses/Forbidden"
+
+components:
+  securitySchemes:
+    userId:
+      type: apiKey
+      in: header
+      name: X-User-Id
+      description: Тимчасово до ЛР3 — ідентифікатор заздалегідь створеного користувача (u-1, u-2, s-1)
+    bearerAuth:
+      type: http
+      scheme: bearer
+    cookieAuth:
+      type: apiKey
+      in: cookie
+      name: session
+
+  parameters:
+    Id:
+      name: id
+      in: path
+      required: true
+      schema:
+        type: string
+    Cursor:
+      name: cursor
+      in: query
+      required: false
+      description: Непрозорий курсор з `next_cursor` попередньої сторінки
+      schema:
+        type: string
+    Limit:
+      name: limit
+      in: query
+      required: false
+      schema:
+        type: integer
+        minimum: 1
+        maximum: 50
+        default: 20
+    IdempotencyKey:
+      name: Idempotency-Key
+      in: header
+      required: true
+      description: Ключ ідемпотентності. Повтор із тим самим ключем повертає збережений результат
+      schema:
+        type: string
+        minLength: 8
+        maxLength: 128
+    IfMatch:
+      name: If-Match
+      in: header
+      required: false
+      description: "Без заголовка — 428"
+      schema:
+        type: string
+
+  headers:
+    RetryAfter:
+      description: Через скільки секунд повторити
+      schema:
+        type: integer
+        minimum: 0
+    RequestId:
+      description: Ідентифікатор запиту для журналу
+      schema:
+        type: string
+
+  schemas:
+    Problem:
+      type: object
+      required:
+        - type
+        - title
+        - status
+      properties:
+        type:
+          type: string
+          format: uri
+        title:
+          type: string
+        status:
+          type: integer
+        detail:
+          type: string
+        instance:
+          type: string
+    Page:
+      type: object
+      required:
+        - items
+      properties:
+        items:
+          type: array
+          items: {}
+        next_cursor:
+          type:
+            - string
+            - "null"
+          description: "null — це остання сторінка"
+    ValidationProblem:
+      allOf:
+        - $ref: "#/components/schemas/Problem"
+        - type: object
+          properties:
+            errors:
+              type: array
+              items:
+                type: object
+                required:
+                  - field
+                  - message
+                properties:
+                  field:
+                    type: string
+                  message:
+                    type: string
+    Garage:
+      type: object
+      required:
+        - id
+        - name
+        - tz
+        - tariff_minor_per_hour
+        - currency
+        - spots
+        - levels
+      properties:
+        id:
+          type: string
+        name:
+          type: string
+        tz:
+          type: string
+          description: Назва зони IANA; моменти у відповідях подаються зі зміщенням цієї зони
+          examples:
+            - Europe/Kyiv
+        tariff_minor_per_hour:
+          type: integer
+          format: int64
+          description: Поточний тариф, копійок за годину (встановлює частина DPC)
+        currency:
+          type: string
+          examples:
+            - UAH
+        spots:
+          type: integer
+          description: Сума місць усіх рівнів
+        levels:
+          type: array
+          items:
+            $ref: "#/components/schemas/Level"
+    Level:
+      type: object
+      required:
+        - id
+        - name
+        - spots
+        - closed
+      properties:
+        id:
+          type: string
+        name:
+          type: string
+        spots:
+          type: integer
+          minimum: 1
+        closed:
+          type: boolean
+          description: Закритий рівень не приймає нових бронювань
+    LevelHours:
+      type: object
+      required:
+        - level_id
+        - garage_id
+        - day
+        - tz
+        - spots
+        - closed
+        - hours
+      properties:
+        level_id:
+          type: string
+        garage_id:
+          type: string
+        day:
+          type: string
+          format: date
+        tz:
+          type: string
+        spots:
+          type: integer
+        closed:
+          type: boolean
+        hours:
+          type: array
+          items:
+            type: object
+            required:
+              - hour
+              - free
+              - spots
+            properties:
+              hour:
+                type: string
+                format: date-time
+                description: Початок години зі зміщенням зони паркінгу
+              free:
+                type: integer
+                minimum: 0
+              spots:
+                type: integer
+    BookingCreate:
+      type: object
+      required:
+        - level_id
+        - from_hour
+        - hours
+        - plate
+      properties:
+        level_id:
+          type: string
+        from_hour:
+          type: string
+          format: date-time
+          description: Початок години з зоною (хвилини й секунди = 0)
+        hours:
+          type: integer
+          minimum: 1
+          maximum: 24
+        plate:
+          type: string
+          minLength: 2
+          maxLength: 12
+          description: Номер авто (текст)
+    Booking:
+      type: object
+      required:
+        - id
+        - level_id
+        - garage_id
+        - plate
+        - from_hour
+        - to_hour
+        - hours
+        - tariff_minor_per_hour
+        - price_minor
+        - currency
+        - status
+        - version
+        - created_at
+        - expires_at
+      properties:
+        id:
+          type: string
+        level_id:
+          type: string
+        garage_id:
+          type: string
+        plate:
+          type: string
+        from_hour:
+          type: string
+          format: date-time
+        to_hour:
+          type: string
+          format: date-time
+          description: Кінець інтервалу (не включно)
+        hours:
+          type: integer
+        tariff_minor_per_hour:
+          type: integer
+          format: int64
+          description: Тариф на момент бронювання, копійок за годину
+        price_minor:
+          type: integer
+          format: int64
+          description: Ціна в копійках = tariff_minor_per_hour × hours
+        currency:
+          type: string
+        status:
+          type: string
+          description: |
+            `held` у реалізації не використовується (бронювання одразу `confirmed`); `entered`
+            обчислюється з в'їздів частини DPC (ЛР4), `expired` — після кінця інтервалу без в'їзду (ЛР4).
+          enum:
+            - held
+            - confirmed
+            - entered
+            - expired
+            - cancelled
+        version:
+          type: integer
+        created_at:
+          type: string
+          format: date-time
+        expires_at:
+          type: string
+          format: date-time
+    BookingPage:
+      allOf:
+        - $ref: "#/components/schemas/Page"
+        - type: object
+          properties:
+            items:
+              type: array
+              items:
+                $ref: "#/components/schemas/Booking"
+    Money:
+      type: object
+      required:
+        - amount_minor
+        - currency
+      properties:
+        amount_minor:
+          type: integer
+          description: Сума в мінімальних одиницях (копійках)
+        currency:
+          type: string
+          examples:
+            - UAH
+    Operation:
+      type: object
+      required:
+        - id
+        - status
+        - version
+      properties:
+        id:
+          type: string
+        status:
+          type: string
+          enum:
+            - pending
+            - running
+            - succeeded
+            - failed
+        version:
+          type: integer
+        result:
+          type:
+            - object
+            - "null"
+    Notification:
+      type: object
+      required:
+        - position
+        - kind
+        - payload
+        - created_at
+      properties:
+        position:
+          type: integer
+        kind:
+          type: string
+        payload:
+          type: object
+        created_at:
+          type: string
+          format: date-time
+
+  responses:
+    BadRequest:
+      description: Некоректний запит
+      content:
+        application/problem+json:
+          schema:
+            $ref: "#/components/schemas/Problem"
+    Unauthorized:
+      description: Потрібен вхід
+      content:
+        application/problem+json:
+          schema:
+            $ref: "#/components/schemas/Problem"
+    Forbidden:
+      description: Недостатньо прав
+      content:
+        application/problem+json:
+          schema:
+            $ref: "#/components/schemas/Problem"
+    NotFound:
+      description: Не знайдено (або чужий об'єкт)
+      content:
+        application/problem+json:
+          schema:
+            $ref: "#/components/schemas/Problem"
+    Conflict:
+      description: Конфлікт із поточним станом (ресурсу немає, ключ ще обробляється)
+      content:
+        application/problem+json:
+          schema:
+            $ref: "#/components/schemas/Problem"
+    Gone:
+      description: Позицію вже видалено з історії. Завантажте поточний стан
+      content:
+        application/problem+json:
+          schema:
+            $ref: "#/components/schemas/Problem"
+    PreconditionFailed:
+      description: Версія застаріла (If-Match)
+      content:
+        application/problem+json:
+          schema:
+            $ref: "#/components/schemas/Problem"
+    PreconditionRequired:
+      description: Немає If-Match
+      content:
+        application/problem+json:
+          schema:
+            $ref: "#/components/schemas/Problem"
+    Unprocessable:
+      description: Неправильні дані або той самий ключ ідемпотентності з іншим тілом
+      content:
+        application/problem+json:
+          schema:
+            $ref: "#/components/schemas/Problem"
+    TooManyRequests:
+      description: Забагато запитів
+      headers:
+        Retry-After:
+          $ref: "#/components/headers/RetryAfter"
+      content:
+        application/problem+json:
+          schema:
+            $ref: "#/components/schemas/Problem"
+    Unavailable:
+      description: Тимчасово недоступно
+      headers:
+        Retry-After:
+          $ref: "#/components/headers/RetryAfter"
+      content:
+        application/problem+json:
+          schema:
+            $ref: "#/components/schemas/Problem"
