@@ -1,0 +1,26 @@
+# Merged scrape config of both kits; http://localhost:9090/targets
+#   Web: GET /metrics of the instances and the gateways
+#   DPC: GET /metrics/prom of api and the metrics of Ray
+global:
+  scrape_interval: 5s
+scrape_configs:
+  - job_name: app
+    static_configs:
+      - targets:
+          - "app-a:8000"
+          - "app-b:8000"
+          - "app-canary:8000"
+  - job_name: gateway
+    static_configs:
+      - targets:
+          - "gateway-a:8000"
+          - "gateway-b:8000"
+  - job_name: api
+    metrics_path: /metrics/prom
+    static_configs:
+      - targets:
+          - "api:8000"
+  - job_name: ray
+    static_configs:
+      - targets:
+          - "ray-head:8080"

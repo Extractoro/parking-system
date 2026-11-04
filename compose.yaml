@@ -1,0 +1,560 @@
+# C09 «Паркінги» — one Compose file for both parts of the joint project (Web + DPC).
+#   cp .env.example .env && docker compose up -d --build
+# Merged from web-interactions-course@49fc428 and distributed-parallel-computing-course@527d718.
+# Shared: one PostgreSQL (one migrations/ folder), one Kafka broker (`broker`, alias `kafka`),
+# one Prometheus and Grafana. Everything else belongs to one part: Web under ./web, DPC under ./dpc.
+#
+# Profiles (the default set must fit into memory; see README.md, section 5):
+#   (none)          core of both courses
+#   observability   prometheus, grafana, kafka-ui, otel-collector, jaeger
+#   extras          redis, keycloak, ray-worker-extra, spark-history
+# Example: docker compose --profile observability up -d
+
+# ---------------------------------------------------------------------------------------------
+# Web part (./web)
+# ---------------------------------------------------------------------------------------------
+x-server: &server
+  build: ./web/server
+  image: project-web:${APP_TAG:-dev}
+  environment: &server-env
+    DATABASE_URL: postgresql://app:app@postgres:5432/app
+    KAFKA_BOOTSTRAP: broker:9092
+    EXTERNAL_URL: http://external-sim:8000
+    REDIS_URL: redis://redis:6379/0
+    FLAGS_URL: http://flags:8016
+    OIDC_ISSUER: http://localhost:8180/realms/project
+    OIDC_INTERNAL_URL: http://keycloak:8180/realms/project
+    CLIENT_ORIGIN: ${WEB_CLIENT_ORIGIN:-http://localhost:5173}
+    OTEL_ENABLED: ${OTEL_ENABLED:-off}
+    OTEL_EXPORTER_OTLP_ENDPOINT: http://otel-collector:4318
+    INVARIANT_MODE: ${INVARIANT_MODE:-protected}
+    POOL_SIZE: ${POOL_SIZE:-10}
+    RATE_LIMIT_PER_MIN: ${RATE_LIMIT_PER_MIN:-120}
+    JWT_REVOCATION: ${JWT_REVOCATION:-on}
+    FAULTS: "on"
+  depends_on:
+    migrate:
+      condition: service_completed_successfully
+  restart: unless-stopped
+  stop_grace_period: 30s
+  volumes:
+    - faults:/faults
+
+x-after-broker: &after-broker
+  migrate:
+    condition: service_completed_successfully
+  broker-init:
+    condition: service_completed_successfully
+
+# ---------------------------------------------------------------------------------------------
+# DPC part (./dpc)
+# ---------------------------------------------------------------------------------------------
+x-api: &api
+  build: ./dpc/api
+  image: project-dpc-api:${APP_TAG:-dev}
+  environment: &api-env
+    DATABASE_URL: postgresql://app:app@postgres:5432/app
+    API_TOKEN: ${API_TOKEN:-dev-token}
+    CLIENT_ORIGIN: ${DPC_CLIENT_ORIGIN:-http://localhost:5173}
+    RAY_ADDRESS: ray://ray-head:10001
+    RUNNER_URL: http://spark-runner:8000
+    KAFKA_BOOTSTRAP: kafka:9092
+    EVENTS_TOPIC: ${EVENTS_TOPIC:-barrier-events}
+    ETCD_URL: http://etcd:2379
+    QUEUE_CAPACITY: ${QUEUE_CAPACITY:-50}
+    WORKERS: ${WORKERS:-4}
+    RESOURCE_MODE: ${RESOURCE_MODE:-locked}
+    EXECUTION: ${EXECUTION:-local}
+    IN_FLIGHT_LIMIT: ${IN_FLIGHT_LIMIT:-8}
+    RECEIVER_DELAY_MS: ${RECEIVER_DELAY_MS:-0}
+    FENCING: ${FENCING:-on}
+    FAULTS: "on"
+  volumes:
+    - data:/data
+    - faults:/faults
+  restart: unless-stopped
+
+x-ray-node: &ray-node
+  <<: *api
+  shm_size: 1g
+  depends_on:
+    - ray-head
+
+x-spark: &spark
+  build:
+    context: ./dpc
+    dockerfile: spark/Dockerfile
+  image: project-dpc-spark:${APP_TAG:-dev}
+  environment:
+    SPARK_CONF_DIR: /opt/spark-conf
+    DATABASE_URL: postgresql://app:app@postgres:5432/app
+    KAFKA_BOOTSTRAP: kafka:9092
+    EVENTS_TOPIC: ${EVENTS_TOPIC:-barrier-events}
+    SPARK_AQE: ${SPARK_AQE:-on}
+    BROADCAST_THRESHOLD: ${BROADCAST_THRESHOLD:-10m}
+    WATERMARK_MINUTES: ${WATERMARK_MINUTES:-10}
+  volumes:
+    - data:/data
+    - ./dpc/spark/jobs:/jobs:ro
+    - ./dpc/configs/spark/spark-defaults.conf:/opt/spark-conf/spark-defaults.conf:ro
+  restart: unless-stopped
+
+x-spark-worker: &spark-worker
+  <<: *spark
+  command:
+    - "spark-class"
+    - "org.apache.spark.deploy.worker.Worker"
+    - "spark://spark-master:7077"
+    - "--cores"
+    - "2"
+    - "--memory"
+    - "2g"
+  depends_on:
+    - spark-master
+
+x-coordinator: &coordinator
+  build: ./dpc/coordinator
+  image: project-dpc-coordinator:${APP_TAG:-dev}
+  environment: &coordinator-env
+    ETCD_URL: http://etcd:2379
+    API_URL: http://api:8000
+    API_TOKEN: ${API_TOKEN:-dev-token}
+    LEASE_TTL_S: ${LEASE_TTL_S:-5}
+    FAULTS: "on"
+  volumes:
+    - faults:/faults
+  depends_on:
+    - etcd
+    - api
+  restart: unless-stopped
+
+services:
+  # ===========================================================================================
+  # Shared: PostgreSQL, migrations, Kafka
+  # ===========================================================================================
+  postgres:
+    image: postgres:17.11
+    environment:
+      POSTGRES_USER: app
+      POSTGRES_PASSWORD: app
+      POSTGRES_DB: app
+    command:
+      - "postgres"
+      - "-c"
+      - "max_connections=${PG_MAX_CONNECTIONS:-200}"
+    ports:
+      - "${POSTGRES_PORT:-5432}:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test:
+        - "CMD-SHELL"
+        - "pg_isready -U app"
+      interval: 2s
+      retries: 30
+
+  migrate:
+    image: postgres:17.11
+    command:
+      - "sh"
+      - "-c"
+      - "sh /migrate/migrate.sh $${MIGRATE_TO:+--to $$MIGRATE_TO}"
+    environment:
+      DATABASE_URL: postgresql://app:app@postgres:5432/app
+      MIGRATIONS_DIR: /migrations
+      MIGRATE_TO: ${MIGRATE_TO:-}
+    volumes:
+      - "./configs/migrate:/migrate:ro"
+      - "./migrations:/migrations:ro"
+    depends_on:
+      postgres:
+        condition: service_healthy
+    restart: "no"
+
+  # One broker for both parts: Web calls it `broker`, DPC calls it `kafka` (network alias).
+  broker:
+    image: apache/kafka:4.3.1
+    environment:
+      KAFKA_NODE_ID: 1
+      KAFKA_PROCESS_ROLES: broker,controller
+      KAFKA_LISTENERS: PLAINTEXT://:9092,CONTROLLER://:9093,EXTERNAL://:9094
+      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://broker:9092,EXTERNAL://localhost:${KAFKA_HOST_PORT:-9094}
+      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: PLAINTEXT:PLAINTEXT,CONTROLLER:PLAINTEXT,EXTERNAL:PLAINTEXT
+      KAFKA_CONTROLLER_LISTENER_NAMES: CONTROLLER
+      KAFKA_CONTROLLER_QUORUM_VOTERS: 1@broker:9093
+      KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
+      KAFKA_TRANSACTION_STATE_LOG_REPLICATION_FACTOR: 1
+      KAFKA_TRANSACTION_STATE_LOG_MIN_ISR: 1
+      KAFKA_AUTO_CREATE_TOPICS_ENABLE: "false"
+    ports:
+      - "${KAFKA_HOST_PORT:-9094}:9094"
+    networks:
+      default:
+        aliases:
+          - kafka
+    healthcheck:
+      test:
+        - "CMD-SHELL"
+        - "/opt/kafka/bin/kafka-broker-api-versions.sh --bootstrap-server localhost:9092 >/dev/null 2>&1"
+      interval: 3s
+      retries: 40
+    restart: unless-stopped
+  broker-init:
+    image: apache/kafka:4.3.1
+    command:
+      - "sh"
+      - "/scripts/topics.sh"
+    environment:
+      BOOTSTRAP: broker:9092
+      TOPICS: "domain-events:3 domain-events.dlq:1 notifications:3 ${EVENTS_TOPIC:-barrier-events}:${EVENTS_PARTITIONS:-1}"
+    volumes:
+      - "./web/configs/broker/kafka:/scripts:ro"
+    depends_on:
+      broker:
+        condition: service_healthy
+    restart: "no"
+
+  # ===========================================================================================
+  # Web: nginx :8080 -> app-a/app-b(/app-canary), gateways, outbox publisher, worker, router
+  # ===========================================================================================
+  app-a:
+    <<: *server
+    environment:
+      <<: *server-env
+      INSTANCE: app-a
+    ports:
+      - "${APP_A_PORT:-8001}:8000"
+  app-b:
+    <<: *server
+    environment:
+      <<: *server-env
+      INSTANCE: app-b
+    ports:
+      - "${APP_B_PORT:-8002}:8000"
+  # Stays in the default set: nginx.conf names app-canary in an upstream and does not start without it.
+  app-canary:
+    <<: *server
+    image: project-web:${CANARY_TAG:-dev}
+    environment:
+      <<: *server-env
+      INSTANCE: app-canary
+
+  nginx:
+    image: nginx:1.31.7
+    command:
+      - "sh"
+      - "/etc/nginx/start.sh"
+    environment:
+      CANARY_WEIGHT: "${CANARY_WEIGHT:-0}"
+    volumes:
+      - ./web/configs/nginx/nginx.conf:/etc/nginx/nginx.conf:ro
+      - ./web/configs/nginx/start.sh:/etc/nginx/start.sh:ro
+    ports:
+      - "${NGINX_PORT:-8080}:80"
+    depends_on:
+      - app-a
+      - app-b
+      - app-canary
+      - gateway-a
+      - gateway-b
+    restart: unless-stopped
+
+  publisher:
+    <<: *server
+    command:
+      - "python"
+      - "-m"
+      - "app.publisher"
+    environment:
+      <<: *server-env
+      INSTANCE: publisher
+    depends_on: *after-broker
+  worker:
+    <<: *server
+    command:
+      - "python"
+      - "-m"
+      - "app.worker"
+    environment:
+      <<: *server-env
+      INSTANCE: worker
+      GROUP_ID: worker
+    depends_on: *after-broker
+  router:
+    <<: *server
+    command:
+      - "python"
+      - "-m"
+      - "app.router"
+    environment:
+      <<: *server-env
+      INSTANCE: router
+      GROUP_ID: router
+    depends_on: *after-broker
+  gateway-a:
+    <<: *server
+    command:
+      - "uvicorn"
+      - "app.gateway:app"
+      - "--host"
+      - "0.0.0.0"
+      - "--port"
+      - "8000"
+      - "--no-access-log"
+    environment:
+      <<: *server-env
+      INSTANCE: gateway-a
+      GROUP_ID: gateway-a
+    ports:
+      - "${GATEWAY_A_PORT:-8091}:8000"
+    depends_on: *after-broker
+  gateway-b:
+    <<: *server
+    command:
+      - "uvicorn"
+      - "app.gateway:app"
+      - "--host"
+      - "0.0.0.0"
+      - "--port"
+      - "8000"
+      - "--no-access-log"
+    environment:
+      <<: *server-env
+      INSTANCE: gateway-b
+      GROUP_ID: gateway-b
+    ports:
+      - "${GATEWAY_B_PORT:-8092}:8000"
+    depends_on: *after-broker
+
+  # Barrier simulator of card C09 (lab 4): POST /open, 1-3 s, 10 % "no connection" (503).
+  external-sim:
+    build: ./web/tools/external-sim
+    environment:
+      SIM_NAME: ${SIM_NAME:-barrier}
+      SIM_ROUTE: ${SIM_ROUTE:-/open}
+      SIM_DELAY_MS: ${SIM_DELAY_MS:-1000-3000}
+      SIM_REJECT_SHARE: ${SIM_REJECT_SHARE:-0}
+      SIM_ERROR_SHARE: ${SIM_ERROR_SHARE:-0.10}
+      SIM_REJECT_REASONS: ${SIM_REJECT_REASONS:-шлагбаум несправний}
+      SIM_SEED: ${SIM_SEED:-}
+      SIM_STATE_FILE: /data/state.jsonl
+    volumes:
+      - simdata:/data
+    ports:
+      - "${SIM_PORT:-8090}:8000"
+    restart: unless-stopped
+
+  # Feature flags (lab 6); in the default set.
+  flags:
+    image: ghcr.io/open-feature/flagd:v0.18.0
+    command:
+      - "start"
+      - "--uri"
+      - "file:/etc/flagd/flags.json"
+    volumes:
+      - ./web/configs/flags:/etc/flagd:ro
+    ports:
+      - "${FLAGS_PORT:-8099}:8016"
+    restart: unless-stopped
+
+  redis:
+    profiles: ["extras"]
+    image: redis:8.10.2
+    ports:
+      - "${REDIS_PORT:-6379}:6379"
+  keycloak:
+    profiles: ["extras"]
+    image: quay.io/keycloak/keycloak:26.8.1
+    command:
+      - "start-dev"
+      - "--import-realm"
+      - "--http-port=8180"
+      - "--hostname=http://localhost:8180"
+      - "--hostname-backchannel-dynamic=true"
+    environment:
+      KC_BOOTSTRAP_ADMIN_USERNAME: admin
+      KC_BOOTSTRAP_ADMIN_PASSWORD: admin
+    volumes:
+      - ./web/configs/keycloak:/opt/keycloak/data/import:ro
+    ports:
+      - "8180:8180"
+
+  # ===========================================================================================
+  # DPC: api :8000, Ray, Spark (batch + stream), etcd + coordinators
+  # ===========================================================================================
+  api:
+    <<: *api
+    environment:
+      <<: *api-env
+      INSTANCE: api
+    ports:
+      - "${API_PORT:-8000}:8000"
+    cap_add:
+      - SYS_PTRACE
+    stop_grace_period: 120s
+    depends_on:
+      migrate:
+        condition: service_completed_successfully
+
+  ray-head:
+    <<: *api
+    command:
+      - "ray"
+      - "start"
+      - "--head"
+      - "--port=6379"
+      - "--ray-client-server-port=10001"
+      - "--dashboard-host=0.0.0.0"
+      - "--num-cpus=1"
+      - "--metrics-export-port=8080"
+      - "--block"
+    environment:
+      <<: *api-env
+      INSTANCE: ray-head
+    ports:
+      - "${RAY_DASHBOARD_PORT:-8265}:8265"
+    shm_size: 1g
+  ray-worker:
+    <<: *ray-node
+    command:
+      - "ray"
+      - "start"
+      - "--address=ray-head:6379"
+      - "--num-cpus=2"
+      - "--block"
+    environment:
+      <<: *api-env
+      INSTANCE: ray-worker
+    deploy:
+      replicas: 2
+  ray-worker-extra:
+    <<: *ray-node
+    profiles: ["extras"]
+    command:
+      - "ray"
+      - "start"
+      - "--address=ray-head:6379"
+      - "--num-cpus=2"
+      - "--resources={\"extra\": 1}"
+      - "--block"
+    environment:
+      <<: *api-env
+      INSTANCE: ray-worker-extra
+
+  spark-master:
+    <<: *spark
+    command:
+      - "spark-class"
+      - "org.apache.spark.deploy.master.Master"
+      - "--host"
+      - "spark-master"
+    ports:
+      - "${SPARK_MASTER_UI_PORT:-8280}:8080"
+  spark-worker-1: *spark-worker
+  spark-worker-2: *spark-worker
+  spark-runner:
+    <<: *spark
+    command:
+      - "python"
+      - "/runner/runner.py"
+    ports:
+      - "${SPARK_JOB_UI_PORT:-4040}:4040"
+    depends_on:
+      - spark-master
+  spark-history:
+    <<: *spark
+    profiles: ["extras"]
+    command:
+      - "sh"
+      - "-c"
+      - "mkdir -p /data/spark-events && exec spark-class org.apache.spark.deploy.history.HistoryServer"
+    ports:
+      - "${SPARK_HISTORY_PORT:-18080}:18080"
+
+  stream:
+    <<: *spark
+    command:
+      - "sh"
+      - "-c"
+      - "mkdir -p /data/spark-events && exec spark-submit --master spark://spark-master:7077 --conf spark.ui.port=4041 --conf
+        spark.cores.max=2 --conf spark.executor.memory=1g /jobs/stream.py"
+    ports:
+      - "${SPARK_STREAM_UI_PORT:-4041}:4041"
+    depends_on:
+      broker-init:
+        condition: service_completed_successfully
+      migrate:
+        condition: service_completed_successfully
+      spark-master:
+        condition: service_started
+
+  etcd:
+    image: quay.io/coreos/etcd:v3.7.2
+    command:
+      - "etcd"
+      - "--name=etcd"
+      - "--listen-client-urls=http://0.0.0.0:2379"
+      - "--advertise-client-urls=http://etcd:2379"
+      - "--data-dir=/etcd-data"
+    ports:
+      - "${ETCD_PORT:-2379}:2379"
+  coordinator-a:
+    <<: *coordinator
+    environment:
+      <<: *coordinator-env
+      INSTANCE: coordinator-a
+  coordinator-b:
+    <<: *coordinator
+    environment:
+      <<: *coordinator-env
+      INSTANCE: coordinator-b
+
+  # ===========================================================================================
+  # Profile "observability": shared by both parts
+  # ===========================================================================================
+  kafka-ui:
+    profiles: ["observability"]
+    image: kafbat/kafka-ui:v1.5.0
+    environment:
+      KAFKA_CLUSTERS_0_NAME: parking
+      KAFKA_CLUSTERS_0_BOOTSTRAPSERVERS: broker:9092
+    ports:
+      - "${KAFKA_UI_PORT:-8085}:8080"
+    depends_on:
+      broker:
+        condition: service_healthy
+  otel-collector:
+    profiles: ["observability"]
+    image: otel/opentelemetry-collector:0.163.1
+    volumes:
+      - ./web/configs/otel/collector.yaml:/etc/otelcol/config.yaml:ro
+  jaeger:
+    profiles: ["observability"]
+    image: jaegertracing/jaeger:2.22.0
+    ports:
+      - "${JAEGER_PORT:-16686}:16686"
+  prometheus:
+    profiles: ["observability"]
+    image: prom/prometheus:v3.15.0
+    volumes:
+      - ./configs/prometheus/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+    ports:
+      - "${PROMETHEUS_PORT:-9090}:9090"
+  grafana:
+    profiles: ["observability"]
+    image: grafana/grafana:13.2.4
+    environment:
+      GF_AUTH_ANONYMOUS_ENABLED: "true"
+      GF_AUTH_ANONYMOUS_ORG_ROLE: Viewer
+      GF_SECURITY_ADMIN_PASSWORD: admin
+    volumes:
+      - ./configs/grafana/provisioning:/etc/grafana/provisioning:ro
+      - ./configs/grafana/dashboards:/var/lib/grafana/dashboards:ro
+    ports:
+      - "${GRAFANA_PORT:-3000}:3000"
+
+volumes:
+  pgdata:
+  faults:
+  simdata:
+  data:
