@@ -49,9 +49,12 @@ _Заповнюється по мірі інтеграції (Web ЛР4, DPC Л�
 ### Вимоги
 
 - Docker Engine з Docker Compose v2 (перевірено: Docker 28.4.0, Compose v2.39.4, Docker Desktop на Windows 11).
-- Пам'ять: типовий набір сервісів після запуску без навантаження займає **≈2.7 ГіБ**
-  (`docker stats --no-stream`, сума по 26 контейнерах, 2026-11-04) на машині з 3.8 ГіБ і 4 CPU для Docker.
-  Під навантаженням Spark і Ray потребують більше; рекомендовано ≥8 ГіБ для Docker.
+- Пам'ять (`docker stats --no-stream`, без навантаження, 2026-11-04, Docker з 11.7 ГіБ і 4 CPU):
+  типовий набір **≈3.9 ГіБ**, разом з `observability` **≈4.8 ГіБ**. Під навантаженням Spark
+  (worker `--memory 2g`, executor 1g) і Ray потребують більше. Рекомендовано **≥10 ГБ для Docker**;
+  з 4 ГБ (WSL2) Docker Desktop зависав. На Windows ліміт задає `%USERPROFILE%\.wslconfig`
+  (`[wsl2] memory=12GB`), після зміни: вийти з Docker Desktop, `wsl --shutdown`, запустити знову.
+- Для роботи над однією частиною не потрібно запускати все (див. «Запуск частинами»).
 - Вільні порти – таблиця нижче.
 
 ### Команди (з кореня репозиторію)
@@ -82,6 +85,20 @@ docker compose run --rm migrate sh /migrate/migrate.sh --list
 У Git Bash на Windows перед `docker compose exec/run` з абсолютними шляхами задайте `MSYS_NO_PATHCONV=1`.
 
 Зупинка: `docker compose down`; з видаленням томів (база, стан симулятора, дані Spark): `docker compose down -v`.
+
+### Запуск частинами
+
+`docker compose up -d <сервіс>` піднімає сервіс разом із залежностями. Повний набір потрібен
+для наскрізного сценарію й захисту.
+
+| Що перевіряємо | Команда | Що підніметься |
+|---|---|---|
+| Web ЛР1–ЛР3, ЛР5–ЛР6 | `docker compose up -d nginx` | nginx, app-a/b, app-canary, gateway-a/b, postgres, broker |
+| Web ЛР4 | `docker compose up -d nginx publisher worker router external-sim` | + outbox, обробник, симулятор |
+| DPC ЛР1–ЛР2 | `docker compose up -d api` | api, postgres |
+| DPC ЛР3 | `docker compose up -d api ray-worker` | + Ray |
+| DPC ЛР4–ЛР5 | `docker compose up -d api spark-runner stream` | + Spark, broker |
+| DPC ЛР6 | `docker compose up -d coordinator-a coordinator-b` | api, etcd, координатори |
 
 ### Профілі
 

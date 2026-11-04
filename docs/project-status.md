@@ -1,6 +1,9 @@
 # Стан проєкту C09 «Паркінги»
 
-## Етап 0 — репозиторій і спільний Compose: **виконано частково** (2026-11-04)
+## Етап 0 — репозиторій і спільний Compose: **виконано** (2026-11-04)
+
+Середовище: Windows 11, Docker Desktop 28.4.0 (WSL2), Compose v2.39.4; для WSL виділено 12 ГБ
+(`.wslconfig` `memory=12GB`; з 4 ГБ Docker Desktop зависав — див. нижче), 4 CPU.
 
 ### Фактично виконані перевірки
 
@@ -9,16 +12,18 @@
 | `docker compose config --quiet` | CONFIG_OK |
 | `docker compose config --services` | 26 сервісів у типовому наборі (35 з `observability` + `extras`) |
 | Збирання образів | `project-web`, `project-dpc-api`, `project-dpc-coordinator`, `project-dpc-spark`, `external-sim` — зібрано (по одному сервісу на образ) |
-| `docker compose up -d` (перший запуск) | усі сервіси `running`; `migrate`, `broker-init` — `Exited (0)`; без рестартів і OOM |
-| `/health` :8080, :8001, :8002, :8000 | 200 на всіх чотирьох (повторено після пересоздання стека) |
+| `docker compose up -d` | усі сервіси `Up`; `migrate`, `broker-init` — `Exited (0)`; рестартів і OOM немає |
+| `/health` :8080, :8001, :8002, :8000 | 200 на всіх чотирьох |
 | Теми Kafka | `barrier-events` (1 партиція), `domain-events`, `domain-events.dlq`, `notifications` |
-| Ім'я `kafka` з контейнера `api` | розв'язується в IP брокера (той самий, що й `broker`) |
+| Ім'я `kafka` з контейнера `api` | розв'язується в IP брокера |
 | `docker compose run --rm migrate` | `no migrations in /migrations`, exit 0 |
-| `docker stats --no-stream` (типовий набір, без навантаження) | ≈2.7 ГіБ сумарно; найбільші: stream 518 МіБ, ray-head 458 МіБ, broker 348 МіБ, spark-worker ×2 ≈300 МіБ |
+| `docker compose --profile observability up -d` | Grafana: дашборди «Web project» (`web-project`) і «DPC project» (`dpc-project`); Prometheus: 7 цілей `up` (app-a, app-b, app-canary, gateway-a, gateway-b, api, ray-head); kafka-ui 200, jaeger 200 |
+| `docker stats --no-stream` без навантаження | типовий набір ≈3.9 ГіБ; з `observability` ≈4.8 ГіБ. Найбільші: ray-head 739 МіБ, stream 549, grafana 480, spark-worker ×2 ≈455, kafka-ui 381, broker 335, ray-worker ×2 ≈297 |
 
-### Не виконано
+### Інцидент із пам'яттю
 
-| Перевірка | Причина |
-|---|---|
-| `--profile observability`: Grafana з двома дашбордами | Docker Desktop (WSL2, `.wslconfig` `memory=4GB`) зависав: спершу при додаванні профілю `observability` до типового набору, потім і на одному типовому наборі через кілька хвилин після старту. Після перезапуску Docker Desktop не стартує через старі сокети в `AppData\Local\Docker\run\` |
-| Стабільність типового набору | на 4 ГБ для WSL не стабільний; потрібне збільшення пам'яті WSL (див. звіт етапу 0) |
+З лімітом WSL 4 ГБ (3.8 ГіБ для Docker) типовий набір займав ≈2.7 ГіБ, але через кілька хвилин
+Docker Desktop зависав (500 на всі запити до API), а після перезапуску не стартував через залишені
+сокети в `%LOCALAPPDATA%\Docker\run\`. Виправлено: зупинка Docker Desktop, `wsl --shutdown`,
+`memory=12GB` у `.wslconfig` (копія — `.wslconfig.bak`), каталог `run` перейменовано на
+`run.stale-*`, запуск Docker Desktop. Перезавантаження комп'ютера не знадобилось.

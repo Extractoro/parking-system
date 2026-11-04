@@ -46,4 +46,6 @@
 - Git Bash на Windows переписує шляхи в `docker compose exec ... /opt/...`: використовуйте `MSYS_NO_PATHCONV=1`.
 - Збирання: `docker compose build app-a api coordinator-a spark-master external-sim` (по одному сервісу
   на образ; паралельне `build` усіх сервісів падає з `image ... already exists`).
+- Пам'ять: повний набір ≈3.9 ГіБ без навантаження; для задачі однієї частини піднімати лише її
+  сервіси (`docker compose up -d nginx` — Web, `docker compose up -d api` — DPC; таблиця в README, розділ 5).
 - Довідка каркасів: `web/KIT-README.md`, `dpc/KIT-README.md`, `*/docs/ENVIRONMENT.md`.
