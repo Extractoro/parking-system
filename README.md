@@ -222,7 +222,7 @@ docker compose run --rm migrate sh /migrate/migrate.sh --list
 | О1.7 Клієнт | `web/client/` (React + TypeScript + Vite) | бронювання, 409 як Problem Details, «Мої бронювання» читає всі сторінки — знімки в `docs/reports/img/web-lr1-*.jpg` |
 | Д1.1 Правило за часом | `web/server/app/rules.py` (`booking_start_error(from_hour, now)`), PC-1 | `test_rules.py` (межі з фіксованим `now`), `test_lr1.py::test_8` (минула година → 422) |
 
-Тести: `web/server/tests/test_lr1.py` — 9 тестів проти запущеного стенда, `test_rules.py` — 7 тестів
+Тести: `web/server/tests/test_lr1.py` — 10 тестів проти запущеного стенда, `test_rules.py` — 7 тестів
 правила часу (чиста функція, Д1.1). Зміни плану — [docs/plan-changes.md](docs/plan-changes.md) (PC-1).
 
 ```bash

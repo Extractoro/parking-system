@@ -6,13 +6,15 @@
 |---|---|
 | Міграції з нуля (порожній том pgdata) | 001, 002, 003 (notx), 900 — applied; 901 (англійські назви) — applied пізніше |
 | `npx @redocly/cli lint web/openapi.yaml` | valid, 0 помилок, 16 попереджень (службові маршрути й компоненти каркаса) |
-| `pytest web/server/tests` (стенд `docker compose up -d nginx`) | 8 passed |
+| `pytest web/server/tests` (стенд `docker compose up -d nginx`) | 17 passed (після PC-1 і регресу) |
 | Гонка: 20 одночасних запитів на 1 місце через app-a і app-b | 1×201, 19×409, `free = 0` |
 | Клієнт у браузері (Vite :5173 → nginx :8080) | 409 як Problem Details, 201, список 7 бронювань за 2 сторінки; знімки `docs/reports/img/web-lr1-*.jpg` |
 | Журнал app-a/app-b | JSON з `time`, `instance`, `route`, `status`, `duration_ms`; `X-User-Id` — 0 входжень |
 | `npm run build`, `eslint` клієнта | без помилок |
 
-Не зроблено в етапі 1: механізм ідемпотентності (ЛР2), вхід (ЛР3).
+Регрес-перевірка: 3 відповіді 500 і 3 вади клієнта виправлено (звіт `docs/reports/web-lr1.md`).
+
+Не зроблено в етапі 1: механізм ідемпотентності (ЛР2; зараз без `Idempotency-Key` — 201, план ЛР2: 400), вхід (ЛР3).
 
 ## Етап 0 — репозиторій і спільний Compose: **виконано** (2026-11-04)
 
