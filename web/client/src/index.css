@@ -656,10 +656,33 @@ a:hover {
   color: var(--placeholder);
 }
 
-.stepper output {
-  min-width: 64px;
-  text-align: center;
+.stepper-value {
+  display: flex;
+  align-items: baseline;
+  justify-content: center;
+  gap: 4px;
+  min-width: 84px;
   font-weight: 700;
+  cursor: text;
+}
+
+.stepper-value input {
+  width: 2.4ch;
+  border: 0;
+  padding: 2px 0;
+  text-align: right;
+  font-weight: 700;
+  background: transparent;
+  border-radius: 4px;
+}
+
+.stepper-value input:focus-visible {
+  box-shadow: none;
+  background: var(--subtle);
+}
+
+.stepper:focus-within {
+  box-shadow: var(--ring);
 }
 
 .stepper.invalid {

@@ -11,6 +11,7 @@ import {
   dayNumber,
   dayOf,
   hoursLabel,
+  isDay,
   money,
   plusHours,
   time,
@@ -40,6 +41,7 @@ export default function BookingPage({ userId, params, setParams, onNavigate }: P
   const [result, setResult] = useState<Booking | null>(null)
   const [error, setError] = useState<unknown>(null)
   const [fieldErrors, setFieldErrors] = useState<FieldErrors>({})
+  const [hoursText, setHoursText] = useState<string | null>(null) // what is typed; null = show the applied value
   const plateRef = useRef<HTMLInputElement>(null)
   const gridRef = useRef<HTMLDivElement>(null)
 
@@ -53,10 +55,12 @@ export default function BookingPage({ userId, params, setParams, onNavigate }: P
   const garage = garages?.find((g) => g.id === params.get('garage')) ?? garages?.[0] ?? null
   const tz = garage?.tz ?? 'Europe/Kyiv'
   const openLevels = garage?.levels ?? []
-  const level = openLevels.find((l) => l.id === params.get('level')) ?? openLevels.find((l) => !l.closed) ?? null
+  // a closed level is never selected, not even from a link (it takes no new bookings)
+  const level = openLevels.find((l) => l.id === params.get('level') && !l.closed) ?? openLevels.find((l) => !l.closed) ?? null
   const today = todayIn(tz)
   const dayParam = params.get('day')
-  const day = dayParam && dayParam >= today ? dayParam : today
+  // a day from the URL is used only if it is a real calendar date, not in the past
+  const day = dayParam && isDay(dayParam) && dayParam >= today ? dayParam : today
   // hours that have ended cannot be booked (PC-1); the running hour still can. The server checks
   // the same rule; here it only greys the hours out. Whole-hour zones: UTC hour = garage hour.
   const nowHour = Math.floor(Date.now() / HOUR_MS) * HOUR_MS
@@ -109,6 +113,25 @@ export default function BookingPage({ userId, params, setParams, onNavigate }: P
 
   function pickHour(iso: string) {
     select({ from: iso })
+  }
+
+  function stepHours(n: number) {
+    setHoursText(null)
+    setFieldErrors((f) => ({ ...f, hours: undefined }))
+    select({ hours: String(n) })
+  }
+
+  /** Typed duration: digits only; a valid value is applied at once, an invalid one is explained. */
+  function typeHours(raw: string) {
+    const text = raw.replace(/\D/g, '').slice(0, 2)
+    setHoursText(text)
+    const n = Number(text)
+    if (text !== '' && n >= 1 && n <= MAX_HOURS) {
+      setFieldErrors((f) => ({ ...f, hours: undefined }))
+      select({ hours: String(n) })
+    } else {
+      setFieldErrors((f) => ({ ...f, hours: `Enter 1 to ${MAX_HOURS} hours` }))
+    }
   }
 
   function validate(): FieldErrors {
@@ -374,18 +397,39 @@ export default function BookingPage({ userId, params, setParams, onNavigate }: P
                     aria-labelledby="hours-label"
                     className={fieldErrors.hours ? 'stepper invalid' : 'stepper'}
                   >
-                    <button type="button" aria-label="Fewer hours" disabled={hours <= 1} onClick={() => select({ hours: String(hours - 1) })}>
+                    <button type="button" aria-label="Fewer hours" disabled={hours <= 1} onClick={() => stepHours(hours - 1)}>
                       −
                     </button>
-                    <output className="mono" aria-live="polite">
-                      {hoursLabel(hours)}
-                    </output>
-                    <button type="button" aria-label="More hours" disabled={hours >= MAX_HOURS} onClick={() => select({ hours: String(hours + 1) })}>
+                    <label className="stepper-value">
+                      <input
+                        className="mono"
+                        name="hours"
+                        inputMode="numeric"
+                        autoComplete="off"
+                        aria-label="Hours"
+                        aria-invalid={fieldErrors.hours ? true : undefined}
+                        aria-describedby={fieldErrors.hours ? 'hours-err' : undefined}
+                        value={hoursText ?? String(hours)}
+                        onChange={(e) => typeHours(e.target.value)}
+                        onBlur={() => {
+                          // leaving the field restores the last valid value
+                          setHoursText(null)
+                          setFieldErrors((f) => ({ ...f, hours: undefined }))
+                        }}
+                        onFocus={(e) => e.target.select()}
+                      />
+                      <span aria-hidden>{hours === 1 && hoursText === null ? 'hour' : 'hours'}</span>
+                    </label>
+                    <button type="button" aria-label="More hours" disabled={hours >= MAX_HOURS} onClick={() => stepHours(hours + 1)}>
                       +
                     </button>
                   </div>
                 </div>
-                {fieldErrors.hours && <span className="field-error">{fieldErrors.hours}</span>}
+                {fieldErrors.hours && (
+                  <span id="hours-err" className="field-error" role="alert">
+                    {fieldErrors.hours}
+                  </span>
+                )}
 
                 <label className="field">
                   <span>Licence plate</span>
@@ -452,7 +496,7 @@ export default function BookingPage({ userId, params, setParams, onNavigate }: P
                 <button
                   type="submit"
                   className="btn btn-primary btn-lg"
-                  disabled={!from || !level || conflictAt !== null || sending}
+                  disabled={!from || !level || conflictAt !== null || sending || Boolean(fieldErrors.hours)}
                   aria-busy={sending || undefined}
                 >
                   {sending ? (

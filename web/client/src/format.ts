@@ -32,6 +32,14 @@ export function todayIn(tz: string): string {
   return dayOf(Date.now(), tz)
 }
 
+/** A real calendar date in YYYY-MM-DD within a sane range (2026-02-30 and "garbage" are not). */
+export function isDay(s: string): boolean {
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(s)) return false
+  const [y, m, d] = s.split('-').map(Number)
+  const t = new Date(Date.UTC(y, m - 1, d))
+  return y >= 1970 && y <= 9998 && t.getUTCMonth() === m - 1 && t.getUTCDate() === d
+}
+
 /** Calendar arithmetic on YYYY-MM-DD (no time zone involved). */
 export function addDays(day: string, n: number): string {
   const [y, m, d] = day.split('-').map(Number)

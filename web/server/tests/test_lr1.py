@@ -79,6 +79,10 @@ def test_4_validation(api, day, users):
     bad_bodies = [
         {**good, "from_hour": f"{day.isoformat()}T10:30:00{off}"},  # not the start of an hour
         {**good, "from_hour": f"{day.isoformat()}T10:00:00"},  # no zone
+        {**good, "from_hour": f"{day.isoformat()}T10:00:00+05:30"},  # 04:30 UTC: not an hour start (was 500)
+        {**good, "from_hour": "9999-12-31T23:00:00+00:00"},  # out of range (was 500)
+        {**good, "hours": 2.0},
+        {**good, "plate": "A" * 13},
         {**good, "hours": 0},
         {**good, "hours": 25},
         {**good, "hours": "2"},
@@ -101,6 +105,8 @@ def test_4_validation(api, day, users):
     assert r.status_code == 401, r.text
 
     assert api.get("/v1/levels/mall-1/hours", params={"day": "2026-13-01"}).status_code == 422
+    assert api.get("/v1/levels/mall-1/hours", params={"day": "0001-01-01"}).status_code == 422  # was 500
+    assert api.get("/v1/levels/mall-1/hours").status_code == 422
     assert api.get("/v1/levels/no-such-level/hours", params={"day": "2026-11-20"}).status_code == 404
 
 
@@ -189,6 +195,20 @@ def test_8_past_start_is_rejected_current_hour_allowed(api, users):
 
     r = book(api, "center-1", current.isoformat(), 1, users[1])
     assert r.status_code in (201, 409), r.text  # 409 only if the real current hour is full
+
+
+def test_9_closed_level_takes_no_new_bookings(api, db, day, users):
+    """Decision B8/M8: a closed level answers 409 level-closed; nothing is reserved."""
+    off = local_offset(api, "center-1", day)
+    before = hours_of(api, "center-1", day)
+    db.execute("UPDATE level SET closed = true WHERE id = 'center-1'")
+    try:
+        r = book(api, "center-1", iso(day, 10, off), 2, users[0])
+        assert r.status_code == 409, r.text
+        assert r.json()["type"].endswith("/level-closed")
+        assert hours_of(api, "center-1", day) == before
+    finally:
+        db.execute("UPDATE level SET closed = false WHERE id = 'center-1'")
 
 
 def test_health_and_request_id():

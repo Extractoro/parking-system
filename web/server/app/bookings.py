@@ -25,6 +25,8 @@ from .users import CurrentUser
 router = APIRouter(prefix="/v1/bookings")
 
 MAX_HOURS = 24
+EARLIEST = datetime(1970, 1, 1, tzinfo=UTC)
+LATEST = datetime(9998, 12, 31, tzinfo=UTC)
 
 
 class BookingCreate(BaseModel):
@@ -37,8 +39,13 @@ class BookingCreate(BaseModel):
     @field_validator("from_hour")
     @classmethod
     def _start_of_hour(cls, v: datetime) -> datetime:
-        if v.minute or v.second or v.microsecond:
+        # checked on the instant, not on the wall clock: 10:00+05:30 is 04:30 UTC, not an hour start
+        utc = v.astimezone(UTC)
+        if utc.minute or utc.second or utc.microsecond:
             raise ValueError("must be the start of an hour (minutes and seconds = 0)")
+        # technical range: the interval end (+24 h) and the local day must stay representable
+        if not (EARLIEST <= utc <= LATEST):
+            raise ValueError("is out of the supported range")
         return v
 
     @field_validator("plate", mode="before")
@@ -227,5 +234,6 @@ async def get_booking(booking_id: str, user: CurrentUser) -> dict[str, Any]:
         cur = await conn.execute(_BOOKING_SELECT + " WHERE b.id = %s AND b.user_id = %s", (booking_id, user.id))
         row = await cur.fetchone()
     if row is None:
-        raise Problem(404, "booking-not-found", "Booking not found", f"No booking {booking_id!r}")
+        # the id is not echoed back: it is user input of any length
+        raise Problem(404, "booking-not-found", "Booking not found", "No booking with this id for this user")
     return _to_json(row)

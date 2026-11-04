@@ -50,7 +50,7 @@ export default function BookingsPage({ userId, params, setParams, onNavigate }: 
       <div className="page-head">
         <div>
           <h1>My bookings</h1>
-          <p>{data ? `${all.length} ${all.length === 1 ? 'booking' : 'bookings'}` : 'Loading…'}</p>
+          <p>{data ? `${all.length} ${all.length === 1 ? 'booking' : 'bookings'}` : error ? 'Could not load the list' : 'Loading…'}</p>
         </div>
         <NavLink to="book" onNavigate={onNavigate} className="btn btn-primary">
           <Plus size={16} />

@@ -51,6 +51,10 @@ async def list_garages() -> dict[str, Any]:
 async def level_hours(level_id: str, day: Annotated[date, Query(description="Local date in the garage zone")]) -> dict[str, Any]:
     """All hours of the local day `day` in the zone of the garage: 23 or 25 of them on the days the
     clock changes. An hour without a level_hour row has not been booked yet: free = spots."""
+    if not (date(1970, 1, 1) <= day <= date(9998, 12, 30)):  # the local day must convert to a moment
+        raise Problem(
+            422, "invalid-request", "Invalid request data", errors=[{"field": "query.day", "message": "is out of the supported range"}]
+        )
     async with db.connection() as conn, conn.transaction():
         cur = await conn.execute(
             "SELECT l.id, l.garage_id, l.spots, l.closed, g.tz FROM level l JOIN garage g ON g.id = l.garage_id WHERE l.id = %s",
@@ -58,7 +62,7 @@ async def level_hours(level_id: str, day: Annotated[date, Query(description="Loc
         )
         level = await cur.fetchone()
         if level is None:
-            raise Problem(404, "level-not-found", "Level not found", f"No level {level_id!r}")
+            raise Problem(404, "level-not-found", "Level not found", "No level with this id")
         cur = await conn.execute(
             """
             SELECT h.hour, COALESCE(lh.free, %(spots)s) AS free
