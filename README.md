@@ -14,8 +14,74 @@
 
 ## 2. Проєкт
 
-_Заповнюється в ЛР1 (Web О1.1): призначення, ролі, головна операція, стани й переходи, інваріанти,
-правила для грошей і часу, зовнішня система, запланована зміна ЛР6._
+**Призначення.** Водій бронює місце на рівні паркінгу на кілька годин; шлагбаум відкривається за
+бронюванням. Головне навантаження — вечір п'ятниці біля торгового центру: багато одночасних
+бронювань останніх місць на години, що перетинаються.
+
+**Ролі.** `user` — водій (бронює, бачить лише свої бронювання); `staff` — оператор паркінгу
+(закриває рівень, ЛР3). До ЛР3 користувач передається заголовком `X-User-Id`.
+
+**Сутності (Web).**
+
+| Сутність | Таблиця | Що зберігає |
+|---|---|---|
+| Паркінг | `garage(id, name, tz)` | назва й часова зона IANA |
+| Рівень | `level(id, garage_id, name, spots, closed)` | кількість місць; закритий рівень не приймає нових бронювань |
+| Тариф | `tariff(garage_id, minor_per_hour, currency)` | копійок за годину; **власник — DPC** (ЛР6), Web лише читає |
+| Година рівня | `level_hour(level_id, hour, free)` | вільні місця в кожну годину |
+| Бронювання | `booking(id, user_id, level_id, plate, from_hour, hours, tariff_minor_per_hour, price_minor, currency, status, version, created_at, expires_at)` | головна сутність |
+| Користувач | `app_user(id, login, role)` | роль `user` / `staff` |
+
+**Головна операція** — `POST /v1/bookings`: забронювати місце на рівні на `hours` годин з
+`from_hour`. Усі години й запис бронювання — в одній транзакції; відповідь 201 — після фіксації.
+
+**Стани й переходи.**
+
+```mermaid
+stateDiagram-v2
+    [*] --> confirmed: POST /v1/bookings (усі години зарезервовано)
+    held --> confirmed: (не використовується)
+    confirmed --> cancelled: водій скасовує (ЛР2–ЛР3)
+    confirmed --> entered: в'їзд у межах інтервалу (обчислюється з в'їздів DPC, ЛР4)
+    confirmed --> expired: інтервал минув без в'їзду (ЛР4)
+    cancelled --> [*]
+    entered --> [*]
+    expired --> [*]
+```
+
+Картка задає `held → confirmed → entered | expired | cancelled`. Окремого маршруту
+підтвердження в картці немає, тому бронювання одразу створюється в `confirmed`, а `held` не
+використовується; методичка дозволяє адаптувати структуру за збереження інваріантів.
+`entered` у базі не зберігається: Web обчислює його з таблиці в'їздів частини DPC.
+
+**Інваріанти.**
+1. У кожну годину кількість бронювань на рівні не перевищує кількості місць на ньому:
+   `level_hour.free = spots − активні бронювання години`, `CHECK (free >= 0)`.
+2. Бронювання кількох годин займає всі години або жодної: усі рядки `level_hour` змінюються в
+   транзакції, що створює бронювання; інакше відкат.
+
+**Гроші й час.** Тариф — ціле число копійок за годину (`bigint`) і валюта; неповна година
+рахується як повна, тому ціна = тариф × `hours`. Тариф на момент бронювання зберігається в
+бронюванні. Моменти — `timestamptz`; назва зони — окремо в `garage.tz`. Інтервал
+`[from_hour, from_hour + hours)` у цілих годинах; `from_hour` — початок години. Бронювання
+23:00–01:00 займає дві дати. Доба для `GET /v1/levels/{id}/hours?day=` — календарна дата в зоні
+паркінгу (у дні переходу на літній/зимовий час 23 або 25 годин).
+
+**Числові параметри (навчальні припущення).**
+
+| Параметр | Значення |
+|---|---|
+| Паркінги | `mall` «ТЦ Південний», `center` «Центр», зона `Europe/Kyiv` |
+| Рівні | `mall-1` 40 місць, `mall-2` 40, `mall-one` 1 (для досліду гонки), `center-1` 20 |
+| Тариф | `mall` 3000 коп./год, `center` 4000 коп./год, UAH |
+| Тривалість бронювання | 1–24 години |
+| Номер авто | текст 2–12 символів |
+| Сторінка списку | `limit` 1–50, типово 20 |
+| Користувачі | `u-1` user1, `u-2` user2 (user), `s-1` staff1 (staff) |
+
+**Зовнішня система** (ЛР4) — симулятор контролера шлагбаума `POST /open`: 1–3 с, 10 % «немає
+зв'язку» (503), одне відкриття на в'їзд. **Запланована зміна ЛР6** — місця із зарядкою для
+електромобілів; запити старого клієнта без типу бронюють звичайне місце.
 
 ## 3. Архітектура
 
@@ -39,6 +105,9 @@ _Заповнюється по мірі інтеграції (Web ЛР4, DPC Л�
 | `configs/prometheus/`, `configs/grafana/` | спільні Prometheus і Grafana; дашборди `web.json`, `dpc.json` |
 | `web/` | частина Web: каркас курсу та код проєкту (`server/`, `client/`, `configs/`, `tools/`, `docs/`) |
 | `dpc/` | частина DPC: каркас курсу та код проєкту (`api/`, `coordinator/`, `spark/`, `configs/`, `tools/`, `docs/`) |
+| `web/client/` | клієнт React + TypeScript + Vite (поза Compose) |
+| `web/client-kit/` | клієнт-приклад каркаса (довідка) |
+| `web/server/tests/` | тести Web проти запущеного стенда (pytest) |
 | `web/migrations-examples/`, `dpc/migrations-examples/` | приклади міграцій каркасів (не застосовуються) |
 | `joint/` | наскрізний сценарій Web → DPC → Web (`scenario.example.py` – зразок каркаса) |
 | `docs/` | рішення, стан проєкту, вимоги обох курсів, плани етапів, звіти |
@@ -139,7 +208,32 @@ docker compose run --rm migrate sh /migrate/migrate.sh --list
 ### Web
 
 #### ЛР1. Контракт, модель і перша операція
-_Заповнюється в ЛР1._
+
+Відповідальна: Дарина. Звіт — [docs/reports/web-lr1.md](docs/reports/web-lr1.md).
+
+| Пункт | Де реалізовано | Перевірка та свідчення |
+|---|---|---|
+| О1.1 Модель області | розділ 2 цього README, [docs/decisions.md](docs/decisions.md) (M1–M11) | діаграма станів, інваріанти, числові параметри |
+| О1.2 Схема БД | `migrations/001_c09_catalog.sql`, `002_c09_booking.sql`, `003_c09_booking_list_index.notx.sql`, `900_c09_seed.sql` | PK/FK, NOT NULL, CHECK (`free >= 0`, початок години, `price = tariff × hours`, `expires_at`), UNIQUE; застосування з нуля — `docker compose up -d` на порожній базі |
+| О1.3 Контракт API | `web/openapi.yaml` (`x-course: main/list/object`, приклади `normal`/`scarce`/`missing`) | `npx @redocly/cli lint web/openapi.yaml` — valid, 0 помилок |
+| О1.4 Головна операція | `web/server/app/bookings.py` (`create_booking`, `_reserve_hours`) | тести 1–4, 7: 201 + `Location`; 409 без зміни жодної години; 400/404/422 |
+| О1.5 Список із курсором | `web/server/app/bookings.py` (`list_bookings`), `web/server/app/cursor.py` | тест 5: 7 бронювань, `limit=3` → 3 сторінки без пропусків і повторів, зокрема з однаковим `created_at`; пошкоджений курсор — 400 |
+| О1.6 Система, `/health`, журнал | каркас (`service.py`, `middleware.py`, `jsonlog.py`) | `docker compose up -d nginx` піднімає nginx, app-a, app-b, postgres; `/health` на :8080/:8001/:8002; рядок журналу JSON з `time`, `instance`, `route`, `status`, `duration_ms`, без `X-User-Id` |
+| О1.7 Клієнт | `web/client/` (React + TypeScript + Vite) | бронювання, 409 як Problem Details, «Мої бронювання» читає всі сторінки — знімки в `docs/reports/img/web-lr1-*.jpg` |
+
+Тести: `web/server/tests/test_lr1.py` — 8 тестів проти запущеного стенда:
+
+```bash
+uv run --no-project --with pytest --with httpx --with "psycopg[binary]" pytest web/server/tests -v
+```
+
+Клієнт (потрібен Node.js 22):
+
+```bash
+cd web/client && cp .env.example .env.local && npm install && npm run dev
+```
+
+Відкрити http://localhost:5173 (походження дозволене CORS як `WEB_CLIENT_ORIGIN`).
 
 #### ЛР2. Конкуренція та повторення запитів
 _Заповнюється в ЛР2._
