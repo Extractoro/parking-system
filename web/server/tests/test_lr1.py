@@ -174,6 +174,23 @@ def test_7_race_last_spot_two_instances(api, day, users):
     assert free[iso(day, 8, off)] == 0 and free[iso(day, 9, off)] == 0
 
 
+def test_8_past_start_is_rejected_current_hour_allowed(api, users):
+    """PC-1: a booking cannot start in an hour that has already ended; the running hour is allowed."""
+    now = datetime.now(UTC)
+    current = now.replace(minute=0, second=0, microsecond=0)
+    past = current - timedelta(hours=1)
+
+    r = book(api, "mall-1", past.isoformat(), 1, users[1])
+    assert r.status_code == 422, r.text
+    assert any(e["field"] == "body.from_hour" for e in r.json()["errors"]), r.text
+
+    r = book(api, "mall-1", (current - timedelta(days=1)).isoformat(), 2, users[1])
+    assert r.status_code == 422, r.text
+
+    r = book(api, "center-1", current.isoformat(), 1, users[1])
+    assert r.status_code in (201, 409), r.text  # 409 only if the real current hour is full
+
+
 def test_health_and_request_id():
     for base in (BASE, APP_A, APP_B):
         r = httpx.get(f"{base}/health", headers={"X-Request-ID": "lr1-test-req-1"})

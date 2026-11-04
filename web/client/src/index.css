@@ -500,6 +500,17 @@ a:hover {
   color: var(--muted);
 }
 
+.slot.past {
+  background: transparent;
+  border-style: dashed;
+  border-color: var(--border);
+  color: var(--placeholder);
+}
+
+.slot.past .f {
+  color: var(--placeholder);
+}
+
 .slot.picked {
   background: var(--selected);
   border-color: var(--selected);

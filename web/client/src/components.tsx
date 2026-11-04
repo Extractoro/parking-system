@@ -91,6 +91,8 @@ function explain(error: ApiError): { title: string; detail: string } {
     case 'unauthorized':
       return { title: 'Sign-in required', detail: 'Pick an account at the top of the page.' }
     case 'invalid-request':
+      if (error.problem.errors?.some((e) => e.field.endsWith('from_hour')))
+        return { title: 'That time has passed', detail: 'Pick the current hour or a later one.' }
       return { title: 'Check the form', detail: 'Some fields are filled in incorrectly.' }
     default:
       return { title: error.problem.title ?? 'Something went wrong', detail: error.problem.detail ?? 'Try again.' }

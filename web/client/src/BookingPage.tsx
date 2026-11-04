@@ -57,7 +57,11 @@ export default function BookingPage({ userId, params, setParams, onNavigate }: P
   const today = todayIn(tz)
   const dayParam = params.get('day')
   const day = dayParam && dayParam >= today ? dayParam : today
-  const from = params.get('from')
+  // hours that have ended cannot be booked (PC-1); the running hour still can. The server checks
+  // the same rule; here it only greys the hours out. Whole-hour zones: UTC hour = garage hour.
+  const nowHour = Math.floor(Date.now() / HOUR_MS) * HOUR_MS
+  const fromParam = params.get('from')
+  const from = fromParam && Date.parse(fromParam) >= nowHour ? fromParam : null
   const hours = Math.min(MAX_HOURS, Math.max(1, Number(params.get('hours')) || 2))
 
   // free spots of the chosen day and the next one (a booking may cross midnight)
@@ -252,21 +256,25 @@ export default function BookingPage({ userId, params, setParams, onNavigate }: P
                 {daySlots?.map((h) => {
                   const t = Date.parse(h.hour)
                   const inRange = picked.has(t)
+                  const past = t < nowHour
                   const full = h.free === 0
                   const few = !full && h.free < h.spots && h.free <= Math.max(3, Math.round(h.spots * 0.15))
-                  const cls = ['slot', full && 'full', few && 'few', inRange && (full ? 'conflict' : 'picked')].filter(Boolean).join(' ')
+                  const cls = past
+                    ? 'slot past'
+                    : ['slot', full && 'full', few && 'few', inRange && (full ? 'conflict' : 'picked')].filter(Boolean).join(' ')
+                  const state = past ? 'past' : full ? 'full' : `${h.free} free`
                   return (
                     <button
                       key={h.hour}
                       type="button"
                       className={cls}
-                      disabled={full && !inRange}
-                      aria-pressed={inRange}
-                      aria-label={`${time(h.hour, tz)}, ${full ? 'no free spots' : `${h.free} free`}`}
+                      disabled={past || (full && !inRange)}
+                      aria-pressed={inRange && !past}
+                      aria-label={`${time(h.hour, tz)}, ${past ? 'already passed' : full ? 'no free spots' : `${h.free} free`}`}
                       onClick={() => pickHour(h.hour)}
                     >
                       <span className="t mono">{time(h.hour, tz)}</span>
-                      <span className="f">{full ? 'full' : `${h.free} free`}</span>
+                      <span className="f">{state}</span>
                     </button>
                   )
                 })}

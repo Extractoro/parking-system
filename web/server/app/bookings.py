@@ -17,7 +17,7 @@ from fastapi.responses import JSONResponse
 from psycopg import AsyncConnection
 from pydantic import AwareDatetime, BaseModel, Field, field_validator
 
-from . import config, cursor, db
+from . import config, cursor, db, rules
 from .problems import Problem
 from .timefmt import local_iso
 from .users import CurrentUser
@@ -150,6 +150,13 @@ async def create_booking(
     start = body.from_hour.astimezone(UTC)
     end = start + timedelta(hours=body.hours)
     booking_id = str(uuid.uuid4())
+
+    # the time rule is a pure function; the route gives it the server clock (PC-1, D1.1)
+    reason = rules.booking_start_error(start, datetime.now(UTC))
+    if reason:
+        raise Problem(
+            422, "invalid-request", "Invalid request data", errors=[{"field": "body.from_hour", "message": reason}]
+        )
 
     async with db.connection() as conn:
         async with conn.transaction():
