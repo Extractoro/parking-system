@@ -1,7 +1,7 @@
 # Contract of the Web part of C09 «Паркінги» (OpenAPI 3.1). Built from openapi.example.yaml of the kit:
 # the service routes (/health ... /v1/ws) are kept as in the example; /v1/auth/*, /v1/me and the
 # WebSocket routes are implemented in labs 3 and 5. Until lab 3 the user is the header X-User-Id.
-# Request examples (normal, scarce, missing) refer to the demo data migrations/900_c09_seed.sql.
+# Request examples (normal, scarce, missing) refer to the demo data migrations/900_c09_seed.sql (+901 names).
 openapi: 3.1.0
 info:
   title: C09 Паркінги — Web API
@@ -181,18 +181,18 @@ paths:
                   value:
                     items:
                       - id: mall
-                        name: ТЦ Південний
+                        name: South Mall
                         tz: Europe/Kyiv
                         tariff_minor_per_hour: 3000
                         currency: UAH
                         spots: 81
                         levels:
                           - id: mall-1
-                            name: Рівень 1
+                            name: Level 1
                             spots: 40
                             closed: false
                           - id: mall-one
-                            name: Рівень VIP (1 місце)
+                            name: VIP level (1 spot)
                             spots: 1
                             closed: false
 

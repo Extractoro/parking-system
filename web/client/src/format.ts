@@ -2,20 +2,21 @@
 // never the browser's. Everything goes through Intl, no hand-built date or number strings.
 
 const HOUR_MS = 3_600_000
+const LOCALE = 'en-GB' // English, 24-hour clock, day before month
 
 const cache = new Map<string, Intl.DateTimeFormat>()
 function dtf(tz: string, opts: Intl.DateTimeFormatOptions): Intl.DateTimeFormat {
   const key = tz + JSON.stringify(opts)
   let f = cache.get(key)
   if (!f) {
-    f = new Intl.DateTimeFormat('uk-UA', { timeZone: tz, ...opts })
+    f = new Intl.DateTimeFormat(LOCALE, { timeZone: tz, ...opts })
     cache.set(key, f)
   }
   return f
 }
 
 export function money(minor: number, currency: string): string {
-  return new Intl.NumberFormat('uk-UA', { style: 'currency', currency }).format(minor / 100)
+  return new Intl.NumberFormat(LOCALE, { style: 'currency', currency, currencyDisplay: 'narrowSymbol' }).format(minor / 100)
 }
 
 export function time(iso: string | number, tz: string): string {
@@ -52,7 +53,7 @@ export function dayNumber(day: string): string {
 }
 
 export function monthShort(day: string): string {
-  return dtf('UTC', { month: 'short' }).format(noon(day)).replace('.', '')
+  return dtf('UTC', { month: 'short' }).format(noon(day))
 }
 
 export function dateLong(day: string): string {
@@ -64,7 +65,7 @@ export function dateFull(day: string): string {
 }
 
 export function hoursLabel(n: number): string {
-  return `${n} год`
+  return n === 1 ? '1 hour' : `${n} hours`
 }
 
 export function plusHours(iso: string, hours: number): number {

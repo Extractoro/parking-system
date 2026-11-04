@@ -49,14 +49,14 @@ export function Header({
           <span className="brand-mark">
             <LogoMark />
           </span>
-          Паркінги
+          Parking
         </NavLink>
-        <nav className="nav" aria-label="Розділи">
+        <nav className="nav" aria-label="Sections">
           <NavLink to="book" current={view === 'book'} onNavigate={onNavigate}>
-            Забронювати
+            Book a spot
           </NavLink>
           <NavLink to="bookings" current={view === 'bookings'} onNavigate={onNavigate}>
-            Мої бронювання
+            My bookings
           </NavLink>
         </nav>
         {/* Until lab 3 there is no login: the account is one of the pre-created users. */}
@@ -64,7 +64,7 @@ export function Header({
           <span className="avatar" aria-hidden>
             {user.login.slice(0, 1).toUpperCase() + user.login.slice(-1)}
           </span>
-          <span className="sr-only">Обліковий запис</span>
+          <span className="sr-only">Account</span>
           <select value={user.id} onChange={(e) => onUser(e.target.value)}>
             {USERS.map((u) => (
               <option key={u.id} value={u.id}>
@@ -83,17 +83,17 @@ function explain(error: ApiError): { title: string; detail: string } {
   const slug = (error.problem.type ?? '').split('/').pop()
   switch (slug) {
     case 'no-free-spots':
-      return { title: 'Немає вільних місць', detail: 'Хтось забронював останнє місце раніше. Жодну годину не списано — оберіть інший час або рівень.' }
+      return { title: 'No free spots', detail: 'Someone booked the last spot first. No hours were taken — pick another time or level.' }
     case 'level-closed':
-      return { title: 'Рівень закрито', detail: 'Цей рівень зараз не приймає нових бронювань. Оберіть інший рівень.' }
+      return { title: 'Level closed', detail: 'This level takes no new bookings right now. Pick another level.' }
     case 'level-not-found':
-      return { title: 'Рівень не знайдено', detail: 'Оновіть сторінку й оберіть рівень ще раз.' }
+      return { title: 'Level not found', detail: 'Reload the page and pick the level again.' }
     case 'unauthorized':
-      return { title: 'Потрібен вхід', detail: 'Оберіть обліковий запис угорі сторінки.' }
+      return { title: 'Sign-in required', detail: 'Pick an account at the top of the page.' }
     case 'invalid-request':
-      return { title: 'Перевірте дані', detail: 'Деякі поля заповнено неправильно.' }
+      return { title: 'Check the form', detail: 'Some fields are filled in incorrectly.' }
     default:
-      return { title: error.problem.title ?? 'Щось пішло не так', detail: error.problem.detail ?? 'Спробуйте ще раз.' }
+      return { title: error.problem.title ?? 'Something went wrong', detail: error.problem.detail ?? 'Try again.' }
   }
 }
 
@@ -103,10 +103,10 @@ export function ProblemAlert({ error, onRetry, children }: { error: unknown; onR
     return (
       <div className="alert alert-warn" role="status">
         <Wifi color="var(--accent)" />
-        <span style={{ flex: 1 }}>Сервер тимчасово недоступний. Дані не втрачено.</span>
+        <span style={{ flex: 1 }}>The server is temporarily unavailable. Nothing was lost.</span>
         {onRetry && (
           <button type="button" className="btn btn-ghost" onClick={onRetry}>
-            Повторити
+            Retry
           </button>
         )}
       </div>
@@ -123,9 +123,9 @@ export function ProblemAlert({ error, onRetry, children }: { error: unknown; onR
         {children && <div className="alert-actions">{children}</div>}
         {e.requestId && (
           <details className="support">
-            <summary>Деталі для підтримки</summary>
+            <summary>Details for support</summary>
             <div>
-              Код звернення{' '}
+              Reference{' '}
               <span className="mono" translate="no">
                 {e.requestId.slice(0, 8).toUpperCase()}
               </span>{' '}

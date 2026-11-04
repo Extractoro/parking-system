@@ -24,7 +24,7 @@ export default function App() {
   return (
     <>
       <a className="skip" href="#content">
-        Перейти до змісту
+        Skip to content
       </a>
       <Header view={view} onNavigate={navigate} userId={userId} onUser={changeUser} />
       {view === 'bookings' ? (

@@ -109,8 +109,8 @@ export default function BookingPage({ userId, params, setParams, onNavigate }: P
 
   function validate(): FieldErrors {
     const errs: FieldErrors = {}
-    if (!PLATE_RE.test(plate.trim())) errs.plate = 'Номер має містити від 2 до 12 символів'
-    if (hours < 1 || hours > MAX_HOURS) errs.hours = `Від 1 до ${MAX_HOURS} годин`
+    if (!PLATE_RE.test(plate.trim())) errs.plate = 'The plate must be 2 to 12 characters'
+    if (hours < 1 || hours > MAX_HOURS) errs.hours = `From 1 to ${MAX_HOURS} hours`
     return errs
   }
 
@@ -140,8 +140,8 @@ export default function BookingPage({ userId, params, setParams, onNavigate }: P
       if (err instanceof ApiError && err.status === 422 && err.problem.errors?.length) {
         const fe: FieldErrors = {}
         for (const x of err.problem.errors) {
-          if (x.field.endsWith('plate')) fe.plate = 'Номер має містити від 2 до 12 символів'
-          if (x.field.endsWith('hours')) fe.hours = `Від 1 до ${MAX_HOURS} годин`
+          if (x.field.endsWith('plate')) fe.plate = 'The plate must be 2 to 12 characters'
+          if (x.field.endsWith('hours')) fe.hours = `From 1 to ${MAX_HOURS} hours`
         }
         setFieldErrors(fe)
         if (fe.plate) plateRef.current?.focus()
@@ -165,8 +165,8 @@ export default function BookingPage({ userId, params, setParams, onNavigate }: P
     <main id="content" className="page">
       <div className="page-head">
         <div>
-          <h1>Забронюйте місце на кілька годин</h1>
-          <p>Оберіть паркінг, рівень і години. Місце закріплюється за вами на весь інтервал.</p>
+          <h1>Book a parking spot for a few hours</h1>
+          <p>Pick a garage, a level and the hours. The spot is held for you for the whole interval.</p>
         </div>
       </div>
 
@@ -174,7 +174,7 @@ export default function BookingPage({ userId, params, setParams, onNavigate }: P
         <div className="col-main">
           <section aria-labelledby="s-garage" style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
             <h2 id="s-garage" className="eyebrow">
-              1 · Паркінг
+              1 · Garage
             </h2>
             <div className="garages">
               {!garages &&
@@ -193,11 +193,11 @@ export default function BookingPage({ userId, params, setParams, onNavigate }: P
                   </span>
                   <span className="garage-meta">
                     <span>
-                      <strong className="mono">{money(g.tariff_minor_per_hour, g.currency)}</strong> / год
+                      <strong className="mono">{money(g.tariff_minor_per_hour, g.currency)}</strong> / hour
                     </span>
                     <span>
-                      <strong className="mono">{g.spots}</strong> місць · {g.levels.length}{' '}
-                      {g.levels.length === 1 ? 'рівень' : 'рівні'}
+                      <strong className="mono">{g.spots}</strong> spots · {g.levels.length}{' '}
+                      {g.levels.length === 1 ? 'level' : 'levels'}
                     </span>
                   </span>
                 </button>
@@ -208,12 +208,12 @@ export default function BookingPage({ userId, params, setParams, onNavigate }: P
           <section aria-labelledby="s-time" className="card section">
             <div className="row-between">
               <h2 id="s-time" className="eyebrow">
-                2 · Рівень і час
+                2 · Level and time
               </h2>
-              <span className="muted small">Час паркінгу ({tz})</span>
+              <span className="muted small">Garage time ({tz})</span>
             </div>
 
-            <div role="radiogroup" aria-label="Рівень" className="chips">
+            <div role="radiogroup" aria-label="Level" className="chips">
               {openLevels.map((l) => (
                 <button
                   key={l.id}
@@ -225,12 +225,12 @@ export default function BookingPage({ userId, params, setParams, onNavigate }: P
                   onClick={() => select({ level: l.id, from: undefined })}
                 >
                   <span style={{ fontWeight: 500 }}>{l.name}</span>
-                  <span className="muted small">{l.closed ? 'закрито' : `${l.spots} місць`}</span>
+                  <span className="muted small">{l.closed ? 'closed' : `${l.spots} ${l.spots === 1 ? 'spot' : 'spots'}`}</span>
                 </button>
               ))}
             </div>
 
-            <div className="days" aria-label="День">
+            <div className="days" aria-label="Day">
               {days.map((d) => (
                 <button
                   key={d}
@@ -247,7 +247,7 @@ export default function BookingPage({ userId, params, setParams, onNavigate }: P
             </div>
 
             <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-              <div className="hours" ref={gridRef} aria-label="Години">
+              <div className="hours" ref={gridRef} aria-label="Hours">
                 {!daySlots && Array.from({ length: 24 }, (_, i) => <span key={i} className="skeleton" style={{ height: 52 }} />)}
                 {daySlots?.map((h) => {
                   const t = Date.parse(h.hour)
@@ -262,11 +262,11 @@ export default function BookingPage({ userId, params, setParams, onNavigate }: P
                       className={cls}
                       disabled={full && !inRange}
                       aria-pressed={inRange}
-                      aria-label={`${time(h.hour, tz)}, ${full ? 'немає місць' : `${h.free} вільних`}`}
+                      aria-label={`${time(h.hour, tz)}, ${full ? 'no free spots' : `${h.free} free`}`}
                       onClick={() => pickHour(h.hour)}
                     >
                       <span className="t mono">{time(h.hour, tz)}</span>
-                      <span className="f">{full ? 'зайнято' : `${h.free} вільн.`}</span>
+                      <span className="f">{full ? 'full' : `${h.free} free`}</span>
                     </button>
                   )
                 })}
@@ -274,19 +274,19 @@ export default function BookingPage({ userId, params, setParams, onNavigate }: P
               <div className="legend" aria-hidden>
                 <span>
                   <i />
-                  Вільно
+                  Free
                 </span>
                 <span>
                   <i className="few" />
-                  Мало місць
+                  Few left
                 </span>
                 <span>
                   <i className="full" />
-                  Зайнято
+                  Full
                 </span>
                 <span>
                   <i className="picked" />
-                  Ваш вибір
+                  Your pick
                 </span>
               </div>
             </div>
@@ -300,7 +300,7 @@ export default function BookingPage({ userId, params, setParams, onNavigate }: P
                 <Check color="var(--success)" size={22} />
               </span>
               <div>
-                <h2>Місце заброньовано</h2>
+                <h2>Spot booked</h2>
                 <p className="muted" style={{ margin: '4px 0 0' }}>
                   {garage?.name} · {level?.name} · {dateLong(dayOf(result.from_hour, tz))},{' '}
                   <span className="mono">
@@ -309,15 +309,15 @@ export default function BookingPage({ userId, params, setParams, onNavigate }: P
                 </p>
               </div>
               <div className="paid">
-                <span className="muted">До сплати</span>
+                <span className="muted">Total</span>
                 <strong className="mono">{money(result.price_minor, result.currency)}</strong>
               </div>
               <div className="actions">
                 <NavLink to="bookings" onNavigate={onNavigate} className="btn btn-dark">
-                  Мої бронювання
+                  My bookings
                 </NavLink>
                 <button type="button" className="btn btn-ghost" onClick={() => select({ from: undefined })}>
-                  Ще одне
+                  Book another
                 </button>
               </div>
             </div>
@@ -325,32 +325,32 @@ export default function BookingPage({ userId, params, setParams, onNavigate }: P
             <form onSubmit={submit} noValidate>
               <div className="summary-body">
                 <h2 id="s-summary" className="eyebrow">
-                  3 · Ваше бронювання
+                  3 · Your booking
                 </h2>
                 <dl className="kv" style={{ margin: 0 }}>
                   <div>
-                    <dt>Паркінг</dt>
+                    <dt>Garage</dt>
                     <dd>{garage?.name ?? '—'}</dd>
                   </div>
                   <div>
-                    <dt>Рівень</dt>
+                    <dt>Level</dt>
                     <dd>{level?.name ?? '—'}</dd>
                   </div>
                   <div>
-                    <dt>Дата</dt>
+                    <dt>Date</dt>
                     <dd>{dateLong(day)}</dd>
                   </div>
                   <div>
-                    <dt>Час</dt>
+                    <dt>Time</dt>
                     <dd className="mono">
                       {from && end !== null ? (
                         <>
                           {time(from, tz)} – {time(end, tz)}
-                          {endsNextDay && <span className="muted"> (+1 д.)</span>}
+                          {endsNextDay && <span className="muted"> (+1 day)</span>}
                         </>
                       ) : (
-                        <span className="muted" style={{ fontFamily: 'Geist, sans-serif' }}>
-                          оберіть годину
+                        <span className="muted" style={{ fontFamily: 'inherit' }}>
+                          pick an hour
                         </span>
                       )}
                     </dd>
@@ -359,20 +359,20 @@ export default function BookingPage({ userId, params, setParams, onNavigate }: P
 
                 <div className="row-between" style={{ paddingTop: 12, borderTop: '1px solid var(--line)' }}>
                   <span id="hours-label" style={{ color: 'var(--ink-2)' }}>
-                    Тривалість
+                    Duration
                   </span>
                   <div
                     role="group"
                     aria-labelledby="hours-label"
                     className={fieldErrors.hours ? 'stepper invalid' : 'stepper'}
                   >
-                    <button type="button" aria-label="Менше годин" disabled={hours <= 1} onClick={() => select({ hours: String(hours - 1) })}>
+                    <button type="button" aria-label="Fewer hours" disabled={hours <= 1} onClick={() => select({ hours: String(hours - 1) })}>
                       −
                     </button>
                     <output className="mono" aria-live="polite">
                       {hoursLabel(hours)}
                     </output>
-                    <button type="button" aria-label="Більше годин" disabled={hours >= MAX_HOURS} onClick={() => select({ hours: String(hours + 1) })}>
+                    <button type="button" aria-label="More hours" disabled={hours >= MAX_HOURS} onClick={() => select({ hours: String(hours + 1) })}>
                       +
                     </button>
                   </div>
@@ -380,7 +380,7 @@ export default function BookingPage({ userId, params, setParams, onNavigate }: P
                 {fieldErrors.hours && <span className="field-error">{fieldErrors.hours}</span>}
 
                 <label className="field">
-                  <span>Номер авто</span>
+                  <span>Licence plate</span>
                   <input
                     ref={plateRef}
                     className="input plate"
@@ -388,7 +388,7 @@ export default function BookingPage({ userId, params, setParams, onNavigate }: P
                     autoComplete="off"
                     spellCheck={false}
                     autoCapitalize="characters"
-                    placeholder="Напр. AA 1234 BB…"
+                    placeholder="e.g. AA 1234 BB…"
                     value={plate}
                     maxLength={12}
                     aria-invalid={fieldErrors.plate ? true : undefined}
@@ -409,7 +409,7 @@ export default function BookingPage({ userId, params, setParams, onNavigate }: P
                   <div className="alert alert-danger" role="alert">
                     <AlertIcon color="var(--danger)" />
                     <span>
-                      На <strong>{time(conflictAt, tz)}</strong> вільних місць немає. Змініть початок або тривалість.
+                      No free spots at <strong>{time(conflictAt, tz)}</strong>. Change the start or the duration.
                     </span>
                   </div>
                 )}
@@ -425,7 +425,7 @@ export default function BookingPage({ userId, params, setParams, onNavigate }: P
                           gridRef.current?.querySelector<HTMLButtonElement>('.slot:not(:disabled)')?.focus()
                         }}
                       >
-                        Змінити час
+                        Change time
                       </button>
                     )}
                   </ProblemAlert>
@@ -434,12 +434,12 @@ export default function BookingPage({ userId, params, setParams, onNavigate }: P
 
               <div className="summary-foot">
                 <div className="total">
-                  <span className="muted">До сплати</span>
+                  <span className="muted">Total</span>
                   <strong className="mono">{garage ? money(price, garage.currency) : '—'}</strong>
                 </div>
                 <span className="muted small">
-                  {garage ? `${money(garage.tariff_minor_per_hour, garage.currency)} × ${hoursLabel(hours)}` : ''}. Неповна
-                  година рахується як повна.
+                  {garage ? `${money(garage.tariff_minor_per_hour, garage.currency)} × ${hoursLabel(hours)}` : ''}. A started hour counts as a
+                  full hour.
                 </span>
                 <button
                   type="submit"
@@ -449,12 +449,12 @@ export default function BookingPage({ userId, params, setParams, onNavigate }: P
                 >
                   {sending ? (
                     <>
-                      <Spinner size={16} color="#fff" /> Бронюємо…
+                      <Spinner size={16} color="#fff" /> Booking…
                     </>
                   ) : from ? (
-                    `Забронювати · ${garage ? money(price, garage.currency) : ''}`
+                    `Book · ${garage ? money(price, garage.currency) : ''}`
                   ) : (
-                    'Оберіть годину'
+                    'Pick an hour'
                   )}
                 </button>
               </div>

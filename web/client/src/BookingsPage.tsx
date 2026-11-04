@@ -13,11 +13,11 @@ type Props = {
 }
 
 const STATUS: Record<string, string> = {
-  confirmed: 'Підтверджено',
-  entered: 'На паркінгу',
-  cancelled: 'Скасовано',
-  expired: 'Завершено',
-  held: 'Очікує',
+  confirmed: 'Confirmed',
+  entered: 'Parked',
+  cancelled: 'Cancelled',
+  expired: 'Ended',
+  held: 'Pending',
 }
 
 export default function BookingsPage({ userId, params, setParams, onNavigate }: Props) {
@@ -49,20 +49,20 @@ export default function BookingsPage({ userId, params, setParams, onNavigate }: 
     <main id="content" className="page page-narrow">
       <div className="page-head">
         <div>
-          <h1>Мої бронювання</h1>
-          <p>{data ? `${all.length} бронювань` : 'Завантаження…'}</p>
+          <h1>My bookings</h1>
+          <p>{data ? `${all.length} ${all.length === 1 ? 'booking' : 'bookings'}` : 'Loading…'}</p>
         </div>
         <NavLink to="book" onNavigate={onNavigate} className="btn btn-primary">
           <Plus size={16} />
-          Нове бронювання
+          New booking
         </NavLink>
       </div>
 
-      <div role="tablist" aria-label="Фільтр" className="tabs">
+      <div role="tablist" aria-label="Filter" className="tabs">
         {(
           [
-            ['upcoming', 'Майбутні', upcoming.length],
-            ['past', 'Минулі', past.length],
+            ['upcoming', 'Upcoming', upcoming.length],
+            ['past', 'Past', past.length],
           ] as const
         ).map(([id, label, n]) => (
           <button
@@ -98,7 +98,7 @@ export default function BookingsPage({ userId, params, setParams, onNavigate }: 
               <div className="booking-main">
                 <div className="booking-title">
                   <strong title={`${g?.name ?? ''} · ${levelName(b)}`}>
-                    {g?.name ?? 'Паркінг'} · {levelName(b)}
+                    {g?.name ?? 'Parking'} · {levelName(b)}
                   </strong>
                   <span className={`badge ${b.status}`}>{STATUS[b.status] ?? b.status}</span>
                 </div>
@@ -117,7 +117,7 @@ export default function BookingsPage({ userId, params, setParams, onNavigate }: 
                   {money(b.price_minor, b.currency)}
                 </strong>
                 <span className="muted small">
-                  Бронювання{' '}
+                  Booking{' '}
                   <span className="mono" translate="no">
                     {bookingCode(b.id)}
                   </span>
@@ -133,17 +133,17 @@ export default function BookingsPage({ userId, params, setParams, onNavigate }: 
           <span className="empty-icon">
             <Calendar color="var(--muted)" size={22} />
           </span>
-          <strong style={{ fontSize: 15 }}>{tab === 'past' ? 'Минулих бронювань немає' : 'Бронювань ще немає'}</strong>
-          <span className="muted">Оберіть паркінг і години — місце закріпиться за вами.</span>
+          <strong style={{ fontSize: 15 }}>{tab === 'past' ? 'No past bookings' : 'No bookings yet'}</strong>
+          <span className="muted">Pick a garage and the hours — the spot is held for you.</span>
           <NavLink to="book" onNavigate={onNavigate} className="btn btn-primary">
-            Забронювати місце
+            Book a spot
           </NavLink>
         </div>
       )}
 
       {data && data.pages > 1 && (
         <p className="muted small" style={{ margin: 0, textAlign: 'center' }}>
-          Завантажено всі {all.length} бронювань ({data.pages} сторінки за курсором)
+          All {all.length} bookings loaded ({data.pages} pages by cursor)
         </p>
       )}
     </main>

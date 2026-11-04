@@ -1,4 +1,4 @@
-/* Design tokens: palette «Теракота», error E1, font Geist (canvas «Паркінги — дизайн клієнта»). */
+/* Design tokens: palette Terracotta, error E1, font Roboto (design canvas of the client). */
 :root {
   --bg: #faf8f6;
   --surface: #ffffff;
@@ -33,7 +33,7 @@
   --radius: 8px;
   --radius-lg: 10px;
 
-  font-family: Geist, system-ui, -apple-system, 'Segoe UI', sans-serif;
+  font-family: Roboto, system-ui, -apple-system, 'Segoe UI', sans-serif;
   font-size: 14px;
   line-height: 1.45;
   color: var(--ink);
@@ -96,7 +96,6 @@ a:hover {
 }
 
 .mono {
-  font-family: 'Geist Mono', ui-monospace, monospace;
   font-variant-numeric: tabular-nums;
 }
 
@@ -156,7 +155,7 @@ a:hover {
   gap: 10px;
   text-decoration: none;
   color: var(--ink);
-  font-weight: 600;
+  font-weight: 700;
   font-size: 16px;
   letter-spacing: -0.01em;
 }
@@ -219,7 +218,7 @@ a:hover {
   display: flex;
   align-items: center;
   justify-content: center;
-  font-weight: 600;
+  font-weight: 700;
   font-size: 12px;
 }
 
@@ -258,7 +257,7 @@ a:hover {
 .page-head h1 {
   margin: 0;
   font-size: 28px;
-  font-weight: 600;
+  font-weight: 700;
   letter-spacing: -0.025em;
 }
 
@@ -293,7 +292,7 @@ a:hover {
 .eyebrow {
   margin: 0;
   font-size: 12px;
-  font-weight: 600;
+  font-weight: 700;
   letter-spacing: 0.06em;
   text-transform: uppercase;
   color: var(--muted);
@@ -354,7 +353,7 @@ a:hover {
   justify-content: space-between;
   align-items: center;
   gap: 8px;
-  font-weight: 600;
+  font-weight: 700;
   font-size: 16px;
 }
 
@@ -446,7 +445,7 @@ a:hover {
 
 .day-num {
   font-size: 18px;
-  font-weight: 600;
+  font-weight: 700;
 }
 
 /* ---------- hours ---------- */
@@ -649,7 +648,7 @@ a:hover {
 .stepper output {
   min-width: 64px;
   text-align: center;
-  font-weight: 600;
+  font-weight: 700;
 }
 
 .stepper.invalid {
@@ -682,8 +681,8 @@ a:hover {
 }
 
 .input.plate {
-  font-family: 'Geist Mono', ui-monospace, monospace;
   font-size: 15px;
+  font-variant-numeric: tabular-nums;
   letter-spacing: 0.04em;
   text-transform: uppercase;
 }
@@ -716,7 +715,7 @@ a:hover {
 
 .total strong {
   font-size: 26px;
-  font-weight: 600;
+  font-weight: 700;
   letter-spacing: -0.02em;
 }
 
@@ -725,7 +724,7 @@ a:hover {
   padding: 0 16px;
   border-radius: var(--radius);
   border: 1px solid transparent;
-  font-weight: 600;
+  font-weight: 700;
   display: inline-flex;
   align-items: center;
   justify-content: center;
@@ -871,7 +870,7 @@ details.support summary {
 .success h2 {
   margin: 0;
   font-size: 20px;
-  font-weight: 600;
+  font-weight: 700;
   letter-spacing: -0.02em;
 }
 
@@ -917,7 +916,7 @@ details.support summary {
 .tab[aria-selected='true'] {
   border-bottom-color: var(--ink);
   color: var(--ink);
-  font-weight: 600;
+  font-weight: 700;
 }
 
 .tab .mono {
@@ -967,7 +966,7 @@ details.support summary {
 
 .date-tile span:last-child {
   font-size: 22px;
-  font-weight: 600;
+  font-weight: 700;
 }
 
 .booking-main {
