@@ -16,7 +16,7 @@
 | ЛР1 | О1.5 | О | Список із курсором. | Web API | web/server/app/bookings.py, cursor.py | test_5 | 3 сторінки, однаковий created_at, 400 | done |
 | ЛР1 | О1.6 | О | Система, перевірка живучості й журнал. | каркас | service.py, middleware.py, jsonlog.py | test_health_and_request_id | JSON-журнал без X-User-Id | done |
 | ЛР1 | О1.7 | Ядро | Клієнт. | Клієнт | web/client/ | вручну в браузері | docs/reports/img/web-lr1-*.jpg | done |
-| ЛР1 | Д1.1 | Д | Правило за часом — чиста функція, що отримує поточний час параметром. | — | — | — | — | not_started |
+| ЛР1 | Д1.1 | Д | Правило за часом — чиста функція, що отримує поточний час параметром. | Web API | web/server/app/rules.py | test_rules.py, test_lr1.py::test_8 | 16 passed; PC-1 | done |
 | ЛР1 | Д1.2 | Д | Клієнт написано іншою мовою, ніж сервер. | Клієнт | web/client/ (TypeScript; сервер — Python) | — | — | done |
 | ЛР1 | Д1.3 | Д | Одне правило RFC 9110 або RFC 9457 перетворене на тест. | — | — | — | — | not_started |
 | ЛР1 | Д1.4 | Д | Перевірений traceparent записується в журнал як trace_id. | — | — | — | — | not_started |

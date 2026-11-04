@@ -220,8 +220,10 @@ docker compose run --rm migrate sh /migrate/migrate.sh --list
 | О1.5 Список із курсором | `web/server/app/bookings.py` (`list_bookings`), `web/server/app/cursor.py` | тест 5: 7 бронювань, `limit=3` → 3 сторінки без пропусків і повторів, зокрема з однаковим `created_at`; пошкоджений курсор — 400 |
 | О1.6 Система, `/health`, журнал | каркас (`service.py`, `middleware.py`, `jsonlog.py`) | `docker compose up -d nginx` піднімає nginx, app-a, app-b, postgres; `/health` на :8080/:8001/:8002; рядок журналу JSON з `time`, `instance`, `route`, `status`, `duration_ms`, без `X-User-Id` |
 | О1.7 Клієнт | `web/client/` (React + TypeScript + Vite) | бронювання, 409 як Problem Details, «Мої бронювання» читає всі сторінки — знімки в `docs/reports/img/web-lr1-*.jpg` |
+| Д1.1 Правило за часом | `web/server/app/rules.py` (`booking_start_error(from_hour, now)`), PC-1 | `test_rules.py` (межі з фіксованим `now`), `test_lr1.py::test_8` (минула година → 422) |
 
-Тести: `web/server/tests/test_lr1.py` — 8 тестів проти запущеного стенда:
+Тести: `web/server/tests/test_lr1.py` — 9 тестів проти запущеного стенда, `test_rules.py` — 7 тестів
+правила часу (чиста функція, Д1.1). Зміни плану — [docs/plan-changes.md](docs/plan-changes.md) (PC-1).
 
 ```bash
 uv run --no-project --with pytest --with httpx --with "psycopg[binary]" pytest web/server/tests -v
