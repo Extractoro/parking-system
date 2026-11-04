@@ -1,0 +1,115 @@
+# D6.4: Ray and the coordinators on several machines (README.md of this folder).
+#   docker stack deploy -c configs/swarm/stack.yaml dpc
+
+x-env: &env
+  DATABASE_URL: postgresql://app:app@postgres:5432/app
+  API_TOKEN: dev-token
+  RAY_ADDRESS: ray://ray-head:10001
+  ETCD_URL: http://etcd:2379
+  EXECUTION: ray
+  FAULTS: "off"  # enable with faults.yaml and a shared filesystem; see README
+
+x-api-image: &api-image ${REGISTRY:-localhost:5000}/project-dpc-api:${APP_TAG:-dev}
+
+services:
+  api:
+    image: *api-image
+    environment:
+      <<: *env
+      INSTANCE: api
+    ports:
+      - "8000:8000"
+    deploy:
+      placement:
+        constraints:
+          - node.labels.db == true
+
+  ray-head:
+    image: *api-image
+    command:
+      - ray
+      - start
+      - --head
+      - --port=6379
+      - --ray-client-server-port=10001
+      - --dashboard-host=0.0.0.0
+      - --num-cpus=1
+      - --block
+    environment:
+      <<: *env
+      INSTANCE: ray-head
+    ports:
+      - "8265:8265"
+    deploy:
+      placement:
+        constraints:
+          - node.labels.db == true
+
+  ray-worker:
+    image: *api-image
+    command:
+      - ray
+      - start
+      - --address=ray-head:6379
+      - --num-cpus=2
+      - --block
+    environment:
+      <<: *env
+      INSTANCE: ray-worker
+    deploy:
+      replicas: 2
+      placement:
+        max_replicas_per_node: 1
+
+  coordinator:
+    image: ${REGISTRY:-localhost:5000}/project-dpc-coordinator:${APP_TAG:-dev}
+    environment:
+      ETCD_URL: http://etcd:2379
+      API_URL: http://api:8000
+      API_TOKEN: dev-token
+      LEASE_TTL_S: "5"
+      INSTANCE: "coordinator-{{.Task.Slot}}"
+    deploy:
+      replicas: 2
+      placement:
+        max_replicas_per_node: 1
+
+  migrate:
+    image: ${REGISTRY:-localhost:5000}/project-dpc-migrate:${APP_TAG:-dev}
+    environment:
+      DATABASE_URL: postgresql://app:app@postgres:5432/app
+      MIGRATIONS_DIR: /migrations
+    deploy:
+      restart_policy:
+        condition: on-failure
+        max_attempts: 10
+        delay: 5s
+
+  postgres:
+    image: postgres:17.11
+    environment:
+      POSTGRES_USER: app
+      POSTGRES_PASSWORD: app
+      POSTGRES_DB: app
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    deploy:
+      placement:
+        constraints:
+          - node.labels.db == true
+
+  etcd:
+    image: quay.io/coreos/etcd:v3.7.2
+    command:
+      - etcd
+      - --name=etcd
+      - --listen-client-urls=http://0.0.0.0:2379
+      - --advertise-client-urls=http://etcd:2379
+      - --data-dir=/etcd-data
+    deploy:
+      placement:
+        constraints:
+          - node.labels.db == true
+
+volumes:
+  pgdata:

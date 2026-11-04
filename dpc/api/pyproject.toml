@@ -1,0 +1,24 @@
+[project]
+name = "project-api"
+version = "0.1.0"
+description = "Skeleton of the api service of the DPC course project: plumbing only, the lab items are yours"
+requires-python = ">=3.14"
+dependencies = [
+    "fastapi>=0.149.0",
+    "uvicorn[standard]>=0.54.0",
+    "psycopg[binary,pool]>=3.3.6",
+    "httpx>=0.28.1",
+    # the same Ray version runs in api (the client), ray-head and ray-worker: one image, one lock
+    "ray[default]==2.59.0",
+    "py-spy>=0.4.2",
+]
+
+[dependency-groups]
+dev = ["ruff>=0.17.1"]
+
+[tool.uv]
+package = false
+
+[tool.ruff]
+line-length = 120
+target-version = "py314"

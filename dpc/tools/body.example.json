@@ -1,0 +1,7 @@
+{
+  "return_id": "r_{uuid}",
+  "loan_id": "l_{uuid}",
+  "copy_id": "CEN-{choice:b01|b02|b03}-{i}",
+  "branch_id": "{choice:central|podil}",
+  "station_id": "load"
+}

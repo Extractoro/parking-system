@@ -1,0 +1,61 @@
+{
+  "seed": 7,
+  "start": "2026-10-12T08:00:00+00:00",
+  "minutes": 120,
+  "rate_per_minute": 40,
+  "window_minutes": 15,
+  "id_field": "event_id",
+  "time_field": "event_time",
+  "fields": {
+    "gate_id": {
+      "kind": "choice",
+      "values": [
+        "g1",
+        "g2",
+        "g3",
+        "g4"
+      ],
+      "weights": [
+        4,
+        3,
+        2,
+        1
+      ]
+    },
+    "direction": {
+      "kind": "choice",
+      "values": [
+        "in",
+        "out"
+      ]
+    },
+    "pass_id": {
+      "kind": "format",
+      "template": "{gate_id}-{n}"
+    }
+  },
+  "scenarios": {
+    "normal": {},
+    "late": {
+      "late_share": 0.1,
+      "late_minutes": [
+        1,
+        10
+      ]
+    },
+    "duplicates": {
+      "duplicate_share": 0.05
+    },
+    "boundary": {
+      "boundary": true
+    }
+  },
+  "tick": {
+    "after_minutes": 30,
+    "fields": {
+      "gate_id": "tick",
+      "direction": "tick",
+      "pass_id": "tick"
+    }
+  }
+}

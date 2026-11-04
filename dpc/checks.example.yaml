@@ -1,0 +1,85 @@
+# Example checks.yaml for "Міська бібліотека". Copy it as checks.yaml next to openapi.yaml.
+# The teacher's check reads both: here only what the contract cannot say.
+# Roles, examples, fields and `items` belong to your domain; service names match the given
+# compose.yaml - change them only if you changed compose.yaml.
+
+# Chosen items besides the core (the core is always checked). Uncomment what you did.
+items:
+  - О1.5   # час виконання й метрики
+  # - Д1.4   # завершення роботи з повною чергою
+  # - О2.2   # дослідження точності
+  # - Д2.5   # паралельна гістограма (histogram нижче)
+  # - Д2.6   # скасування розрахунку (compute.async_body нижче)
+  # - О3.2   # обмеження незавершених задач
+  # - Д3.3   # ідемпотентність API
+  # - Д3.4   # повільний приймач і зворотний тиск
+  # - О4.1   # дані для дослідження продуктивності
+  # - О4.4   # план виконання й перекіс
+  # - О4.5   # втрата виконавця Spark
+  # - О5.1   # сценарії джерела й дублікати
+  # - О5.3   # вплив допустимого запізнення
+  # - О6.3   # старий власник після паузи (history нижче)
+  # - Д6.1   # лінеаризовність історії
+
+services:
+  api: api
+  spark-worker-1: spark-worker-1
+  stream: stream
+  coordinator-a: coordinator-a
+  coordinator-b: coordinator-b
+
+load_s: 10
+
+# O1.4: the resource state and its invariant field
+resource:
+  path: /v1/shelves/central
+  ok_field: invariant_ok
+
+# O1.5: names in /metrics
+metrics:
+  - queue_length
+  - in_flight
+  - rejected
+
+# lab 2: tolerance, n for speed-up, modes of the shared sum, the field that makes it asynchronous
+compute:
+  tolerance: 1.0e-6
+  bench_n: 20000000
+  modes:
+    param: mode
+    values:
+      - none
+      - lock
+      - local
+  async_body:
+    async: true
+histogram:
+  field: histogram
+
+# lab 4: where the job state and the rows are, group keys, tolerance of averages
+reports:
+  wait_field: job.state
+  field: rows
+  keys:
+    - branch_id
+    - day
+  tolerance: 1.0e-9
+
+# lab 5: the windows of /v1/panel and /v1/panel/batch
+panel:
+  field: windows
+  keys:
+    - branch_id
+    - window_start
+  ignore_fields:
+    - batch_id
+    - written_at
+
+# lab 6: owner value -> service, lease TTL, history check route
+coordinators:
+  coordinator-a: coordinator-a
+  coordinator-b: coordinator-b
+lease_ttl_s: 5
+history:
+  check: /v1/history/check
+  ok_field: ok

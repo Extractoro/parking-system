@@ -1,0 +1,23 @@
+# Optional fault injection; FAULTS_DIR must be the same shared filesystem on every node.
+services:
+  api:
+    environment:
+      FAULTS: "on"
+    volumes:
+      - type: bind
+        source: ${FAULTS_DIR:?Set FAULTS_DIR to a shared directory mounted on every node}
+        target: /faults
+  ray-head:
+    environment:
+      FAULTS: "on"
+    volumes:
+      - type: bind
+        source: ${FAULTS_DIR:?Set FAULTS_DIR to a shared directory mounted on every node}
+        target: /faults
+  ray-worker:
+    environment:
+      FAULTS: "on"
+    volumes:
+      - type: bind
+        source: ${FAULTS_DIR:?Set FAULTS_DIR to a shared directory mounted on every node}
+        target: /faults

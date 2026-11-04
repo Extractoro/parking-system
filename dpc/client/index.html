@@ -1,0 +1,147 @@
+<!doctype html>
+<!-- Shell of the client page: API token, a request form, waiting for the final state, quick reads.
+     Replace it with the scenarios of your card. Run: python -m http.server 8083 --bind 127.0.0.1 --directory client -->
+<html lang="uk">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Клієнт платформи</title>
+    <style>
+        body {
+            font: 15px/1.5 system-ui, sans-serif;
+            max-width: 48rem;
+            margin: 2rem auto;
+            padding: 0 1rem;
+        }
+
+        fieldset {
+            margin-bottom: 1.5rem;
+            border: 1px solid #ccc;
+        }
+
+        label {
+            display: block;
+            margin: .4rem 0;
+        }
+
+        input, select, textarea {
+            font: inherit;
+            width: 100%;
+            box-sizing: border-box;
+        }
+
+        textarea {
+            height: 8rem;
+            font-family: ui-monospace, monospace;
+        }
+
+        button {
+            font: inherit;
+            margin: .5rem .5rem 0 0;
+        }
+
+        pre {
+            background: #f3f3f3;
+            padding: .75rem;
+            white-space: pre-wrap;
+        }
+
+        .problem {
+            color: #a00;
+        }
+    </style>
+</head>
+<body>
+    <h1>Клієнт платформи</h1>
+
+    <fieldset>
+        <legend>Доступ</legend>
+        <label>Токен API <input id="token"></label>
+    </fieldset>
+
+    <fieldset>
+        <legend>Запит</legend>
+        <form id="request-form">
+            <label>Метод
+                <select name="method">
+                    <option>POST</option>
+                    <option>GET</option>
+                    <option>DELETE</option>
+                </select>
+            </label>
+            <label>Шлях <input name="path" value="/v1/returns"></label>
+            <label>Тіло JSON (порожньо — без тіла)
+                <textarea name="body">{"return_id": "r_demo1", "copy_id": "CEN-demo1", "loan_id": "l_demo1", "branch_id": "central", "station_id": "st-1"}</textarea>
+            </label>
+            <label><input type="checkbox" name="idempotent" style="width:auto" checked> з новим Idempotency-Key</label>
+            <label><input type="checkbox" name="wait" style="width:auto" checked> чекати кінцевого стану за Location</label>
+            <button>Надіслати</button>
+        </form>
+    </fieldset>
+
+    <fieldset>
+        <legend>Читання</legend>
+        <button data-path="/v1/shelves/central">Ресурс</button>
+        <button data-path="/v1/reports/main">Звіт</button>
+        <button data-path="/v1/panel">Панель потоку</button>
+        <button data-path="/v1/coordinator">Координатор</button>
+        <button data-path="/metrics">Метрики</button>
+    </fieldset>
+
+    <h2>Відповідь</h2>
+    <pre id="out">—</pre>
+
+    <script type="module">
+        import {call, getToken, newKey, Problem, setToken, waitFinal} from "./api.js";
+
+        const out = document.getElementById("out");
+
+        const show = (value, isProblem = false) => {
+            out.className = isProblem ? "problem" : "";
+            out.textContent = typeof value === "string" ? value : JSON.stringify(value, null, 2);
+        };
+
+        const report = (error) =>
+            error instanceof Problem
+                ? show({status: error.status, ...error.body}, true)
+                : show(String(error), true);
+
+        const token = document.getElementById("token");
+        token.value = getToken();
+        token.onchange = () => setToken(token.value);
+
+        document.getElementById("request-form").onsubmit = async (event) => {
+            event.preventDefault();
+            const form = new FormData(event.target);
+            const text = form.get("body").trim();
+            try {
+                const reply = await call(form.get("method"), form.get("path"), {
+                    body: text ? JSON.parse(text) : undefined,
+                    idempotencyKey: form.get("idempotent") ? newKey() : undefined,
+                });
+                const location = reply.headers.get("location");
+                show({status: reply.status, location, body: reply.data});
+
+                if (form.get("wait") && location) {
+                    const final = await waitFinal(location, {
+                        onStep: (data) => show({waiting: location, body: data}),
+                    });
+                    show({final: location, body: final});
+                }
+            } catch (error) {
+                report(error);
+            }
+        };
+
+        for (const button of document.querySelectorAll("button[data-path]")) {
+            button.onclick = async () => {
+                try {
+                    show((await call("GET", button.dataset.path)).data);
+                } catch (error) {
+                    report(error);
+                }
+            };
+        }
+    </script>
+</body>
+</html>

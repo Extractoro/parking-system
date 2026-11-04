@@ -1,0 +1,75 @@
+{
+  "seed": 7,
+  "reference": {
+    "name": "books",
+    "rows": 2000,
+    "key": "book_id",
+    "key_prefix": "b",
+    "hot_key": "b-hot",
+    "columns": {
+      "title": {
+        "kind": "format",
+        "template": "Book {n}"
+      },
+      "genre": {
+        "kind": "choice",
+        "values": [
+          "novel",
+          "mystery",
+          "science fiction",
+          "poetry",
+          "history",
+          "technology"
+        ]
+      }
+    }
+  },
+  "facts": {
+    "name": "history",
+    "rows": 1000000,
+    "columns": {
+      "loan_id": {
+        "kind": "seq",
+        "prefix": "l",
+        "width": 9
+      },
+      "book_id": {
+        "kind": "ref",
+        "table": "books",
+        "hot_share": 0.4
+      },
+      "branch_id": {
+        "kind": "choice",
+        "values": [
+          "central",
+          "podil",
+          "obolon",
+          "darnytsia"
+        ],
+        "weights": [
+          4,
+          2,
+          2,
+          1
+        ]
+      },
+      "copy_id": {
+        "kind": "format",
+        "template": "{branch_id}-{book_id}-{n}"
+      },
+      "issued": {
+        "kind": "date",
+        "from": "2025-01-01",
+        "days": 600
+      },
+      "days": {
+        "kind": "custom",
+        "function": "loan_days"
+      },
+      "fine_minor": {
+        "kind": "custom",
+        "function": "fine_minor"
+      }
+    }
+  }
+}

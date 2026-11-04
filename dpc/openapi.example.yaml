@@ -1,0 +1,506 @@
+# Example contract (OpenAPI 3.1) for the invented domain "Міська бібліотека": book drops (returns)
+# are accepted into a bounded queue and put copies on the sorting shelf of a branch.
+# Copy it as openapi.yaml and replace returns and shelves with your card; keep the service routes.
+# x-course marks for the teacher's check: receiver, request-state, resource-state.
+# "{uuid}" in an example becomes a new id in every request.
+openapi: 3.1.0
+info:
+  title: Міська бібліотека — повернення книжок
+  version: 1.0.0
+  description: |
+    Контракт сервісу `api`. Маршрути `/v1` потребують `Authorization: Bearer <API_TOKEN>`.
+    Помилки — Problem Details (RFC 9457, `application/problem+json`).
+servers:
+  - url: http://localhost:8000
+security:
+  - apiToken: []
+
+paths:
+  /health:
+    get:
+      operationId: getHealth
+      summary: Перевірка працездатності процесу. Швидка відповідь навіть під навантаженням
+      security: []
+      responses:
+        "200":
+          description: Процес відповідає
+  /metrics:
+    get:
+      operationId: getMetrics
+      summary: Перцентилі затримки, запити в обробці, довжина черги, кількість відмов
+      security: []
+      responses:
+        "200":
+          description: Метрики
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  latency_ms:
+                    type: object
+                    properties:
+                      p50:
+                        type:
+                          - number
+                          - "null"
+                      p95:
+                        type:
+                          - number
+                          - "null"
+                      p99:
+                        type:
+                          - number
+                          - "null"
+                  in_flight:
+                    type: integer
+                  queue_length:
+                    type: integer
+                  responses:
+                    type: object
+                    additionalProperties:
+                      type: integer
+  /metrics/prom:
+    get:
+      operationId: getMetricsPrometheus
+      summary: Ті самі метрики у форматі Prometheus (для Grafana)
+      security: []
+      responses:
+        "200":
+          description: Метрики
+          content:
+            text/plain:
+              schema:
+                type: string
+
+  /v1/returns:
+    post:
+      operationId: createReturn
+      summary: Прийняти повернення від книгомата в обмежену чергу
+      x-course: receiver
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ReturnCreate"
+            examples:
+              normal:
+                value:
+                  return_id: "r_{uuid}"
+                  copy_id: "CEN-{uuid}"
+                  loan_id: "l_{uuid}"
+                  branch_id: central
+                  station_id: st-1
+      responses:
+        "202":
+          description: Прийнято в чергу
+          headers:
+            Location:
+              schema:
+                type: string
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/RequestState"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "409":
+          $ref: "#/components/responses/Conflict"
+        "429":
+          $ref: "#/components/responses/TooManyRequests"
+  /v1/returns/{id}:
+    get:
+      operationId: getReturn
+      summary: Стан повернення
+      x-course: request-state
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Стан
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/RequestState"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "404":
+          $ref: "#/components/responses/NotFound"
+  /v1/shelves/{branch_id}:
+    get:
+      operationId: getShelf
+      summary: Полиця сортування філії. Інваріант — used дорівнює кількості книжок і не більший за місткість
+      x-course: resource-state
+      parameters:
+        - name: branch_id
+          in: path
+          required: true
+          schema:
+            type: string
+          example: central
+      responses:
+        "200":
+          description: Стан ресурсу
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Shelf"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "404":
+          $ref: "#/components/responses/NotFound"
+
+  /v1/compute:
+    post:
+      operationId: startCompute
+      summary: Розрахунок ЛР2
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - a
+                - b
+                - n
+                - workers
+              properties:
+                a:
+                  type: number
+                b:
+                  type: number
+                n:
+                  type: integer
+                  minimum: 1
+                  description: Кількість частин поділу проміжку
+                workers:
+                  type: integer
+                  enum:
+                    - 1
+                    - 2
+                    - 4
+                method:
+                  type: string
+                  enum:
+                    - midpoint
+                    - trapezoid
+                    - simpson
+                order:
+                  type: string
+                  description: Порядок сумування
+            examples:
+              normal:
+                value:
+                  a: 0
+                  b: 12
+                  n: 20000000
+                  workers: 4
+      responses:
+        "202":
+          description: Розрахунок прийнято
+          headers:
+            Location:
+              schema:
+                type: string
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ComputeJob"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+  /v1/compute/{id}:
+    parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: string
+    get:
+      operationId: getCompute
+      summary: Стан і результат розрахунку
+      responses:
+        "200":
+          description: Стан
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ComputeJob"
+        "404":
+          $ref: "#/components/responses/NotFound"
+    delete:
+      operationId: cancelCompute
+      summary: Скасування розрахунку
+      responses:
+        "202":
+          description: Скасування прийнято
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ComputeJob"
+        "404":
+          $ref: "#/components/responses/NotFound"
+  /v1/histogram:
+    get:
+      operationId: getHistogram
+      summary: Паралельна гістограма предметної величини
+      responses:
+        "200":
+          description: Гістограма
+          content:
+            application/json:
+              schema:
+                type: object
+
+  /v1/reports/main/refresh:
+    post:
+      operationId: refreshReport
+      summary: Запустити звіт Spark (через запускач задач)
+      responses:
+        "202":
+          description: Звіт запущено
+          content:
+            application/json:
+              schema:
+                type: object
+        "409":
+          $ref: "#/components/responses/Conflict"
+  /v1/reports/main:
+    get:
+      operationId: getReport
+      summary: Опублікований звіт
+      responses:
+        "200":
+          description: Звіт
+          content:
+            application/json:
+              schema:
+                type: object
+        "404":
+          $ref: "#/components/responses/NotFound"
+  /v1/reports/main/reference:
+    get:
+      operationId: getReportReference
+      summary: Незалежний еталон звіту
+      responses:
+        "200":
+          description: Еталон
+          content:
+            application/json:
+              schema:
+                type: object
+
+  /v1/panel:
+    get:
+      operationId: getPanel
+      summary: Фіналізовані вікна потокової задачі
+      responses:
+        "200":
+          description: Вікна
+          content:
+            application/json:
+              schema:
+                type: object
+  /v1/panel/batch:
+    get:
+      operationId: getPanelBatch
+      summary: Ті самі вікна, пакетний розрахунок
+      responses:
+        "200":
+          description: Вікна
+          content:
+            application/json:
+              schema:
+                type: object
+
+  /v1/coordinator:
+    get:
+      operationId: getCoordinator
+      summary: Власник ролі й покоління
+      responses:
+        "200":
+          description: Власник
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  owner:
+                    type:
+                      - string
+                      - "null"
+                  generation:
+                    type:
+                      - integer
+                      - "null"
+  /v1/history:
+    get:
+      operationId: getHistory
+      summary: Історія операцій ресурсу
+      responses:
+        "200":
+          description: Історія
+          content:
+            application/json:
+              schema:
+                type: object
+
+components:
+  securitySchemes:
+    apiToken:
+      type: http
+      scheme: bearer
+  schemas:
+    Problem:
+      type: object
+      required:
+        - type
+        - title
+        - status
+      properties:
+        type:
+          type: string
+          format: uri
+        title:
+          type: string
+        status:
+          type: integer
+        detail:
+          type: string
+    ReturnCreate:
+      type: object
+      required:
+        - return_id
+        - copy_id
+        - loan_id
+        - branch_id
+        - station_id
+      properties:
+        return_id:
+          type: string
+        copy_id:
+          type: string
+        loan_id:
+          type: string
+        branch_id:
+          type: string
+        station_id:
+          type: string
+    Shelf:
+      type: object
+      required:
+        - branch_id
+        - capacity
+        - used
+        - books
+        - invariant_ok
+      properties:
+        branch_id:
+          type: string
+        capacity:
+          type: integer
+        used:
+          type: integer
+        books:
+          type: integer
+          description: Фактична кількість книжок на полиці
+        invariant_ok:
+          type: boolean
+    RequestState:
+      type: object
+      required:
+        - id
+        - state
+      properties:
+        id:
+          type: string
+        state:
+          type: string
+          enum:
+            - queued
+            - processing
+            - done
+            - rejected
+            - failed
+        reason:
+          type:
+            - string
+            - "null"
+    ComputeJob:
+      type: object
+      required:
+        - id
+        - state
+      properties:
+        id:
+          type: string
+        state:
+          type: string
+          enum:
+            - running
+            - done
+            - cancelled
+            - failed
+        active_parts:
+          type: integer
+          description: Скільки частин ще обчислюється (скасування — до нуля)
+        result:
+          type:
+            - object
+            - "null"
+          description: Немає після скасування
+          properties:
+            value:
+              type: number
+            reference:
+              type: number
+            error:
+              type: number
+            wall_s:
+              type: number
+            workers:
+              type: integer
+  responses:
+    BadRequest:
+      description: Некоректний запит
+      content:
+        application/problem+json:
+          schema:
+            $ref: "#/components/schemas/Problem"
+    Unauthorized:
+      description: Потрібен токен API
+      content:
+        application/problem+json:
+          schema:
+            $ref: "#/components/schemas/Problem"
+    NotFound:
+      description: Не знайдено
+      content:
+        application/problem+json:
+          schema:
+            $ref: "#/components/schemas/Problem"
+    Conflict:
+      description: Конфлікт із поточним станом
+      content:
+        application/problem+json:
+          schema:
+            $ref: "#/components/schemas/Problem"
+    TooManyRequests:
+      description: Черга заповнена
+      headers:
+        Retry-After:
+          schema:
+            type: integer
+      content:
+        application/problem+json:
+          schema:
+            $ref: "#/components/schemas/Problem"

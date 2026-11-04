@@ -1,0 +1,7 @@
+{"event_id":"control-1","event_time":"2026-10-12T08:00:00.000Z","gate_id":"g1","direction":"in","pass_id":"p1"}
+{"event_id":"control-2","event_time":"2026-10-12T08:05:00.000Z","gate_id":"g2","direction":"in","pass_id":"p2"}
+{"event_id":"control-3","event_time":"2026-10-12T08:14:59.999Z","gate_id":"g1","direction":"out","pass_id":"p1"}
+{"event_id":"control-4","event_time":"2026-10-12T08:15:00.000Z","gate_id":"g1","direction":"in","pass_id":"p3"}
+{"event_id":"control-5","event_time":"2026-10-12T08:16:00.000Z","gate_id":"g2","direction":"in","pass_id":"p4"}
+{"event_id":"control-6","event_time":"2026-10-12T08:29:59.999Z","gate_id":"g2","direction":"out","pass_id":"p2"}
+{"event_id":"tick-control","event_time":"2026-10-12T09:00:00.000Z","gate_id":"tick","direction":"tick","pass_id":"tick"}

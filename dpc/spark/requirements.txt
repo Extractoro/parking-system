@@ -1,0 +1,4 @@
+pyspark==4.2.0
+pandas>=3.0.6
+pyarrow>=26
+psycopg[binary]>=3.3.6
