@@ -35,3 +35,7 @@ logs/
 *.log
 .DS_Store
 Thumbs.db
+
+# Report previews (the .docx is committed, its PDF and page images are not)
+docs/reports/out/*.pdf
+docs/reports/out/pages/
