@@ -24,7 +24,7 @@ export function NavLink({
     onNavigate(to)
   }
   return (
-    <a href={hrefWith({ view: to === 'bookings' ? 'bookings' : undefined })} aria-current={current ? 'page' : undefined} className={className} onClick={click}>
+    <a href={hrefWith({ view: to === 'book' ? undefined : to })} aria-current={current ? 'page' : undefined} className={className} onClick={click}>
       {children}
     </a>
   )
@@ -57,6 +57,9 @@ export function Header({
           </NavLink>
           <NavLink to="bookings" current={view === 'bookings'} onNavigate={onNavigate}>
             My bookings
+          </NavLink>
+          <NavLink to="barrier" current={view === 'barrier'} onNavigate={onNavigate}>
+            Barrier
           </NavLink>
         </nav>
         {/* Until lab 3 there is no login: the account is one of the pre-created users. */}

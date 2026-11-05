@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import BarrierPage from './BarrierPage'
 import BookingPage from './BookingPage'
 import BookingsPage from './BookingsPage'
 import { Header } from './components'
@@ -13,10 +14,11 @@ export default function App() {
     const saved = sessionStorage.getItem('userId')
     return USERS.some((u) => u.id === saved) ? (saved as string) : USERS[0].id
   })
-  const view: View = params.get('view') === 'bookings' ? 'bookings' : 'book'
+  const v = params.get('view')
+  const view: View = v === 'bookings' || v === 'barrier' ? v : 'book'
 
   function navigate(v: View) {
-    setParams({ view: v === 'bookings' ? 'bookings' : undefined, tab: undefined }, 'push')
+    setParams({ view: v === 'book' ? undefined : v, tab: undefined }, 'push')
     window.scrollTo({ top: 0 })
   }
 
@@ -32,7 +34,9 @@ export default function App() {
       </a>
       <Header view={view} onNavigate={navigate} userId={userId} onUser={changeUser} />
       <ErrorBoundary key={`${view}/${userId}`}>
-        {view === 'bookings' ? (
+        {view === 'barrier' ? (
+          <BarrierPage params={params} setParams={setParams} />
+        ) : view === 'bookings' ? (
           <BookingsPage userId={userId} params={params} setParams={setParams} onNavigate={navigate} />
         ) : (
           <BookingPage userId={userId} params={params} setParams={setParams} onNavigate={navigate} />

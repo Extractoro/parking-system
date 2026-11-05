@@ -1202,3 +1202,117 @@ details.support summary {
 .cancel-confirm .row-actions {
   gap: 8px;
 }
+
+/* Barrier page (DPC lab 1): entry/exit form, last requests, garage occupancy */
+.barrier-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 16px;
+}
+
+fieldset.field {
+  border: 0;
+  margin: 0;
+  padding: 0;
+  min-width: 0;
+}
+
+.segmented {
+  display: flex;
+  height: 44px;
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius);
+  overflow: hidden;
+}
+
+.segmented button {
+  flex: 1;
+  border: 0;
+  background: var(--surface);
+  font-weight: 500;
+  color: var(--ink-2);
+}
+
+.segmented button + button {
+  border-left: 1px solid var(--border-strong);
+}
+
+.segmented button.on {
+  background: var(--selected);
+  color: #fff;
+}
+
+.recent {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.entry-row {
+  padding: 12px 16px;
+  display: flex;
+  gap: 16px;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.entry-main {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.entry-title {
+  display: flex;
+  gap: 10px;
+  align-items: baseline;
+  font-weight: 500;
+}
+
+.entry-reason {
+  color: var(--danger-ink);
+}
+
+.plate-tag {
+  padding: 1px 6px;
+  border: 1px solid var(--border-strong);
+  border-radius: 4px;
+  background: var(--subtle);
+  letter-spacing: 0.04em;
+}
+
+.badge.state.done {
+  background: var(--success-soft);
+  color: var(--success);
+}
+
+.badge.state.rejected,
+.badge.state.failed,
+.badge.danger {
+  background: var(--danger-soft);
+  color: var(--danger-ink);
+}
+
+.badge.state.queued,
+.badge.state.processing {
+  background: var(--warn-soft);
+  color: var(--warn-ink);
+}
+
+.occupancy {
+  position: relative;
+  display: flex;
+  height: 10px;
+  border-radius: 99px;
+  background: var(--subtle);
+  overflow: hidden;
+}
+
+.occupancy-bar {
+  background: var(--accent);
+}
+
+.occupancy-reserved {
+  background: repeating-linear-gradient(45deg, var(--accent-soft) 0 4px, var(--border-strong) 4px 8px);
+}

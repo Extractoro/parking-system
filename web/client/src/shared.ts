@@ -5,7 +5,7 @@ export const USERS = [
   { id: 'u-2', login: 'user2' },
 ]
 
-export type View = 'book' | 'bookings'
+export type View = 'book' | 'bookings' | 'barrier'
 
 /** Short human reference of a booking instead of its full id. */
 export function bookingCode(id: string): string {
