@@ -1,9 +1,8 @@
 """The `api` process: `uvicorn app.main:app --host 0.0.0.0 --port 8000`.
 
 Where each lab plugs in (item numbers of the guide):
-  TODO (O1.1-O1.5, D1.4) the receiver route of your card (202), the bounded queue and
-                    the worker pool started in `lifespan`, the shared resource and its lock, the
-                    time log; metrics.gauge("queue_length", ...) for /metrics (O1.5)
+  DONE (O1.1-O1.5, D1.4) app/entries.py: POST/GET /v1/entries, GET /v1/garage/{id}, the bounded
+                    queue, the worker pool, the garage lock, the time marks and the SIGTERM drain
   TODO (O2.1-O2.4, D2.5, D2.6)  POST /v1/compute and its state, the parallel computation, cancel
   TODO (O3.1-O3.4, D3.3, D3.4)  Ray tasks (this image also runs ray-head and ray-worker), the effect
                     table and fault("after_effect_before_ack")
@@ -19,19 +18,21 @@ from contextlib import asynccontextmanager
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
-from . import config, db, middleware, problems, service
+from . import config, db, entries, middleware, problems, service
 from .jsonlog import log
 
 
 @asynccontextmanager
 async def lifespan(_: FastAPI) -> AsyncIterator[None]:
     await db.open_pool()
-    # TODO (O1.2, O1.3): create the bounded queue and start the worker pool here
+    # O1.2, O1.3: the bounded queue and exactly WORKERS workers; D1.4: SIGTERM drains the queue first
+    await entries.start()
     log("api.started")
 
     yield
 
-    # TODO (D1.4): stop accepting, process what was accepted, then stop the workers
+    # D1.4: by now SIGTERM has drained the queue (api.drained); stop the idle workers, then the pool
+    await entries.stop()
     await db.close_pool()
     log("api.stopped")
 
@@ -47,4 +48,4 @@ app.add_middleware(
 )
 problems.install(app)
 app.include_router(service.router)
-# app.include_router(your_module.router)
+app.include_router(entries.router)

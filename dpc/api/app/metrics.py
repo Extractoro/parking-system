@@ -62,7 +62,8 @@ def snapshot() -> dict[str, object]:
             "p95": _percentile(values, 95),
             "p99": _percentile(values, 99),
         },
-        "in_flight": in_flight,
+        # HTTP requests being answered; "in_flight" itself is the gauge of the requests in the worker pool
+        "http_in_flight": in_flight,
         "responses": statuses,
         **{name: read() for name, read in _gauges.items()},
     }
@@ -71,7 +72,7 @@ def snapshot() -> dict[str, object]:
 def prometheus() -> str:
     """The same numbers in the Prometheus text format (GET /metrics/prom, read by Prometheus)."""
     snap = snapshot()
-    lines = [f"uptime_seconds {snap['uptime_s']}", f"in_flight {snap['in_flight']}"]
+    lines = [f"uptime_seconds {snap['uptime_s']}", f"http_in_flight {snap['http_in_flight']}"]
 
     for q, value in snap["latency_ms"].items():
         if value is not None:
