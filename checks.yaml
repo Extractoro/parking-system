@@ -10,7 +10,9 @@ web:
 dpc:
   openapi: dpc/openapi.yaml
   base: http://localhost:8000
-  items: []
+  items: [О1.5, Д1.4]
+  resource: {path: /v1/garage/center, ok_field: invariant_ok}
+  metrics: [queue_length, in_flight, rejected]
   # services: {api: dpc-api}
 
 # Joint scenario (web -> dpc -> web): filled in at stage 13. Template placeholder, not used yet.

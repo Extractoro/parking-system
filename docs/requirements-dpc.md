@@ -9,15 +9,15 @@
 
 | Lab | ID | Ядро/О/Д | Описание | Компонент | Файлы | Тесты | Evidence | Status |
 |---|---|---|---|---|---|---|---|---|
-| ЛР1 | О1.1 | Ядро | Приймання запитів. | — | — | — | — | not_started |
-| ЛР1 | О1.2 | Ядро | Обмежена черга й перевантаження. | — | — | — | — | not_started |
-| ЛР1 | О1.3 | Ядро | Пул обробників. | — | — | — | — | not_started |
-| ЛР1 | О1.4 | Ядро | Захист спільного ресурсу. | — | — | — | — | not_started |
-| ЛР1 | О1.5 | О | Час виконання й метрики. | — | — | — | — | not_started |
-| ЛР1 | Д1.1 | Д | Дві моделі виконання (потоки й асинхронність або процеси) на тому самому навантаженні. | — | — | — | — | not_started |
-| ЛР1 | Д1.2 | Д | Перевірка закону Літтла на вимірах. | — | — | — | — | not_started |
-| ЛР1 | Д1.3 | Д | Власна черга на м’ютексі й умовній змінній. | — | — | — | — | not_started |
-| ЛР1 | Д1.4 | Д | Завершення роботи. | — | — | — | — | not_started |
+| ЛР1 | О1.1 | Ядро | Приймання запитів. | api | `dpc/api/app/entries.py`, `migrations/005_dpc_entries.sql`, `903_dpc_seed.sql` | `test_accept_202_and_final_state`, `test_validation_and_auth` | 202 + `Location`, стани queued → processing → done/rejected/failed; `results/dpc-lr1/rules.txt`, `pytest.txt` | done |
+| ЛР1 | О1.2 | Ядро | Обмежена черга й перевантаження. | api | `entries.py` (`asyncio.Queue`, `Admission`) | `test_full_queue_429_not_stored` | 60 клієнтів × 30 с, черга 50, 4 обробники: 396×202, 42263×429, `/health` p95 52.6 мс (`results/dpc-lr1/overload.txt`) | done |
+| ЛР1 | О1.3 | Ядро | Пул обробників. | api | `entries.py` (`start`, `_worker`, `_process`) | `test_time_marks_order` | рівно `WORKERS` задач; `in_flight` max 4 при WORKERS=4; розпізнавання 100-500 мс поза секцією | done |
+| ЛР1 | О1.4 | Ядро | Захист спільного ресурсу. | api | `entries.py` (`_apply_locked`, `_apply_unsafe`) | `test_invariant_after_200_parallel_requests` | `dpc-race`, 200 запитів, WORKERS=8: unsafe occupied 5 / inside 27 `invariant_ok=false`, locked 5/5 `true` (`results/dpc-lr1/race.txt`) | done |
+| ЛР1 | О1.5 | О | Час виконання й метрики. | api | `entries.py` (`Marks`, `get_entry`), `metrics.py` | `test_time_marks_order`, `test_metrics` | 300 запитів: POST HTTP p95 132.9 мс, повне виконання p95 2022.7 мс; порядок позначок 300/300 (`results/dpc-lr1/timing.txt`) | done |
+| ЛР1 | Д1.1 | Д | Дві моделі виконання (потоки й асинхронність або процеси) на тому самому навантаженні. | — | — | — | — | skipped |
+| ЛР1 | Д1.2 | Д | Перевірка закону Літтла на вимірах. | — | — | — | — | skipped |
+| ЛР1 | Д1.3 | Д | Власна черга на м’ютексі й умовній змінній. | — | — | — | — | skipped |
+| ЛР1 | Д1.4 | Д | Завершення роботи. | api | `entries.py` (`_install_sigterm`, `_drain_then_exit`) | - | `docker compose stop api` з повною чергою: 35×503, `api.drained count=50`, 61 прийнятий запит у кінцевому стані (`results/dpc-lr1/drain.txt`) | done |
 
 ## ЛР2
 
