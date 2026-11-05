@@ -12,6 +12,7 @@ critical section = one PostgreSQL transaction holding `SELECT ... FOR UPDATE` of
 """
 
 import asyncio
+import json
 import random
 import re
 import signal
@@ -411,6 +412,49 @@ async def _check_rule(
     if not walk_in_allowed(occupied, held, spots):
         return "full", f"occupied {occupied} + reserved {held} of {spots} spots"
     return None
+
+
+# ------------------------------------------------------------------ admission (O1.2)
+
+
+class Admission:
+    """Outermost ASGI layer: POST /v1/entries with a full queue (or while draining) is refused here,
+    before FastAPI routing, validation and the other middleware. Under a flood of refused requests
+    each 429 then costs a few dozen microseconds instead of ~1.5 ms, so the event loop stays free
+    for /health and for the accepted requests (O1.2). The route below repeats the same check for
+    the requests that pass this one."""
+
+    def __init__(self, app: Any) -> None:
+        self.app = app
+
+    async def __call__(self, scope: dict, receive: Any, send: Any) -> None:
+        if scope["type"] == "http" and scope["method"] == "POST" and scope["path"] == "/v1/entries" and state:
+            st = state
+            if st.draining:
+                st.rejected_draining += 1
+                return await _refuse(scope, send, 503, "shutting-down", "The service is shutting down",
+                                     str(config.DRAIN_RETRY_AFTER_S))
+            if st.queue.qsize() + st.reserving >= config.QUEUE_CAPACITY:
+                st.rejected_overload += 1
+                return await _refuse(scope, send, 429, "queue-full", "The queue is full", "1")
+        await self.app(scope, receive, send)
+
+
+async def _refuse(scope: dict, send: Any, status: int, slug: str, title: str, retry_after: str) -> None:
+    started = time.perf_counter()
+    metrics.request_started()
+    body = json.dumps({"type": config.PROBLEM_BASE + slug, "title": title, "status": status,
+                       "detail": "The request was not accepted; repeat it later", "instance": "/v1/entries"}).encode()
+    headers = [(b"content-type", b"application/problem+json"), (b"content-length", str(len(body)).encode()),
+               (b"retry-after", retry_after.encode()), (b"x-instance", config.INSTANCE.encode())]
+    origin = dict(scope["headers"]).get(b"origin")
+    if origin is not None and origin.decode() == config.CLIENT_ORIGIN:  # the Barrier page must see the 429
+        headers += [(b"access-control-allow-origin", origin),
+                    (b"access-control-expose-headers", b"Location, Retry-After, X-Request-ID")]
+    await send({"type": "http.response.start", "status": status, "headers": headers})
+    await send({"type": "http.response.body", "body": body})
+    # counted in /metrics (responses, latency); no JSON log line per refusal: the counters are the record
+    metrics.request_finished(status, (time.perf_counter() - started) * 1000)
 
 
 # ------------------------------------------------------------------ routes

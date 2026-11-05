@@ -46,6 +46,8 @@ app.add_middleware(
     allow_headers=["Authorization", "Content-Type", "Idempotency-Key"],
     expose_headers=["Location", "Retry-After", "X-Request-ID"],
 )
+# O1.2: outermost layer, a full queue is refused before routing (entries.Admission)
+app.add_middleware(entries.Admission)
 problems.install(app)
 app.include_router(service.router)
 app.include_router(entries.router)
