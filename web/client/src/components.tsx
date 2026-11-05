@@ -88,6 +88,19 @@ function explain(error: ApiError): { title: string; detail: string } {
       return { title: 'Level closed', detail: 'This level takes no new bookings right now. Pick another level.' }
     case 'level-not-found':
       return { title: 'Level not found', detail: 'Reload the page and pick the level again.' }
+    case 'idempotency-in-progress':
+      return { title: 'Still being processed', detail: 'Your request is still being processed. Wait a moment and check your bookings.' }
+    case 'idempotency-key-reused':
+      return { title: 'Request changed', detail: 'This request was already sent with other data. Reload the page and book again.' }
+    case 'version-mismatch':
+      return { title: 'The booking has changed', detail: 'It was changed after you opened this page. Refresh the list and try again.' }
+    case 'booking-not-modifiable':
+    case 'booking-not-cancellable':
+      return { title: 'Cannot change this booking', detail: 'It is no longer active. Refresh the list to see its current state.' }
+    case 'booking-started':
+      return { title: 'The booking has started', detail: 'A booking can be cancelled only before its first hour starts.' }
+    case 'booking-not-found':
+      return { title: 'Booking not found', detail: 'Refresh the list: the booking may belong to another account.' }
     case 'unauthorized':
       return { title: 'Sign-in required', detail: 'Pick an account at the top of the page.' }
     case 'invalid-request':

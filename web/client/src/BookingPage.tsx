@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { ApiError, api, type Booking, type Garage, type HourSlot } from './api'
 import { NavLink, ProblemAlert } from './components'
+import { RETRY, isRetryable, withRetries, type AttemptInfo } from './retry'
 import type { View } from './shared'
 import { AlertIcon, Check, CheckCircle, Spinner } from './icons'
 import {
@@ -42,6 +43,15 @@ export default function BookingPage({ userId, params, setParams, onNavigate }: P
   const [error, setError] = useState<unknown>(null)
   const [fieldErrors, setFieldErrors] = useState<FieldErrors>({})
   const [hoursText, setHoursText] = useState<string | null>(null) // what is typed; null = show the applied value
+  // retries of one action: the attempt in progress, and "unknown" when every attempt went unanswered
+  const [retry, setRetry] = useState<AttemptInfo | null>(null)
+  const [unknown, setUnknown] = useState(false)
+  const [checking, setChecking] = useState(false)
+  const [checkNote, setCheckNote] = useState<string | null>(null)
+  // ONE Idempotency-Key per user action: made at the first click, the same in every retry and in
+  // "Send again" after an unknown result; dropped once the result is known or the request changes
+  const keyRef = useRef<string | null>(null)
+  const startedRef = useRef(0)
   const plateRef = useRef<HTMLInputElement>(null)
   const gridRef = useRef<HTMLDivElement>(null)
 
@@ -105,9 +115,17 @@ export default function BookingPage({ userId, params, setParams, onNavigate }: P
   const end = from ? plusHours(from, hours) : null
   const endsNextDay = end !== null && dayOf(end - 1, tz) !== day
 
+  /** Another request is a new action: it gets a new key. */
+  function forgetAction() {
+    keyRef.current = null
+    setUnknown(false)
+    setCheckNote(null)
+  }
+
   function select(patch: Record<string, string | undefined>) {
     setResult(null)
     setError(null)
+    forgetAction()
     setParams(patch)
   }
 
@@ -154,15 +172,28 @@ export default function BookingPage({ userId, params, setParams, onNavigate }: P
       plateRef.current?.focus()
       return
     }
+    if (!keyRef.current) {
+      keyRef.current = crypto.randomUUID()
+      startedRef.current = Date.now()
+    }
+    const key = keyRef.current
+    const data = { level_id: level.id, from_hour: from, hours, plate: plate.trim() }
     setSending(true)
     setError(null)
     setResult(null)
+    setUnknown(false)
+    setCheckNote(null)
     try {
-      const { booking } = await api.createBooking(userId, { level_id: level.id, from_hour: from, hours, plate: plate.trim() })
-      setResult(booking)
-      setParams({ from: undefined }) // the hours are now taken: drop the selection, keep the result
-      sessionStorage.setItem('plate', plate.trim())
+      // retried only on no answer, 502/503/504 and 409 idempotency-in-progress, always with `key`
+      const { booking } = await withRetries(() => api.createBooking(userId, data, key), setRetry)
+      done(booking)
     } catch (err) {
+      if (isRetryable(err)) {
+        // every attempt went unanswered: the booking may exist. Keep the key for "Send again".
+        setUnknown(true)
+        return
+      }
+      keyRef.current = null // a final answer: the next click is a new action
       // 422 with fields -> show next to the fields and focus the first one
       if (err instanceof ApiError && err.status === 422 && err.problem.errors?.length) {
         const fe: FieldErrors = {}
@@ -176,6 +207,40 @@ export default function BookingPage({ userId, params, setParams, onNavigate }: P
       setError(err)
     } finally {
       setSending(false)
+      setRetry(null)
+      loadSlots()
+    }
+  }
+
+  function done(booking: Booking) {
+    forgetAction()
+    setResult(booking)
+    setParams({ from: undefined }) // the hours are now taken: drop the selection, keep the result
+    sessionStorage.setItem('plate', booking.plate)
+  }
+
+  /** "Check": read My bookings and look for the booking this action asked for. */
+  async function check() {
+    if (!level || !from) return
+    setChecking(true)
+    setCheckNote(null)
+    try {
+      const { items } = await api.allBookings(userId)
+      const found = items.find(
+        (b) =>
+          b.level_id === level.id &&
+          Date.parse(b.from_hour) === Date.parse(from) &&
+          b.hours === hours &&
+          b.plate === plate.trim() &&
+          b.status === 'confirmed' &&
+          Date.parse(b.created_at) >= startedRef.current - 60_000,
+      )
+      if (found) done(found)
+      else setCheckNote('No such booking yet. Sending again is safe: it uses the same request key and cannot book twice.')
+    } catch {
+      setCheckNote('Could not load your bookings either. Check the connection and try again.')
+    } finally {
+      setChecking(false)
       loadSlots()
     }
   }
@@ -447,6 +512,7 @@ export default function BookingPage({ userId, params, setParams, onNavigate }: P
                     aria-describedby={fieldErrors.plate ? 'plate-err' : undefined}
                     onChange={(e) => {
                       setPlate(e.target.value.toUpperCase())
+                      forgetAction() // another plate is another request: a new key
                       if (fieldErrors.plate) setFieldErrors((f) => ({ ...f, plate: undefined }))
                     }}
                   />
@@ -457,7 +523,40 @@ export default function BookingPage({ userId, params, setParams, onNavigate }: P
                   )}
                 </label>
 
-                {conflictAt !== null && !error && (
+                {retry && (
+                  <div className="alert alert-warn retrying" role="status">
+                    <Spinner size={16} color="var(--warn-ink)" />
+                    <span>
+                      No answer from the server yet. Trying again ({retry.attempt} of {retry.of}) with the same request, so the spot
+                      cannot be booked twice…
+                    </span>
+                  </div>
+                )}
+
+                {unknown && !sending && (
+                  <div className="alert alert-warn unknown" role="alert">
+                    <AlertIcon color="var(--warn-ink)" size={20} />
+                    <div className="alert-body">
+                      <strong>Result unknown</strong>
+                      <span>
+                        The server did not answer after {RETRY.attempts} attempts. The spot may already be booked for you. Check
+                        your bookings before booking again.
+                      </span>
+                      {checkNote && <span className="check-note">{checkNote}</span>}
+                      <div className="alert-actions">
+                        <button type="button" className="btn btn-dark" onClick={() => void check()} disabled={checking} aria-busy={checking || undefined}>
+                          {checking ? <Spinner size={16} color="#fff" /> : null}
+                          Check
+                        </button>
+                        <button type="button" className="btn btn-ghost" onClick={() => void send()}>
+                          Send again
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                )}
+
+                {conflictAt !== null && !error && !unknown && (
                   <div className="alert alert-danger" role="alert">
                     <AlertIcon color="var(--danger)" />
                     <span>
@@ -501,7 +600,7 @@ export default function BookingPage({ userId, params, setParams, onNavigate }: P
                 >
                   {sending ? (
                     <>
-                      <Spinner size={16} color="#fff" /> Booking…
+                      <Spinner size={16} color="#fff" /> {retry ? `Retrying (${retry.attempt} of ${retry.of})…` : 'Booking…'}
                     </>
                   ) : from ? (
                     `Book · ${garage ? money(price, garage.currency) : ''}`

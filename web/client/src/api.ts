@@ -16,14 +16,19 @@ export class ApiError extends Error {
   readonly status: number
   readonly problem: Problem
   readonly requestId: string | null
+  readonly retryAfter: number | null // seconds, from Retry-After
 
-  constructor(status: number, problem: Problem, requestId: string | null) {
+  constructor(status: number, problem: Problem, requestId: string | null, retryAfter: number | null = null) {
     super(problem.title ?? `HTTP ${status}`)
     this.status = status
     this.problem = problem
     this.requestId = requestId
+    this.retryAfter = retryAfter
   }
 }
+
+/** One attempt that got no answer in this time is treated as lost (status 0) and may be retried. */
+const TIMEOUT_MS = 10000
 
 export interface Level {
   id: string
@@ -69,6 +74,7 @@ export interface Booking {
   price_minor: number
   currency: string
   status: string
+  version: number
   created_at: string
 }
 
@@ -90,10 +96,15 @@ async function request<T>(path: string, init: RequestInit = {}, userId?: string)
   if (init.body) headers.set('Content-Type', 'application/json')
 
   let response: Response
+  const timeout = new AbortController()
+  const timer = setTimeout(() => timeout.abort(), TIMEOUT_MS)
   try {
-    response = await fetch(API_URL + path, { ...init, headers })
+    response = await fetch(API_URL + path, { ...init, headers, signal: timeout.signal })
   } catch {
+    // no answer at all: the request may or may not have been done on the server
     throw new ApiError(0, { title: 'Server unavailable' }, null)
+  } finally {
+    clearTimeout(timer)
   }
 
   const text = await response.text()
@@ -106,9 +117,19 @@ async function request<T>(path: string, init: RequestInit = {}, userId?: string)
   if (!response.ok) {
     const problem: Problem =
       body && typeof body === 'object' ? (body as Problem) : { title: `HTTP ${response.status}`, detail: text.slice(0, 200) }
-    throw new ApiError(response.status, problem, response.headers.get('X-Request-ID'))
+    const retryAfter = Number(response.headers.get('Retry-After'))
+    throw new ApiError(
+      response.status,
+      problem,
+      response.headers.get('X-Request-ID'),
+      Number.isFinite(retryAfter) && retryAfter > 0 ? retryAfter : null,
+    )
   }
   return { body: body as T, headers: response.headers }
+}
+
+function bookingPath(id: string): string {
+  return `/v1/bookings/${encodeURIComponent(id)}`
 }
 
 export const api = {
@@ -117,13 +138,25 @@ export const api = {
   levelHours: (levelId: string, day: string) =>
     request<LevelHours>(`/v1/levels/${encodeURIComponent(levelId)}/hours?day=${encodeURIComponent(day)}`).then((r) => r.body),
 
-  createBooking: (userId: string, data: BookingCreate) =>
+  /** One attempt. The caller makes the key once per user action and sends it with every retry. */
+  createBooking: (userId: string, data: BookingCreate, idempotencyKey: string) =>
     request<Booking>(
       '/v1/bookings',
-      // the idempotency key is required by the contract; the retry logic comes with lab 2 (O2.4)
-      { method: 'POST', body: JSON.stringify(data), headers: { 'Idempotency-Key': crypto.randomUUID() } },
+      { method: 'POST', body: JSON.stringify(data), headers: { 'Idempotency-Key': idempotencyKey } },
       userId,
-    ).then((r) => ({ booking: r.body, location: r.headers.get('Location') })),
+    ).then((r) => ({ booking: r.body, replayed: r.headers.get('Idempotent-Replayed') === 'true' })),
+
+  /** Plate change with the version the user saw: another version -> 412. */
+  updatePlate: (userId: string, id: string, plate: string, version: number) =>
+    request<Booking>(
+      bookingPath(id),
+      { method: 'PATCH', body: JSON.stringify({ plate }), headers: { 'If-Match': `"${version}"` } },
+      userId,
+    ).then((r) => r.body),
+
+  /** Safe to repeat: a cancelled booking answers 200 again and frees nothing twice. */
+  cancelBooking: (userId: string, id: string) =>
+    request<Booking>(`${bookingPath(id)}/cancel`, { method: 'POST' }, userId).then((r) => r.body),
 
   /** Reads EVERY page of the list by next_cursor (O1.5 + O1.7). */
   async allBookings(userId: string, limit = 5): Promise<{ items: Booking[]; pages: number }> {

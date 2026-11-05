@@ -1,9 +1,149 @@
 import { useCallback, useEffect, useState } from 'react'
-import { api, type Booking, type Garage } from './api'
+import { ApiError, api, type Booking, type Garage } from './api'
 import { NavLink, ProblemAlert } from './components'
+import { problemSlug, withRetries } from './retry'
 import { bookingCode, type View } from './shared'
-import { Calendar, Plus } from './icons'
+import { Calendar, CheckCircle, Plus, Spinner } from './icons'
 import { dayNumber, dayOf, hoursLabel, money, monthShort, time } from './format'
+
+const PLATE_RE = /^.{2,12}$/
+
+/** Change the plate (If-Match with the version shown in the list) and cancel one booking. */
+function BookingActions({
+  userId,
+  booking,
+  onChanged,
+  onRefresh,
+}: {
+  userId: string
+  booking: Booking
+  onChanged: (b: Booking, what: 'plate' | 'cancel') => void
+  onRefresh: () => void
+}) {
+  const [mode, setMode] = useState<'idle' | 'plate' | 'cancel'>('idle')
+  const [plate, setPlate] = useState(booking.plate)
+  const [plateError, setPlateError] = useState<string | null>(null)
+  const [busy, setBusy] = useState(false)
+  const [error, setError] = useState<unknown>(null)
+  const started = Date.parse(booking.from_hour) <= Date.now()
+
+  function open(m: 'idle' | 'plate' | 'cancel') {
+    setMode(m)
+    setError(null)
+    setPlateError(null)
+    setPlate(booking.plate)
+  }
+
+  async function savePlate(e: React.FormEvent) {
+    e.preventDefault()
+    const p = plate.trim()
+    if (!PLATE_RE.test(p)) {
+      setPlateError('The plate must be 2 to 12 characters')
+      return
+    }
+    setBusy(true)
+    setError(null)
+    try {
+      // the version the user saw goes to If-Match: a change made meanwhile gives 412, not an overwrite
+      onChanged(await api.updatePlate(userId, booking.id, p, booking.version), 'plate')
+      setMode('idle')
+    } catch (err) {
+      setError(err)
+    } finally {
+      setBusy(false)
+    }
+  }
+
+  async function cancel() {
+    setBusy(true)
+    setError(null)
+    try {
+      // cancelling twice is harmless on the server, so lost answers are simply retried
+      onChanged(await withRetries(() => api.cancelBooking(userId, booking.id)), 'cancel')
+      setMode('idle')
+    } catch (err) {
+      setError(err)
+    } finally {
+      setBusy(false)
+    }
+  }
+
+  const stale = error instanceof ApiError && error.status === 412
+  return (
+    <div className="booking-actions">
+      {mode === 'idle' && (
+        <div className="row-actions">
+          <button type="button" className="btn-link" onClick={() => open('plate')}>
+            Change plate
+          </button>
+          {!started && (
+            <button type="button" className="btn-link danger" onClick={() => open('cancel')}>
+              Cancel booking
+            </button>
+          )}
+        </div>
+      )}
+
+      {mode === 'plate' && (
+        <form className="plate-edit" onSubmit={savePlate} noValidate>
+          <label className="field">
+            <span>New licence plate</span>
+            <input
+              className="input plate"
+              autoFocus
+              autoComplete="off"
+              spellCheck={false}
+              maxLength={12}
+              value={plate}
+              aria-invalid={plateError ? true : undefined}
+              onChange={(e) => {
+                setPlate(e.target.value.toUpperCase())
+                setPlateError(null)
+              }}
+            />
+            {plateError && <span className="field-error">{plateError}</span>}
+          </label>
+          <div className="row-actions">
+            <button type="submit" className="btn btn-dark" disabled={busy || plate.trim() === booking.plate} aria-busy={busy || undefined}>
+              {busy && <Spinner size={16} color="#fff" />}
+              Save plate
+            </button>
+            <button type="button" className="btn btn-ghost" onClick={() => open('idle')}>
+              Close
+            </button>
+          </div>
+        </form>
+      )}
+
+      {mode === 'cancel' && (
+        <div className="cancel-confirm" role="group" aria-label="Cancel booking">
+          <span>
+            Cancel booking <span className="mono">{bookingCode(booking.id)}</span>? Its hours become free for others.
+          </span>
+          <div className="row-actions">
+            <button type="button" className="btn btn-danger" onClick={() => void cancel()} disabled={busy} aria-busy={busy || undefined}>
+              {busy && <Spinner size={16} color="#fff" />}
+              Yes, cancel
+            </button>
+            <button type="button" className="btn btn-ghost" onClick={() => open('idle')}>
+              Keep it
+            </button>
+          </div>
+        </div>
+      )}
+
+      {error != null && (
+        <ProblemAlert error={error}>
+          {(stale || problemSlug(error) === 'booking-not-modifiable') && (
+            <button type="button" className="btn-soft" onClick={onRefresh}>
+              Refresh the list
+            </button>
+          )}
+        </ProblemAlert>
+      )}
+    </div>
+  )
+}
 
 type Props = {
   userId: string
@@ -24,10 +164,12 @@ export default function BookingsPage({ userId, params, setParams, onNavigate }: 
   const [data, setData] = useState<{ items: Booking[]; pages: number } | null>(null)
   const [garages, setGarages] = useState<Garage[]>([])
   const [error, setError] = useState<unknown>(null)
+  const [notice, setNotice] = useState<string | null>(null)
   const tab = params.get('tab') === 'past' ? 'past' : 'upcoming'
 
   const load = useCallback(() => {
     setError(null)
+    setNotice(null)
     setData(null)
     // every page by next_cursor (O1.5): the tabs split by date, so all bookings are needed
     api.allBookings(userId).then(setData, setError)
@@ -41,6 +183,15 @@ export default function BookingsPage({ userId, params, setParams, onNavigate }: 
   const upcoming = all.filter((b) => !isPast(b)).sort((a, b) => Date.parse(a.from_hour) - Date.parse(b.from_hour))
   const past = all.filter(isPast).sort((a, b) => Date.parse(b.from_hour) - Date.parse(a.from_hour))
   const shown = tab === 'past' ? past : upcoming
+
+  function changed(b: Booking, what: 'plate' | 'cancel') {
+    setData((d) => (d ? { ...d, items: d.items.map((x) => (x.id === b.id ? b : x)) } : d))
+    setNotice(
+      what === 'cancel'
+        ? `Booking ${bookingCode(b.id)} is cancelled. Its hours are free again; you can find it under Past.`
+        : `Plate of booking ${bookingCode(b.id)} changed to ${b.plate}.`,
+    )
+  }
 
   const garageOf = (b: Booking) => garages.find((g) => g.id === b.garage_id)
   const levelName = (b: Booking) => garageOf(b)?.levels.find((l) => l.id === b.level_id)?.name ?? ''
@@ -83,6 +234,13 @@ export default function BookingsPage({ userId, params, setParams, onNavigate }: 
 
       {error != null && <ProblemAlert error={error} onRetry={load} />}
 
+      {notice && (
+        <div className="alert alert-success" role="status">
+          <CheckCircle color="var(--success)" />
+          <span>{notice}</span>
+        </div>
+      )}
+
       <ul id="panel-bookings" role="tabpanel" aria-labelledby={`tab-${tab}`} aria-busy={!data} className="list">
         {!data && !error && [0, 1, 2].map((i) => <li key={i} className="skeleton" style={{ height: 96 }} />)}
         {shown.map((b) => {
@@ -123,6 +281,9 @@ export default function BookingsPage({ userId, params, setParams, onNavigate }: 
                   </span>
                 </span>
               </div>
+              {b.status === 'confirmed' && Date.parse(b.to_hour) > now && (
+                <BookingActions key={`${b.id}/${b.version}`} userId={userId} booking={b} onChanged={changed} onRefresh={load} />
+              )}
             </li>
           )
         })}
