@@ -252,7 +252,7 @@ cd web/client && cp .env.example .env.local && npm install && npm run dev
 | О2.1 Інваріант за одночасних запитів | `web/server/app/bookings.py` (`_reserve_hours`): в одній транзакції `SELECT … ORDER BY hour FOR UPDATE` рядків `level_hour` усіх годин, перевірка `free > 0`, `UPDATE … free = free - 1 … AND free > 0` з перевіркою кількості рядків, вставка бронювання | дослід «Останнє місце»: 10 раундів × 20 перетинних запитів через nginx на app-a і app-b - protected 0 годин понад місця, unprotected 34 години в 10 з 10 раундів (`results/web-lr2/last-spot-*.json`); SQL по всій базі - `invariant-check.txt`; `test_lr1.py::test_7` |
 | О2.2 Механізм ідемпотентності | `web/server/app/idempotency.py`, `migrations/004_c09_idempotency.sql`; очищення - `web/server/app/publisher.py` | `test_lr2.py` 1-6, 11; дослід `results/web-lr2/idempotency.txt`: повтор → той самий `id` і `Idempotent-Replayed`, інше тіло → 422, без ключа → 400, 10 раундів по два одночасні запити з одним ключем → по одному бронюванню |
 | О2.3 Повтор після втраченої відповіді | `fault("after_commit_before_response")` в `idempotency.execute` одразу після COMMIT | `experiments/web_lost_response.sh` → `results/web-lr2/lost-response.txt`: app-a - `curl: (52) Empty reply`, `fault.hit`; той самий ключ на app-b → 201 з тим самим `id`, бронювань 1, `free` 40 → 39 один раз |
-| О2.4 Повторні спроби в клієнті | `web/client/src/retry.ts`, `BookingPage.tsx` | у браузері з відмовою на app-a: перший POST - мережева помилка, повтор із тим самим ключем → 201, одне бронювання (`results/web-lr2/client-retry.txt`); «Result unknown» + «Check» - знімок у звіті |
+| О2.4 Повторні спроби в клієнті | `web/client/src/retry.ts`, `BookingPage.tsx` | у браузері з відмовою на app-a: перший POST - мережева помилка, повтор із тим самим ключем → 201, одне бронювання (`results/web-lr2/client-retry.txt`); «We couldn't confirm your booking» (результат невідомий) + «Check my bookings» - знімок у звіті |
 | Д2.4 Умовна зміна | `PATCH /v1/bookings/{id}` в `bookings.py` (`update_booking`), `ETag` у `GET`; клієнт «My bookings» → «Change plate» | `test_lr2.py::test_7`: 428, 200 + `ETag "2"`, 412 зі старим `ETag`, 422 для `status`/`version`/`user_id`/`level_id`/`from_hour`/`hours`, чуже → 404, скасоване → 409; 412 у клієнті - знімок у звіті |
 | Д2.5 Повторне скасування | `POST /v1/bookings/{id}/cancel` в `bookings.py` (`cancel_booking`); клієнт «Cancel booking» | `test_lr2.py::test_8-10`; `results/web-lr2/cancel-twice.txt`: послідовно й 5 разів одночасно (app-a + app-b) - обидві відповіді 200 `cancelled v2`, `free` кожної з 3 годин +1 рівно один раз |
 
@@ -282,9 +282,9 @@ cd web/client && cp .env.example .env.local && npm install && npm run dev
 `idempotency-in-progress` - повторити з тим самим ключем. Клієнт повторює лише його, 502/503/504 і
 відсутність відповіді (мережева помилка, тайм-аут 10 с): пауза - повний jitter
 `random(0, min(8 с, 0.5 с·2^спроба))`, не менше `Retry-After`, не більше 5 спроб і 20 с очікування. Ключ
-створюється один раз на натискання «Book», однаковий у всіх спробах і в «Send again»; зміна години,
+створюється один раз на натискання «Book», однаковий у всіх спробах і в «Try again»; зміна години,
 рівня чи номера - нова дія з новим ключем. Якщо всі спроби лишилися без відповіді, форма показує
-«Result unknown» і кнопку «Check», що перечитує «My bookings» і шукає це бронювання.
+«We couldn't confirm your booking» (результат невідомий) і кнопку «Check my bookings», що перечитує «My bookings» і шукає це бронювання. Тексти для користувача не згадують ключів чи запитів.
 
 Тести (`test_lr1.py` 10 + `test_lr2.py` 11 + `test_rules.py` 7 = 28) - стенд `docker compose up -d nginx publisher`.
 Тести етапу 1 вже надсилали `Idempotency-Key` у кожному POST, змінювати їх не довелося.
