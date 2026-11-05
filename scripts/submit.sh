@@ -36,7 +36,12 @@ REMOTE=$(git ls-remote --tags origin | awk -v r="refs/tags/$TAG^{}" '$2 == r {pr
 REPO=$(git remote get-url origin | sed -E 's#^git@([^:]+):#https://\1/#; s#\.git$##; s#/$##')
 URL="$REPO/tree/$TAG"
 CODE=$(curl -s -o /dev/null -w '%{http_code}' -L --max-time 20 "$URL" || true)
-[ "$CODE" = "200" ] || die "the tag page $URL answers $CODE, not 200"
+if [ "$CODE" != "200" ]; then
+  # anonymous 404 of an existing tag = a private repository: the teacher could not open the link either
+  [ "$CODE" = "404" ] && [ "$(curl -s -o /dev/null -w '%{http_code}' --max-time 20 "$REPO")" = "404" ] &&
+    die "$REPO answers 404 without login: the repository is private, so the tag link will not open for the teacher"
+  die "the tag page $URL answers $CODE, not 200"
+fi
 
 [ -f "$PDF" ] || die "no $PDF (uv run scripts/build_report.py docs/reports/$TAG.md --pdf)"
 
