@@ -69,6 +69,8 @@ def test_builds_title_sections_table_figure_listing(tmp_path):
     assert "Лістинг 1 - Міграція (002_c09_booking.sql)" in text  # file name only, no path
     assert "migrations/" not in text
     assert "CREATE TABLE level_hour (" in text  # the listing came from git, not from the source
+    assert "Повний код роботи: https://github.com/" in text and text.count("/tree/web-lr9") == 1  # tag, no hash
+    assert HEAD[:7] not in text
     assert "—" not in text and "–" not in text
     assert len(doc.tables) == 1 and doc.tables[0].cell(1, 1).text == "2"
     assert len(doc.inline_shapes) == 1
@@ -157,3 +159,13 @@ def test_docx_check_finds_dashes_put_in_by_word(tmp_path):
     doc.add_paragraph("Рисунок 9 — підставлено")
     doc.save(str(out))
     assert build_report.lint_docx(out)
+
+
+@pytest.mark.parametrize(
+    ("remote", "web"),
+    [("https://github.com/o/parking-system.git", "https://github.com/o/parking-system"),
+     ("git@github.com:o/parking-system.git", "https://github.com/o/parking-system")],
+)
+def test_tag_url_from_remote(monkeypatch, remote, web):
+    monkeypatch.setattr(build_report, "git", lambda *a: remote + "\n")
+    assert build_report.tag_url("dpc", 3) == f"{web}/tree/dpc-lr3"

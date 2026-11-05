@@ -161,6 +161,19 @@ def git(*args: str) -> str:
     return r.stdout
 
 
+def repo_url() -> str:
+    """Web address of the repository from `git remote get-url origin` (https or ssh form)."""
+    url = git("remote", "get-url", "origin").strip()
+    m = re.match(r"^git@([^:]+):(.+)$", url)
+    if m:
+        url = f"https://{m.group(1)}/{m.group(2)}"
+    return re.sub(r"\.git$", "", url).rstrip("/")
+
+
+def tag_url(course: str, lab: int) -> str:
+    return f"{repo_url()}/tree/{course}-lr{lab}"
+
+
 def listing(commit: str, rel: str, a: int, b: int) -> list[str]:
     lines = git("show", f"{commit}:{rel}").splitlines()
     if not (1 <= a <= b <= len(lines)):
@@ -435,13 +448,11 @@ class Writer:
             else:
                 i += 1
         if code_section:
-            commit = self.src.meta["commit"]
+            # STYLE.md 6a: a link to the tag of the lab, not a hash (the tag may be set after the build)
             p = self.paragraph()
             body_format(p)
-            style_run(p.add_run("Фрагменти взято з коміту "))
-            # the short hash: a full one stretches a justified line
-            style_run(p.add_run(str(commit)[:7]), mono=True, size=Pt(11))
-            style_run(p.add_run(" гілки main репозиторію проєкту."))
+            style_run(p.add_run("Повний код роботи: "))
+            style_run(p.add_run(tag_url(self.src.meta["course"], int(self.src.meta["lab"]))), size=Pt(12))
 
 
 # ---------------------------------------------------------------------------------------------
