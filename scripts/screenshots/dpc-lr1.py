@@ -11,7 +11,7 @@ Writes docs/reports/img/dpc-lr1-*.png:
              list of the last requests of the garage;
   garage   - the garage state card of center (a booking of the current hour made through Web is
              counted as reserved);
-  grafana  - Queue length and Requests in processing of the dashboard "DPC project" during a
+  grafana  - the panel Queue length of the dashboard "DPC project" during a
              30-second overload (60 clients, the same load as experiment O1.2, without restarting api).
 """
 
@@ -92,7 +92,7 @@ def grafana_shot(page: Page) -> None:
     statuses, _, accepted, wall = res[0]
     print(f"  {dict(statuses)} in {wall:.1f} s", flush=True)
     time.sleep(12)  # the last scrapes of Prometheus
-    page.set_viewport_size({"width": 1400, "height": 900})
+    page.set_viewport_size({"width": 1000, "height": 900})
     page.goto(f"{GRAFANA}/d/dpc-project/dpc-project?orgId=1&from=now-3m&to=now&kiosk")
     panel = page.locator("[data-viz-panel-key='panel-1'], [data-panelid='1']").first
     try:
@@ -102,7 +102,7 @@ def grafana_shot(page: Page) -> None:
         box1 = page.get_by_text("Queue length", exact=True).first.locator("xpath=ancestor::section[1]").bounding_box()
     page.wait_for_timeout(4000)
     page.screenshot(path=OUT / "dpc-lr1-grafana.png", clip={
-        "x": box1["x"], "y": box1["y"], "width": min(1400 - box1["x"], box1["width"] * 2 + 16),
+        "x": box1["x"], "y": box1["y"], "width": box1["width"],
         "height": box1["height"]})
 
 

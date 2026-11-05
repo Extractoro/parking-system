@@ -1,5 +1,34 @@
 # Стан проєкту C09 «Паркінги»
 
+## Етап 3 - DPC ЛР1: **виконано** (2026-11-05, відповідальна Дарина)
+
+Пункти: О1.1-О1.4 (ядро), О1.5, Д1.4. `checks.yaml` → `dpc`: `items [О1.5, Д1.4]`, `resource /v1/garage/center
+invariant_ok`, `metrics [queue_length, in_flight, rejected]`. Стенд: `docker compose up -d nginx api`
+(+ `--profile observability prometheus grafana` для рисунка). Генератори - хост Windows, Python 3.13.
+
+| Перевірка | Результат |
+|---|---|
+| Міграції 005 (`garage_state`, `entry_request`, `entry`), 903 (`mall` 81, `center` 20, `dpc-race` 5) на наявній базі | applied |
+| `pytest dpc/api/tests` | 13 passed |
+| `pytest web/server/tests` (регрес) | 28 passed |
+| `npx @redocly/cli lint dpc/openapi.yaml` | valid, 0 помилок, 5 попереджень (4xx службових маршрутів, ліцензія, localhost) |
+| `tsc -b`, `eslint`, `npm run build` клієнта | без помилок |
+| `docker compose config --quiet` | OK |
+| О1.2: QUEUE_CAPACITY=50, WORKERS=4, 60 клієнтів aiohttp × 30 с, `/health` 10/с окремим процесом | 396×202, 42263×429; черга ≥ 48 у 51/60 замірів; `/health` p50 6.4, p95 52.6, p99 78.0 мс (перший прогін до PC-6: p95 121.6) |
+| О1.2 засобом комплекту `load.py` (Python 3.14) | 6000 запитів, 60 потоків: 159×202, 5841×429 |
+| О1.4: `dpc-race`, 40 авто, 200 запитів, WORKERS=8 | unsafe: occupied 5, inside 27, `invariant_ok=false`, 10 виїздів `failed` (CHECK); locked: 5/5, `true` |
+| О1.5: 300 запитів, 20 клієнтів | POST HTTP p50/p95 28.0/132.9 мс; повне виконання 1647.1/2022.7 мс; черга 1305.0/1596.5; оброблення 343.5/529.7; видача 48.7/107.6; порядок позначок 300/300 |
+| Д1.4: 80 POST, `docker compose stop api` | 35×503 `Retry-After=5`; `api.draining queued=46 processing=4` → `api.drained count=50 seconds=4.0` → `api.stopped`; 61 прийнятий запит у кінцевому стані до й після `start` |
+| Правила на демоданих (бронювання через Web API) | в'їзд за бронюванням done; другий - `already-entered`; виїзд без в'їзду - `not-inside`; повтор `event_id` - той самий `Location`, 1 запит; інший номер - `booking-invalid` |
+| Клієнт «Barrier» у браузері | відмова `not-inside` з причиною, список запитів і картка стану оновлюються щосекунди; CORS DPC працює |
+| Звіт `docs/reports/dpc-lr1.md` | лінтер ok; `Звіт_DPC_ЛР1.docx` і `.pdf`, 14 сторінок; переглянуто титулку, сторінку з таблицею й рисунком, лістинг |
+
+Plan Change: PC-4 (в'їзд за бронюванням обмежений фізичними місцями), PC-5 (генератори aiohttp і власні
+сценарії; `httpx.AsyncClient` був вузьким місцем), PC-6 (відмова 429 до маршрутизації FastAPI), PC-7
+(дрібні відхилення: 400 замість 422, `already-inside`, `lost-on-restart`, список запитів, `http_in_flight`).
+Нові рішення P1-P15. Рисунок Grafana знято під час повторного 30-секундного навантаження тієї самої форми
+(60 клієнтів, без перестворення api), а не під час прогону з таблиці. Не зроблено: Д1.1-Д1.3 (не вибрані).
+
 ## Етап 2 — Web ЛР2: **виконано** (2026-11-05, відповідальний Вадим)
 
 Пункти: О2.1, О2.2 (ядро), О2.3, О2.4, Д2.4, Д2.5. `checks.yaml` → `web.items` += О2.3, О2.4, Д2.4, Д2.5.
