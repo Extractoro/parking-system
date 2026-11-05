@@ -1,0 +1,25 @@
+# O2.4 client retry under fault after_commit_before_response (2026-11-05, browser, Vite :5173 -> nginx :8080)
+## armed: docker compose exec app-a touch /faults/after_commit_before_response
+## browser network log (POST /v1/bookings, one click on Book):
+POST http://localhost:8080/v1/bookings [FAILED: net::ERR_FAILED]   <- app-a died after COMMIT, nginx 502 without CORS headers
+POST http://localhost:8080/v1/bookings -> 201 Created               <- retry with the same Idempotency-Key
+## server logs:
+{"time": "2026-11-05T09:41:51.609+00:00", "instance": "app-a", "event": "fault.hit", "place": "after_commit_before_response"}
+{"time": "2026-11-05T09:41:52.568+00:00", "instance": "app-a", "event": "app.started"}
+{"time": "2026-11-05T09:41:52.028+00:00", "instance": "app-b", "event": "http.request", "request_id": "e1b06e93c46c4e2b0a8e79c2a189350c", "method": "POST", "route": "/v1/bookings", "status": 201, "duration_ms": 11.8}
+## database:
+                  id                  |  plate   |       from_hour        | key_stored 
+--------------------------------------+----------+------------------------+------------
+ 7fd738e3-b01e-4bfc-8a19-59999f27372e | AT7777AA | 2026-11-13 08:00:00+00 | t
+(1 row)
+
+          hour          | free 
+------------------------+------
+ 2026-11-13 08:00:00+00 |   39
+ 2026-11-13 09:00:00+00 |   39
+(2 rows)
+
+## why the browser sees a network error, not 502 (curl through nginx with Origin, fault armed on app-a):
+HTTP/1.1 502 Bad Gateway                                  <- no Access-Control-Allow-Origin: fetch() rejects, status 0
+HTTP/1.1 201 Created / x-instance: app-b / access-control-allow-origin: http://localhost:5173
+(nginx does not resend a POST to the other upstream itself: proxy_next_upstream is not used for non-idempotent methods)

@@ -1,0 +1,27 @@
+== user lost-1793872086-6317, key lost-1793872086944675400
+== body {"level_id":"mall-1","from_hour":"2088-05-06T10:00:00+03:00","hours":2,"plate":"LR0001AA"}
+== free of the two hours before: no rows yet (free = 40)
+== 1) arm the fault
+docker compose exec app-a touch /faults/after_commit_before_response -> after_commit_before_response
+== 2) POST to app-a (:8001) with the key
+curl: (52) Empty reply from server
+http_code=000
+curl exit code: 52
+-- log of app-a:
+{"time": "2026-11-05T09:48:19.774+00:00", "instance": "app-a", "event": "fault.hit", "place": "after_commit_before_response"}
+INFO:     Started server process [1]
+{"time": "2026-11-05T09:48:21.174+00:00", "instance": "app-a", "event": "app.started"}
+-- after the crash, before any retry: bookings of the user = 1, key stored = 201
+-- app-a is back: {"status":"ok","instance":"app-a"}
+== 3) the same request with the same key to app-b (:8002)
+HTTP/1.1 201 Created
+location: /v1/bookings/1c67c0ae-a663-4614-ae27-626dfd80be3b
+idempotent-replayed: true
+x-instance: app-b
+{"id":"1c67c0ae-a663-4614-ae27-626dfd80be3b", ...
+== 4) database
+bookings of the user: 1
+bookings of this body: 1
+booking id in the stored answer = booking in the table: t
+free of the two hours after: 39,39
+fault file left: 0 (0 = the fault fired once and disarmed itself)

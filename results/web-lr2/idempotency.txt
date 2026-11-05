@@ -1,0 +1,24 @@
+a) same key and body twice; user idem-178c6d192d, key idem-9c1958f0-cb4e-4b65-beb4-b5f0f8a59506
+  first, app-a                       201 d4859b94-b0d4-4f22-88f7-04807a44ae3b [app-a]
+  repeat, app-b                      201 d4859b94-b0d4-4f22-88f7-04807a44ae3b replayed [app-b]
+  bookings of the user: 1
+b) same key, another body (plate)
+  repeat with plate ID0002AA         422 idempotency-key-reused [app-a]
+  bookings of the user: 1
+c) key header
+  no Idempotency-Key                 400 idempotency-key-required [app-a]
+  key of 201 characters              422 invalid-request [app-a]
+  bookings of the user: 0
+d) two requests with one key at the same moment, 10 rounds (app-a + app-b)
+  round answers                            bookings
+  1     201, 201                                  1
+  2     201, 409 idempotency-in-progress          1
+  3     409 idempotency-in-progress, 201          1
+  4     201, 409 idempotency-in-progress          1
+  5     409 idempotency-in-progress, 201          1
+  6     409 idempotency-in-progress, 201          1
+  7     201, 201                                  1
+  8     201, 409 idempotency-in-progress          1
+  9     201, 409 idempotency-in-progress          1
+  10    201, 201                                  1
+  answers: {'201': 13, '409 idempotency-in-progress': 7}; rounds with not exactly one booking: 0

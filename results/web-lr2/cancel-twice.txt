@@ -1,0 +1,7 @@
+case          cancel answers                      free before   booked        cancelled       ok
+sequential    200 cancelled v2, 200 cancelled v2  [40, 40, 40]  [39, 39, 39]  [40, 40, 40]   yes  db: cancelled v2
+concurrent 1  200 cancelled v2, 200 cancelled v2  [40, 40, 40]  [39, 39, 39]  [40, 40, 40]   yes  db: cancelled v2
+concurrent 2  200 cancelled v2, 200 cancelled v2  [40, 40, 40]  [39, 39, 39]  [40, 40, 40]   yes  db: cancelled v2
+concurrent 3  200 cancelled v2, 200 cancelled v2  [40, 40, 40]  [39, 39, 39]  [40, 40, 40]   yes  db: cancelled v2
+concurrent 4  200 cancelled v2, 200 cancelled v2  [40, 40, 40]  [39, 39, 39]  [40, 40, 40]   yes  db: cancelled v2
+concurrent 5  200 cancelled v2, 200 cancelled v2  [40, 40, 40]  [39, 39, 39]  [40, 40, 40]   yes  db: cancelled v2

@@ -1,0 +1,14 @@
+   level   | hours_over_spots | booked_hours | max_bookings_in_hour | spots 
+-----------+------------------+--------------+----------------------+-------
+ center-1  |                0 |           16 |                    3 |    20
+ mall-1    |                0 |          163 |                    3 |    40
+ mall-2    |                0 |           31 |                    1 |    40
+ mall-one  |                0 |           44 |                    1 |     1
+ race-test |               34 |          125 |                   12 |     1
+(5 rows)
+
+   level   | hours_free_mismatch 
+-----------+---------------------
+ race-test |                  34
+(1 row)
+

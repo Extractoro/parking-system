@@ -1,0 +1,1677 @@
+{
+  "mode": "protected",
+  "level": "race-test",
+  "rounds": 10,
+  "requests_per_round": 20,
+  "intervals": [
+    "18:00+3",
+    "19:00+2",
+    "17:00+2",
+    "20:00+1",
+    "18:00+1"
+  ],
+  "at": "2026-11-05T09:44:02+00:00",
+  "statuses_total": {
+    "409": 183,
+    "201": 17
+  },
+  "rounds_with_violation": 0,
+  "hours_over_spots_total": 0,
+  "rounds_free_mismatch": 0,
+  "instances_total": {
+    "app-b": 109,
+    "app-a": 91
+  },
+  "per_round": [
+    {
+      "day": "2046-05-13",
+      "statuses": {
+        "409": 18,
+        "201": 2
+      },
+      "refusals": {
+        "no-free-spots": 18
+      },
+      "instances": {
+        "app-b": 19,
+        "app-a": 1
+      },
+      "hours": [
+        {
+          "hour": "2046-05-13T14:00:00+00:00",
+          "bookings": 0,
+          "spots": 1,
+          "free": null
+        },
+        {
+          "hour": "2046-05-13T15:00:00+00:00",
+          "bookings": 1,
+          "spots": 1,
+          "free": 0
+        },
+        {
+          "hour": "2046-05-13T16:00:00+00:00",
+          "bookings": 0,
+          "spots": 1,
+          "free": null
+        },
+        {
+          "hour": "2046-05-13T17:00:00+00:00",
+          "bookings": 1,
+          "spots": 1,
+          "free": 0
+        }
+      ],
+      "hours_over_spots": 0,
+      "max_bookings_in_hour": 1,
+      "free_not_matching_bookings": 0,
+      "requests": [
+        {
+          "interval": "18:00+3",
+          "status": 409,
+          "type": "no-free-spots",
+          "instance": "app-b"
+        },
+        {
+          "interval": "19:00+2",
+          "status": 409,
+          "type": "no-free-spots",
+          "instance": "app-b"
+        },
+        {
+          "interval": "17:00+2",
+          "status": 409,
+          "type": "no-free-spots",
+          "instance": "app-b"
+        },
+        {
+          "interval": "20:00+1",
+          "status": 201,
+          "type": "",
+          "instance": "app-b"
+        },
+        {
+          "interval": "18:00+1",
+          "status": 409,
+          "type": "no-free-spots",
+          "instance": "app-b"
+        },
+        {
+          "interval": "18:00+3",
+          "status": 409,
+          "type": "no-free-spots",
+          "instance": "app-b"
+        },
+        {
+          "interval": "19:00+2",
+          "status": 409,
+          "type": "no-free-spots",
+          "instance": "app-b"
+        },
+        {
+          "interval": "17:00+2",
+          "status": 409,
+          "type": "no-free-spots",
+          "instance": "app-b"
+        },
+        {
+          "interval": "20:00+1",
+          "status": 409,
+          "type": "no-free-spots",
+          "instance": "app-b"
+        },
+        {
+          "interval": "18:00+1",
+          "status": 409,
+          "type": "no-free-spots",
+          "instance": "app-b"
+        },
+        {
+          "interval": "18:00+3",
+          "status": 409,
+          "type": "no-free-spots",
+          "instance": "app-b"
+        },
+        {
+          "interval": "19:00+2",
+          "status": 409,
+          "type": "no-free-spots",
+          "instance": "app-b"
+        },
+        {
+          "interval": "17:00+2",
+          "status": 409,
+          "type": "no-free-spots",
+          "instance": "app-b"
+        },
+        {
+          "interval": "20:00+1",
+          "status": 409,
+          "type": "no-free-spots",
+          "instance": "app-b"
+        },
+        {
+          "interval": "18:00+1",
+          "status": 201,
+          "type": "",
+          "instance": "app-a"
+        },
+        {
+          "interval": "18:00+3",
+          "status": 409,
+          "type": "no-free-spots",
+          "instance": "app-b"
+        },
+        {
+          "interval": "19:00+2",
+          "status": 409,
+          "type": "no-free-spots",
+          "instance": "app-b"
+        },
+        {
+          "interval": "17:00+2",
+          "status": 409,
+          "type": "no-free-spots",
+          "instance": "app-b"
+        },
+        {
+          "interval": "20:00+1",
+          "status": 409,
+          "type": "no-free-spots",
+          "instance": "app-b"
+        },
+        {
+          "interval": "18:00+1",
+          "status": 409,
+          "type": "no-free-spots",
+          "instance": "app-b"
+        }
+      ]
+    },
+    {
+      "day": "2046-07-03",
+      "statuses": {
+        "409": 19,
+        "201": 1
+      },
+      "refusals": {
+        "no-free-spots": 19
+      },
+      "instances": {
+        "app-a": 10,
+        "app-b": 10
+      },
+      "hours": [
+        {
+          "hour": "2046-07-03T14:00:00+00:00",
+          "bookings": 0,
+          "spots": 1,
+          "free": null
+        },
+        {
+          "hour": "2046-07-03T15:00:00+00:00",
+          "bookings": 1,
+          "spots": 1,
+          "free": 0
+        },
+        {
+          "hour": "2046-07-03T16:00:00+00:00",
+          "bookings": 1,
+          "spots": 1,
+          "free": 0
+        },
+        {
+          "hour": "2046-07-03T17:00:00+00:00",
+          "bookings": 1,
+          "spots": 1,
+          "free": 0
+        }
+      ],
+      "hours_over_spots": 0,
+      "max_bookings_in_hour": 1,
+      "free_not_matching_bookings": 0,
+      "requests": [
+        {
+          "interval": "18:00+3",
+          "status": 409,
+          "type": "no-free-spots",
+          "instance": "app-a"
+        },
+        {
+          "interval": "19:00+2",
+          "status": 409,
+          "type": "no-free-spots",
+          "instance": "app-b"
+        },
+        {
+          "interval": "17:00+2",
+          "status": 409,
+          "type": "no-free-spots",
+          "instance": "app-a"
+        },
+        {
+          "interval": "20:00+1",
+          "status": 409,
+          "type": "no-free-spots",
+          "instance": "app-b"
+        },
+        {
+          "interval": "18:00+1",
+          "status": 409,
+          "type": "no-free-spots",
+          "instance": "app-a"
+        },
+        {
+          "interval": "18:00+3",
+          "status": 201,
+          "type": "",
+          "instance": "app-b"
+        },
+        {
+          "interval": "19:00+2",
+          "status": 409,
+          "type": "no-free-spots",
+          "instance": "app-a"
+        },
+        {
+          "interval": "17:00+2",
+          "status": 409,
+          "type": "no-free-spots",
+          "instance": "app-b"
+        },
+        {
+          "interval": "20:00+1",
+          "status": 409,
+          "type": "no-free-spots",
+          "instance": "app-a"
+        },
+        {
+          "interval": "18:00+1",
+          "status": 409,
+          "type": "no-free-spots",
+          "instance": "app-b"
+        },
+        {
+          "interval": "18:00+3",
+          "status": 409,
+          "type": "no-free-spots",
+          "instance": "app-a"
+        },
+        {
+          "interval": "19:00+2",
+          "status": 409,
+          "type": "no-free-spots",
+          "instance": "app-a"
+        },
+        {
+          "interval": "17:00+2",
+          "status": 409,
+          "type": "no-free-spots",
+          "instance": "app-b"
+        },
+        {
+          "interval": "20:00+1",
+          "status": 409,
+          "type": "no-free-spots",
+          "instance": "app-b"
+        },
+        {
+          "interval": "18:00+1",
+          "status": 409,
+          "type": "no-free-spots",
+          "instance": "app-b"
+        },
+        {
+          "interval": "18:00+3",
+          "status": 409,
+          "type": "no-free-spots",
+          "instance": "app-a"
+        },
+        {
+          "interval": "19:00+2",
+          "status": 409,
+          "type": "no-free-spots",
+          "instance": "app-a"
+        },
+        {
+          "interval": "17:00+2",
+          "status": 409,
+          "type": "no-free-spots",
+          "instance": "app-a"
+        },
+        {
+          "interval": "20:00+1",
+          "status": 409,
+          "type": "no-free-spots",
+          "instance": "app-b"
+        },
+        {
+          "interval": "18:00+1",
+          "status": 409,
+          "type": "no-free-spots",
+          "instance": "app-b"
+        }
+      ]
+    },
+    {
+      "day": "2047-09-04",
+      "statuses": {
+        "409": 18,
+        "201": 2
+      },
+      "refusals": {
+        "no-free-spots": 18
+      },
+      "instances": {
+        "app-a": 10,
+        "app-b": 10
+      },
+      "hours": [
+        {
+          "hour": "2047-09-04T14:00:00+00:00",
+          "bookings": 1,
+          "spots": 1,
+          "free": 0
+        },
+        {
+          "hour": "2047-09-04T15:00:00+00:00",
+          "bookings": 1,
+          "spots": 1,
+          "free": 0
+        },
+        {
+          "hour": "2047-09-04T16:00:00+00:00",
+          "bookings": 0,
+          "spots": 1,
+          "free": null
+        },
+        {
+          "hour": "2047-09-04T17:00:00+00:00",
+          "bookings": 1,
+          "spots": 1,
+          "free": 0
+        }
+      ],
+      "hours_over_spots": 0,
+      "max_bookings_in_hour": 1,
+      "free_not_matching_bookings": 0,
+      "requests": [
+        {
+          "interval": "18:00+3",
+          "status": 409,
+          "type": "no-free-spots",
+          "instance": "app-a"
+        },
+        {
+          "interval": "19:00+2",
+          "status": 409,
+          "type": "no-free-spots",
+          "instance": "app-a"
+        },
+        {
+          "interval": "17:00+2",
+          "status": 409,
+          "type": "no-free-spots",
+          "instance": "app-b"
+        },
+        {
+          "interval": "20:00+1",
+          "status": 201,
+          "type": "",
+          "instance": "app-b"
+        },
+        {
+          "interval": "18:00+1",
+          "status": 409,
+          "type": "no-free-spots",
+          "instance": "app-a"
+        },
+        {
+          "interval": "18:00+3",
+          "status": 409,
+          "type": "no-free-spots",
+          "instance": "app-a"
+        },
+        {
+          "interval": "19:00+2",
+          "status": 409,
+          "type": "no-free-spots",
+          "instance": "app-b"
+        },
+        {
+          "interval": "17:00+2",
+          "status": 409,
+          "type": "no-free-spots",
+          "instance": "app-b"
+        },
+        {
+          "interval": "20:00+1",
+          "status": 409,
+          "type": "no-free-spots",
+          "instance": "app-a"
+        },
+        {
+          "interval": "18:00+1",
+          "status": 409,
+          "type": "no-free-spots",
+          "instance": "app-a"
+        },
+        {
+          "interval": "18:00+3",
+          "status": 409,
+          "type": "no-free-spots",
+          "instance": "app-a"
+        },
+        {
+          "interval": "19:00+2",
+          "status": 409,
+          "type": "no-free-spots",
+          "instance": "app-b"
+        },
+        {
+          "interval": "17:00+2",
+          "status": 201,
+          "type": "",
+          "instance": "app-b"
+        },
+        {
+          "interval": "20:00+1",
+          "status": 409,
+          "type": "no-free-spots",
+          "instance": "app-a"
+        },
+        {
+          "interval": "18:00+1",
+          "status": 409,
+          "type": "no-free-spots",
+          "instance": "app-b"
+        },
+        {
+          "interval": "18:00+3",
+          "status": 409,
+          "type": "no-free-spots",
+          "instance": "app-a"
+        },
+        {
+          "interval": "19:00+2",
+          "status": 409,
+          "type": "no-free-spots",
+          "instance": "app-a"
+        },
+        {
+          "interval": "17:00+2",
+          "status": 409,
+          "type": "no-free-spots",
+          "instance": "app-b"
+        },
+        {
+          "interval": "20:00+1",
+          "status": 409,
+          "type": "no-free-spots",
+          "instance": "app-b"
+        },
+        {
+          "interval": "18:00+1",
+          "status": 409,
+          "type": "no-free-spots",
+          "instance": "app-b"
+        }
+      ]
+    },
+    {
+      "day": "2065-08-22",
+      "statuses": {
+        "409": 18,
+        "201": 2
+      },
+      "refusals": {
+        "no-free-spots": 18
+      },
+      "instances": {
+        "app-a": 10,
+        "app-b": 10
+      },
+      "hours": [
+        {
+          "hour": "2065-08-22T14:00:00+00:00",
+          "bookings": 0,
+          "spots": 1,
+          "free": null
+        },
+        {
+          "hour": "2065-08-22T15:00:00+00:00",
+          "bookings": 1,
+          "spots": 1,
+          "free": 0
+        },
+        {
+          "hour": "2065-08-22T16:00:00+00:00",
+          "bookings": 1,
+          "spots": 1,
+          "free": 0
+        },
+        {
+          "hour": "2065-08-22T17:00:00+00:00",
+          "bookings": 1,
+          "spots": 1,
+          "free": 0
+        }
+      ],
+      "hours_over_spots": 0,
+      "max_bookings_in_hour": 1,
+      "free_not_matching_bookings": 0,
+      "requests": [
+        {
+          "interval": "18:00+3",
+          "status": 409,
+          "type": "no-free-spots",
+          "instance": "app-a"
+        },
+        {
+          "interval": "19:00+2",
+          "status": 409,
+          "type": "no-free-spots",
+          "instance": "app-a"
+        },
+        {
+          "interval": "17:00+2",
+          "status": 409,
+          "type": "no-free-spots",
+          "instance": "app-a"
+        },
+        {
+          "interval": "20:00+1",
+          "status": 409,
+          "type": "no-free-spots",
+          "instance": "app-a"
+        },
+        {
+          "interval": "18:00+1",
+          "status": 201,
+          "type": "",
+          "instance": "app-b"
+        },
+        {
+          "interval": "18:00+3",
+          "status": 409,
+          "type": "no-free-spots",
+          "instance": "app-a"
+        },
+        {
+          "interval": "19:00+2",
+          "status": 201,
+          "type": "",
+          "instance": "app-a"
+        },
+        {
+          "interval": "17:00+2",
+          "status": 409,
+          "type": "no-free-spots",
+          "instance": "app-b"
+        },
+        {
+          "interval": "20:00+1",
+          "status": 409,
+          "type": "no-free-spots",
+          "instance": "app-b"
+        },
+        {
+          "interval": "18:00+1",
+          "status": 409,
+          "type": "no-free-spots",
+          "instance": "app-b"
+        },
+        {
+          "interval": "18:00+3",
+          "status": 409,
+          "type": "no-free-spots",
+          "instance": "app-a"
+        },
+        {
+          "interval": "19:00+2",
+          "status": 409,
+          "type": "no-free-spots",
+          "instance": "app-b"
+        },
+        {
+          "interval": "17:00+2",
+          "status": 409,
+          "type": "no-free-spots",
+          "instance": "app-b"
+        },
+        {
+          "interval": "20:00+1",
+          "status": 409,
+          "type": "no-free-spots",
+          "instance": "app-b"
+        },
+        {
+          "interval": "18:00+1",
+          "status": 409,
+          "type": "no-free-spots",
+          "instance": "app-a"
+        },
+        {
+          "interval": "18:00+3",
+          "status": 409,
+          "type": "no-free-spots",
+          "instance": "app-a"
+        },
+        {
+          "interval": "19:00+2",
+          "status": 409,
+          "type": "no-free-spots",
+          "instance": "app-b"
+        },
+        {
+          "interval": "17:00+2",
+          "status": 409,
+          "type": "no-free-spots",
+          "instance": "app-b"
+        },
+        {
+          "interval": "20:00+1",
+          "status": 409,
+          "type": "no-free-spots",
+          "instance": "app-a"
+        },
+        {
+          "interval": "18:00+1",
+          "status": 409,
+          "type": "no-free-spots",
+          "instance": "app-b"
+        }
+      ]
+    },
+    {
+      "day": "2068-11-22",
+      "statuses": {
+        "409": 19,
+        "201": 1
+      },
+      "refusals": {
+        "no-free-spots": 19
+      },
+      "instances": {
+        "app-a": 10,
+        "app-b": 10
+      },
+      "hours": [
+        {
+          "hour": "2068-11-22T15:00:00+00:00",
+          "bookings": 0,
+          "spots": 1,
+          "free": null
+        },
+        {
+          "hour": "2068-11-22T16:00:00+00:00",
+          "bookings": 1,
+          "spots": 1,
+          "free": 0
+        },
+        {
+          "hour": "2068-11-22T17:00:00+00:00",
+          "bookings": 1,
+          "spots": 1,
+          "free": 0
+        },
+        {
+          "hour": "2068-11-22T18:00:00+00:00",
+          "bookings": 1,
+          "spots": 1,
+          "free": 0
+        }
+      ],
+      "hours_over_spots": 0,
+      "max_bookings_in_hour": 1,
+      "free_not_matching_bookings": 0,
+      "requests": [
+        {
+          "interval": "18:00+3",
+          "status": 409,
+          "type": "no-free-spots",
+          "instance": "app-a"
+        },
+        {
+          "interval": "19:00+2",
+          "status": 409,
+          "type": "no-free-spots",
+          "instance": "app-b"
+        },
+        {
+          "interval": "17:00+2",
+          "status": 409,
+          "type": "no-free-spots",
+          "instance": "app-a"
+        },
+        {
+          "interval": "20:00+1",
+          "status": 409,
+          "type": "no-free-spots",
+          "instance": "app-a"
+        },
+        {
+          "interval": "18:00+1",
+          "status": 409,
+          "type": "no-free-spots",
+          "instance": "app-a"
+        },
+        {
+          "interval": "18:00+3",
+          "status": 409,
+          "type": "no-free-spots",
+          "instance": "app-b"
+        },
+        {
+          "interval": "19:00+2",
+          "status": 409,
+          "type": "no-free-spots",
+          "instance": "app-b"
+        },
+        {
+          "interval": "17:00+2",
+          "status": 409,
+          "type": "no-free-spots",
+          "instance": "app-b"
+        },
+        {
+          "interval": "20:00+1",
+          "status": 409,
+          "type": "no-free-spots",
+          "instance": "app-b"
+        },
+        {
+          "interval": "18:00+1",
+          "status": 409,
+          "type": "no-free-spots",
+          "instance": "app-b"
+        },
+        {
+          "interval": "18:00+3",
+          "status": 201,
+          "type": "",
+          "instance": "app-a"
+        },
+        {
+          "interval": "19:00+2",
+          "status": 409,
+          "type": "no-free-spots",
+          "instance": "app-b"
+        },
+        {
+          "interval": "17:00+2",
+          "status": 409,
+          "type": "no-free-spots",
+          "instance": "app-b"
+        },
+        {
+          "interval": "20:00+1",
+          "status": 409,
+          "type": "no-free-spots",
+          "instance": "app-a"
+        },
+        {
+          "interval": "18:00+1",
+          "status": 409,
+          "type": "no-free-spots",
+          "instance": "app-a"
+        },
+        {
+          "interval": "18:00+3",
+          "status": 409,
+          "type": "no-free-spots",
+          "instance": "app-b"
+        },
+        {
+          "interval": "19:00+2",
+          "status": 409,
+          "type": "no-free-spots",
+          "instance": "app-a"
+        },
+        {
+          "interval": "17:00+2",
+          "status": 409,
+          "type": "no-free-spots",
+          "instance": "app-a"
+        },
+        {
+          "interval": "20:00+1",
+          "status": 409,
+          "type": "no-free-spots",
+          "instance": "app-a"
+        },
+        {
+          "interval": "18:00+1",
+          "status": 409,
+          "type": "no-free-spots",
+          "instance": "app-b"
+        }
+      ]
+    },
+    {
+      "day": "2074-09-06",
+      "statuses": {
+        "201": 1,
+        "409": 19
+      },
+      "refusals": {
+        "no-free-spots": 19
+      },
+      "instances": {
+        "app-b": 10,
+        "app-a": 10
+      },
+      "hours": [
+        {
+          "hour": "2074-09-06T14:00:00+00:00",
+          "bookings": 0,
+          "spots": 1,
+          "free": null
+        },
+        {
+          "hour": "2074-09-06T15:00:00+00:00",
+          "bookings": 1,
+          "spots": 1,
+          "free": 0
+        },
+        {
+          "hour": "2074-09-06T16:00:00+00:00",
+          "bookings": 1,
+          "spots": 1,
+          "free": 0
+        },
+        {
+          "hour": "2074-09-06T17:00:00+00:00",
+          "bookings": 1,
+          "spots": 1,
+          "free": 0
+        }
+      ],
+      "hours_over_spots": 0,
+      "max_bookings_in_hour": 1,
+      "free_not_matching_bookings": 0,
+      "requests": [
+        {
+          "interval": "18:00+3",
+          "status": 201,
+          "type": "",
+          "instance": "app-b"
+        },
+        {
+          "interval": "19:00+2",
+          "status": 409,
+          "type": "no-free-spots",
+          "instance": "app-a"
+        },
+        {
+          "interval": "17:00+2",
+          "status": 409,
+          "type": "no-free-spots",
+          "instance": "app-b"
+        },
+        {
+          "interval": "20:00+1",
+          "status": 409,
+          "type": "no-free-spots",
+          "instance": "app-a"
+        },
+        {
+          "interval": "18:00+1",
+          "status": 409,
+          "type": "no-free-spots",
+          "instance": "app-b"
+        },
+        {
+          "interval": "18:00+3",
+          "status": 409,
+          "type": "no-free-spots",
+          "instance": "app-b"
+        },
+        {
+          "interval": "19:00+2",
+          "status": 409,
+          "type": "no-free-spots",
+          "instance": "app-a"
+        },
+        {
+          "interval": "17:00+2",
+          "status": 409,
+          "type": "no-free-spots",
+          "instance": "app-a"
+        },
+        {
+          "interval": "20:00+1",
+          "status": 409,
+          "type": "no-free-spots",
+          "instance": "app-b"
+        },
+        {
+          "interval": "18:00+1",
+          "status": 409,
+          "type": "no-free-spots",
+          "instance": "app-a"
+        },
+        {
+          "interval": "18:00+3",
+          "status": 409,
+          "type": "no-free-spots",
+          "instance": "app-a"
+        },
+        {
+          "interval": "19:00+2",
+          "status": 409,
+          "type": "no-free-spots",
+          "instance": "app-b"
+        },
+        {
+          "interval": "17:00+2",
+          "status": 409,
+          "type": "no-free-spots",
+          "instance": "app-b"
+        },
+        {
+          "interval": "20:00+1",
+          "status": 409,
+          "type": "no-free-spots",
+          "instance": "app-b"
+        },
+        {
+          "interval": "18:00+1",
+          "status": 409,
+          "type": "no-free-spots",
+          "instance": "app-a"
+        },
+        {
+          "interval": "18:00+3",
+          "status": 409,
+          "type": "no-free-spots",
+          "instance": "app-a"
+        },
+        {
+          "interval": "19:00+2",
+          "status": 409,
+          "type": "no-free-spots",
+          "instance": "app-b"
+        },
+        {
+          "interval": "17:00+2",
+          "status": 409,
+          "type": "no-free-spots",
+          "instance": "app-a"
+        },
+        {
+          "interval": "20:00+1",
+          "status": 409,
+          "type": "no-free-spots",
+          "instance": "app-b"
+        },
+        {
+          "interval": "18:00+1",
+          "status": 409,
+          "type": "no-free-spots",
+          "instance": "app-a"
+        }
+      ]
+    },
+    {
+      "day": "2075-08-15",
+      "statuses": {
+        "409": 18,
+        "201": 2
+      },
+      "refusals": {
+        "no-free-spots": 18
+      },
+      "instances": {
+        "app-b": 10,
+        "app-a": 10
+      },
+      "hours": [
+        {
+          "hour": "2075-08-15T14:00:00+00:00",
+          "bookings": 0,
+          "spots": 1,
+          "free": null
+        },
+        {
+          "hour": "2075-08-15T15:00:00+00:00",
+          "bookings": 1,
+          "spots": 1,
+          "free": 0
+        },
+        {
+          "hour": "2075-08-15T16:00:00+00:00",
+          "bookings": 0,
+          "spots": 1,
+          "free": null
+        },
+        {
+          "hour": "2075-08-15T17:00:00+00:00",
+          "bookings": 1,
+          "spots": 1,
+          "free": 0
+        }
+      ],
+      "hours_over_spots": 0,
+      "max_bookings_in_hour": 1,
+      "free_not_matching_bookings": 0,
+      "requests": [
+        {
+          "interval": "18:00+3",
+          "status": 409,
+          "type": "no-free-spots",
+          "instance": "app-b"
+        },
+        {
+          "interval": "19:00+2",
+          "status": 409,
+          "type": "no-free-spots",
+          "instance": "app-b"
+        },
+        {
+          "interval": "17:00+2",
+          "status": 409,
+          "type": "no-free-spots",
+          "instance": "app-b"
+        },
+        {
+          "interval": "20:00+1",
+          "status": 409,
+          "type": "no-free-spots",
+          "instance": "app-a"
+        },
+        {
+          "interval": "18:00+1",
+          "status": 409,
+          "type": "no-free-spots",
+          "instance": "app-a"
+        },
+        {
+          "interval": "18:00+3",
+          "status": 409,
+          "type": "no-free-spots",
+          "instance": "app-b"
+        },
+        {
+          "interval": "19:00+2",
+          "status": 409,
+          "type": "no-free-spots",
+          "instance": "app-b"
+        },
+        {
+          "interval": "17:00+2",
+          "status": 409,
+          "type": "no-free-spots",
+          "instance": "app-b"
+        },
+        {
+          "interval": "20:00+1",
+          "status": 409,
+          "type": "no-free-spots",
+          "instance": "app-b"
+        },
+        {
+          "interval": "18:00+1",
+          "status": 201,
+          "type": "",
+          "instance": "app-a"
+        },
+        {
+          "interval": "18:00+3",
+          "status": 409,
+          "type": "no-free-spots",
+          "instance": "app-b"
+        },
+        {
+          "interval": "19:00+2",
+          "status": 409,
+          "type": "no-free-spots",
+          "instance": "app-b"
+        },
+        {
+          "interval": "17:00+2",
+          "status": 409,
+          "type": "no-free-spots",
+          "instance": "app-a"
+        },
+        {
+          "interval": "20:00+1",
+          "status": 409,
+          "type": "no-free-spots",
+          "instance": "app-a"
+        },
+        {
+          "interval": "18:00+1",
+          "status": 409,
+          "type": "no-free-spots",
+          "instance": "app-a"
+        },
+        {
+          "interval": "18:00+3",
+          "status": 409,
+          "type": "no-free-spots",
+          "instance": "app-a"
+        },
+        {
+          "interval": "19:00+2",
+          "status": 409,
+          "type": "no-free-spots",
+          "instance": "app-b"
+        },
+        {
+          "interval": "17:00+2",
+          "status": 409,
+          "type": "no-free-spots",
+          "instance": "app-a"
+        },
+        {
+          "interval": "20:00+1",
+          "status": 201,
+          "type": "",
+          "instance": "app-a"
+        },
+        {
+          "interval": "18:00+1",
+          "status": 409,
+          "type": "no-free-spots",
+          "instance": "app-a"
+        }
+      ]
+    },
+    {
+      "day": "2081-03-31",
+      "statuses": {
+        "409": 18,
+        "201": 2
+      },
+      "refusals": {
+        "no-free-spots": 18
+      },
+      "instances": {
+        "app-a": 10,
+        "app-b": 10
+      },
+      "hours": [
+        {
+          "hour": "2081-03-31T14:00:00+00:00",
+          "bookings": 0,
+          "spots": 1,
+          "free": null
+        },
+        {
+          "hour": "2081-03-31T15:00:00+00:00",
+          "bookings": 1,
+          "spots": 1,
+          "free": 0
+        },
+        {
+          "hour": "2081-03-31T16:00:00+00:00",
+          "bookings": 0,
+          "spots": 1,
+          "free": null
+        },
+        {
+          "hour": "2081-03-31T17:00:00+00:00",
+          "bookings": 1,
+          "spots": 1,
+          "free": 0
+        }
+      ],
+      "hours_over_spots": 0,
+      "max_bookings_in_hour": 1,
+      "free_not_matching_bookings": 0,
+      "requests": [
+        {
+          "interval": "18:00+3",
+          "status": 409,
+          "type": "no-free-spots",
+          "instance": "app-a"
+        },
+        {
+          "interval": "19:00+2",
+          "status": 409,
+          "type": "no-free-spots",
+          "instance": "app-b"
+        },
+        {
+          "interval": "17:00+2",
+          "status": 409,
+          "type": "no-free-spots",
+          "instance": "app-b"
+        },
+        {
+          "interval": "20:00+1",
+          "status": 201,
+          "type": "",
+          "instance": "app-b"
+        },
+        {
+          "interval": "18:00+1",
+          "status": 409,
+          "type": "no-free-spots",
+          "instance": "app-b"
+        },
+        {
+          "interval": "18:00+3",
+          "status": 409,
+          "type": "no-free-spots",
+          "instance": "app-a"
+        },
+        {
+          "interval": "19:00+2",
+          "status": 409,
+          "type": "no-free-spots",
+          "instance": "app-b"
+        },
+        {
+          "interval": "17:00+2",
+          "status": 409,
+          "type": "no-free-spots",
+          "instance": "app-a"
+        },
+        {
+          "interval": "20:00+1",
+          "status": 409,
+          "type": "no-free-spots",
+          "instance": "app-b"
+        },
+        {
+          "interval": "18:00+1",
+          "status": 201,
+          "type": "",
+          "instance": "app-a"
+        },
+        {
+          "interval": "18:00+3",
+          "status": 409,
+          "type": "no-free-spots",
+          "instance": "app-b"
+        },
+        {
+          "interval": "19:00+2",
+          "status": 409,
+          "type": "no-free-spots",
+          "instance": "app-a"
+        },
+        {
+          "interval": "17:00+2",
+          "status": 409,
+          "type": "no-free-spots",
+          "instance": "app-a"
+        },
+        {
+          "interval": "20:00+1",
+          "status": 409,
+          "type": "no-free-spots",
+          "instance": "app-a"
+        },
+        {
+          "interval": "18:00+1",
+          "status": 409,
+          "type": "no-free-spots",
+          "instance": "app-b"
+        },
+        {
+          "interval": "18:00+3",
+          "status": 409,
+          "type": "no-free-spots",
+          "instance": "app-a"
+        },
+        {
+          "interval": "19:00+2",
+          "status": 409,
+          "type": "no-free-spots",
+          "instance": "app-b"
+        },
+        {
+          "interval": "17:00+2",
+          "status": 409,
+          "type": "no-free-spots",
+          "instance": "app-a"
+        },
+        {
+          "interval": "20:00+1",
+          "status": 409,
+          "type": "no-free-spots",
+          "instance": "app-a"
+        },
+        {
+          "interval": "18:00+1",
+          "status": 409,
+          "type": "no-free-spots",
+          "instance": "app-b"
+        }
+      ]
+    },
+    {
+      "day": "2081-05-03",
+      "statuses": {
+        "409": 18,
+        "201": 2
+      },
+      "refusals": {
+        "no-free-spots": 18
+      },
+      "instances": {
+        "app-b": 10,
+        "app-a": 10
+      },
+      "hours": [
+        {
+          "hour": "2081-05-03T14:00:00+00:00",
+          "bookings": 1,
+          "spots": 1,
+          "free": 0
+        },
+        {
+          "hour": "2081-05-03T15:00:00+00:00",
+          "bookings": 1,
+          "spots": 1,
+          "free": 0
+        },
+        {
+          "hour": "2081-05-03T16:00:00+00:00",
+          "bookings": 1,
+          "spots": 1,
+          "free": 0
+        },
+        {
+          "hour": "2081-05-03T17:00:00+00:00",
+          "bookings": 1,
+          "spots": 1,
+          "free": 0
+        }
+      ],
+      "hours_over_spots": 0,
+      "max_bookings_in_hour": 1,
+      "free_not_matching_bookings": 0,
+      "requests": [
+        {
+          "interval": "18:00+3",
+          "status": 409,
+          "type": "no-free-spots",
+          "instance": "app-b"
+        },
+        {
+          "interval": "19:00+2",
+          "status": 409,
+          "type": "no-free-spots",
+          "instance": "app-a"
+        },
+        {
+          "interval": "17:00+2",
+          "status": 201,
+          "type": "",
+          "instance": "app-a"
+        },
+        {
+          "interval": "20:00+1",
+          "status": 409,
+          "type": "no-free-spots",
+          "instance": "app-b"
+        },
+        {
+          "interval": "18:00+1",
+          "status": 409,
+          "type": "no-free-spots",
+          "instance": "app-b"
+        },
+        {
+          "interval": "18:00+3",
+          "status": 409,
+          "type": "no-free-spots",
+          "instance": "app-a"
+        },
+        {
+          "interval": "19:00+2",
+          "status": 409,
+          "type": "no-free-spots",
+          "instance": "app-a"
+        },
+        {
+          "interval": "17:00+2",
+          "status": 409,
+          "type": "no-free-spots",
+          "instance": "app-b"
+        },
+        {
+          "interval": "20:00+1",
+          "status": 409,
+          "type": "no-free-spots",
+          "instance": "app-b"
+        },
+        {
+          "interval": "18:00+1",
+          "status": 409,
+          "type": "no-free-spots",
+          "instance": "app-b"
+        },
+        {
+          "interval": "18:00+3",
+          "status": 409,
+          "type": "no-free-spots",
+          "instance": "app-a"
+        },
+        {
+          "interval": "19:00+2",
+          "status": 201,
+          "type": "",
+          "instance": "app-b"
+        },
+        {
+          "interval": "17:00+2",
+          "status": 409,
+          "type": "no-free-spots",
+          "instance": "app-a"
+        },
+        {
+          "interval": "20:00+1",
+          "status": 409,
+          "type": "no-free-spots",
+          "instance": "app-b"
+        },
+        {
+          "interval": "18:00+1",
+          "status": 409,
+          "type": "no-free-spots",
+          "instance": "app-a"
+        },
+        {
+          "interval": "18:00+3",
+          "status": 409,
+          "type": "no-free-spots",
+          "instance": "app-b"
+        },
+        {
+          "interval": "19:00+2",
+          "status": 409,
+          "type": "no-free-spots",
+          "instance": "app-a"
+        },
+        {
+          "interval": "17:00+2",
+          "status": 409,
+          "type": "no-free-spots",
+          "instance": "app-a"
+        },
+        {
+          "interval": "20:00+1",
+          "status": 409,
+          "type": "no-free-spots",
+          "instance": "app-b"
+        },
+        {
+          "interval": "18:00+1",
+          "status": 409,
+          "type": "no-free-spots",
+          "instance": "app-a"
+        }
+      ]
+    },
+    {
+      "day": "2081-07-04",
+      "statuses": {
+        "409": 18,
+        "201": 2
+      },
+      "refusals": {
+        "no-free-spots": 18
+      },
+      "instances": {
+        "app-b": 10,
+        "app-a": 10
+      },
+      "hours": [
+        {
+          "hour": "2081-07-04T14:00:00+00:00",
+          "bookings": 0,
+          "spots": 1,
+          "free": null
+        },
+        {
+          "hour": "2081-07-04T15:00:00+00:00",
+          "bookings": 1,
+          "spots": 1,
+          "free": 0
+        },
+        {
+          "hour": "2081-07-04T16:00:00+00:00",
+          "bookings": 1,
+          "spots": 1,
+          "free": 0
+        },
+        {
+          "hour": "2081-07-04T17:00:00+00:00",
+          "bookings": 1,
+          "spots": 1,
+          "free": 0
+        }
+      ],
+      "hours_over_spots": 0,
+      "max_bookings_in_hour": 1,
+      "free_not_matching_bookings": 0,
+      "requests": [
+        {
+          "interval": "18:00+3",
+          "status": 409,
+          "type": "no-free-spots",
+          "instance": "app-b"
+        },
+        {
+          "interval": "19:00+2",
+          "status": 409,
+          "type": "no-free-spots",
+          "instance": "app-a"
+        },
+        {
+          "interval": "17:00+2",
+          "status": 409,
+          "type": "no-free-spots",
+          "instance": "app-b"
+        },
+        {
+          "interval": "20:00+1",
+          "status": 409,
+          "type": "no-free-spots",
+          "instance": "app-b"
+        },
+        {
+          "interval": "18:00+1",
+          "status": 409,
+          "type": "no-free-spots",
+          "instance": "app-a"
+        },
+        {
+          "interval": "18:00+3",
+          "status": 409,
+          "type": "no-free-spots",
+          "instance": "app-a"
+        },
+        {
+          "interval": "19:00+2",
+          "status": 201,
+          "type": "",
+          "instance": "app-b"
+        },
+        {
+          "interval": "17:00+2",
+          "status": 409,
+          "type": "no-free-spots",
+          "instance": "app-a"
+        },
+        {
+          "interval": "20:00+1",
+          "status": 409,
+          "type": "no-free-spots",
+          "instance": "app-b"
+        },
+        {
+          "interval": "18:00+1",
+          "status": 409,
+          "type": "no-free-spots",
+          "instance": "app-a"
+        },
+        {
+          "interval": "18:00+3",
+          "status": 409,
+          "type": "no-free-spots",
+          "instance": "app-a"
+        },
+        {
+          "interval": "19:00+2",
+          "status": 409,
+          "type": "no-free-spots",
+          "instance": "app-b"
+        },
+        {
+          "interval": "17:00+2",
+          "status": 409,
+          "type": "no-free-spots",
+          "instance": "app-a"
+        },
+        {
+          "interval": "20:00+1",
+          "status": 409,
+          "type": "no-free-spots",
+          "instance": "app-a"
+        },
+        {
+          "interval": "18:00+1",
+          "status": 409,
+          "type": "no-free-spots",
+          "instance": "app-b"
+        },
+        {
+          "interval": "18:00+3",
+          "status": 409,
+          "type": "no-free-spots",
+          "instance": "app-b"
+        },
+        {
+          "interval": "19:00+2",
+          "status": 409,
+          "type": "no-free-spots",
+          "instance": "app-a"
+        },
+        {
+          "interval": "17:00+2",
+          "status": 409,
+          "type": "no-free-spots",
+          "instance": "app-a"
+        },
+        {
+          "interval": "20:00+1",
+          "status": 409,
+          "type": "no-free-spots",
+          "instance": "app-b"
+        },
+        {
+          "interval": "18:00+1",
+          "status": 201,
+          "type": "",
+          "instance": "app-b"
+        }
+      ]
+    }
+  ]
+}

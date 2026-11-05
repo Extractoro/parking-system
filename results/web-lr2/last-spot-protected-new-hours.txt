@@ -1,0 +1,14 @@
+mode=protected level=race-test rounds=10 x 20 requests via http://localhost:8080
+day           201  409  other  app-a/app-b  max/hour  over free!=
+2046-05-13      2   18      0  1/19                1     0      0
+2046-07-03      1   19      0  10/10               1     0      0
+2047-09-04      2   18      0  10/10               1     0      0
+2065-08-22      2   18      0  10/10               1     0      0
+2068-11-22      1   19      0  10/10               1     0      0
+2074-09-06      1   19      0  10/10               1     0      0
+2075-08-15      2   18      0  10/10               1     0      0
+2081-03-31      2   18      0  10/10               1     0      0
+2081-05-03      2   18      0  10/10               1     0      0
+2081-07-04      2   18      0  10/10               1     0      0
+total: {'409': 183, '201': 17}; rounds with an hour over spots: 0; hours over spots: 0; instances: {'app-b': 109, 'app-a': 91}
+saved results\web-lr2\last-spot-protected.json
