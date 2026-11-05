@@ -1,0 +1,493 @@
+# Contract (OpenAPI 3.1) of the DPC part of C09 «Паркінги»: barrier events are accepted into a
+# bounded queue, a pool of workers recognizes the plate and changes the occupancy of the garage.
+# Service routes are those of dpc/openapi.example.yaml. x-course marks: receiver, request-state,
+# resource-state. "{uuid}" in an example becomes a new id in every request.
+# Routes of DPC labs 2-6 are added in their labs.
+openapi: 3.1.0
+info:
+  title: C09 «Паркінги» — DPC, в'їзди й виїзди
+  version: 1.0.0
+  description: |
+    Контракт сервісу `api` частини DPC. Маршрути `/v1` потребують `Authorization: Bearer <API_TOKEN>`.
+    Помилки — Problem Details (RFC 9457, `application/problem+json`).
+
+    Час події `event_time` — рядок ISO 8601 в UTC із позначкою `Z` і рівно трьома знаками мілісекунд,
+    наприклад `2027-06-15T15:00:00.000Z`.
+
+    Інваріант ресурсу: `occupied` дорівнює кількості авто всередині (прийняті в'їзди мінус виїзди
+    з таблиці `entry`) і `0 ≤ occupied ≤ spots`. В'їзд без бронювання приймається, якщо
+    `occupied + reserved < spots`, де `reserved` — підтверджені бронювання Web рівнів цього паркінгу,
+    інтервал яких містить `event_time` і за якими ще немає в'їзду. В'їзд за бронюванням (`booking_id`)
+    квоту `reserved` не перевіряє, лише фізичну наявність місця.
+servers:
+  - url: http://localhost:8000
+security:
+  - apiToken: []
+
+paths:
+  /health:
+    get:
+      operationId: getHealth
+      summary: Перевірка працездатності процесу. Не звертається ні до бази, ні до черги
+      security: []
+      responses:
+        "200":
+          description: Процес відповідає
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                  instance:
+                    type: string
+  /metrics:
+    get:
+      operationId: getMetrics
+      summary: Перцентилі затримки HTTP, довжина черги, запити в обробці, відмови
+      description: |
+        `latency_ms` — час відповіді HTTP маршрутів `/v1` за останні 2000 запитів (без `/health` і `/metrics`).
+        `queue_length` — запити в черзі; `in_flight` — запити, які зараз обробляють обробники пулу;
+        `rejected` — відмови 429 через повну чергу; `rejected_rule` — відмови за предметним правилом
+        (стан `rejected`); `rejected_draining` — відмови 503 під час завершення; `http_in_flight` —
+        HTTP-запити, на які сервер саме відповідає.
+      security: []
+      responses:
+        "200":
+          description: Метрики
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  latency_ms:
+                    type: object
+                    properties:
+                      p50:
+                        type:
+                          - number
+                          - "null"
+                      p95:
+                        type:
+                          - number
+                          - "null"
+                      p99:
+                        type:
+                          - number
+                          - "null"
+                  in_flight:
+                    type: integer
+                  http_in_flight:
+                    type: integer
+                  queue_length:
+                    type: integer
+                  queue_capacity:
+                    type: integer
+                  workers:
+                    type: integer
+                  rejected:
+                    type: integer
+                  rejected_rule:
+                    type: integer
+                  rejected_draining:
+                    type: integer
+                  responses:
+                    type: object
+                    additionalProperties:
+                      type: integer
+  /metrics/prom:
+    get:
+      operationId: getMetricsPrometheus
+      summary: Ті самі метрики у форматі Prometheus (для Grafana)
+      security: []
+      responses:
+        "200":
+          description: Метрики
+          content:
+            text/plain:
+              schema:
+                type: string
+
+  /v1/entries:
+    post:
+      operationId: createEntry
+      summary: Прийняти подію шлагбаума (в'їзд або виїзд) в обмежену чергу
+      description: |
+        Відповідь 202 надходить до оброблення. Повтор із тим самим `event_id` і тими самими полями —
+        той самий запит: 202 з тим самим `Location` і заголовком `Repeated-Request: true`, другого запиту
+        в черзі немає. Повна черга — 429 з `Retry-After: 1`, запит не зберігається. Під час завершення
+        процесу — 503 з `Retry-After`.
+      x-course: receiver
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/EntryCreate"
+            examples:
+              normal:
+                value:
+                  event_id: "{uuid}"
+                  garage_id: center
+                  plate: AA1234BB
+                  direction: in
+                  event_time: "2027-06-15T15:00:00.000Z"
+              exit:
+                value:
+                  event_id: "{uuid}"
+                  garage_id: center
+                  plate: AA1234BB
+                  direction: out
+                  event_time: "2027-06-15T17:30:00.000Z"
+              booked:
+                value:
+                  event_id: "{uuid}"
+                  garage_id: mall
+                  plate: AA1234BB
+                  direction: in
+                  event_time: "2027-06-15T15:05:00.000Z"
+                  booking_id: 9a1c4b2e-5d0f-4a6b-8c3d-2e7f1a0b9c8d
+      responses:
+        "202":
+          description: Прийнято в чергу (або повтор уже прийнятого запиту)
+          headers:
+            Location:
+              schema:
+                type: string
+              example: /v1/entries/5850b624-b0be-4274-94aa-8d59d1acd8f0
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/RequestState"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "409":
+          $ref: "#/components/responses/Conflict"
+        "429":
+          $ref: "#/components/responses/TooManyRequests"
+        "503":
+          $ref: "#/components/responses/ShuttingDown"
+    get:
+      operationId: listEntries
+      summary: Останні прийняті запити (новіші першими)
+      parameters:
+        - name: garage_id
+          in: query
+          schema:
+            type: string
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 100
+            default: 20
+      responses:
+        "200":
+          description: Запити
+          content:
+            application/json:
+              schema:
+                type: object
+                required:
+                  - items
+                properties:
+                  items:
+                    type: array
+                    items:
+                      $ref: "#/components/schemas/RequestState"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+  /v1/entries/{id}:
+    get:
+      operationId: getEntry
+      summary: Стан запиту, причина відмови й часові позначки
+      description: |
+        Перше читання кінцевого стану ставить позначку видачі (`delivery_wait_ms`); до цього вона `null`.
+      x-course: request-state
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Стан
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/RequestState"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "404":
+          $ref: "#/components/responses/NotFound"
+  /v1/garage/{id}:
+    get:
+      operationId: getGarage
+      summary: Зайнятість паркінгу. Інваріант — occupied дорівнює кількості авто всередині й не більший за spots
+      x-course: resource-state
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+          example: center
+      responses:
+        "200":
+          description: Стан ресурсу
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Garage"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "404":
+          $ref: "#/components/responses/NotFound"
+
+components:
+  securitySchemes:
+    apiToken:
+      type: http
+      scheme: bearer
+  schemas:
+    Problem:
+      type: object
+      required:
+        - type
+        - title
+        - status
+      properties:
+        type:
+          type: string
+          format: uri
+        title:
+          type: string
+        status:
+          type: integer
+        detail:
+          type: string
+        instance:
+          type: string
+        errors:
+          type: array
+          items:
+            type: object
+            properties:
+              field:
+                type: string
+              message:
+                type: string
+    EntryCreate:
+      type: object
+      additionalProperties: false
+      required:
+        - event_id
+        - garage_id
+        - plate
+        - direction
+        - event_time
+      properties:
+        event_id:
+          type: string
+          minLength: 1
+          maxLength: 100
+          description: Ідентифікатор операції шлагбаума; повтор із тим самим event_id — той самий запит
+        garage_id:
+          type: string
+        plate:
+          type: string
+          minLength: 2
+          maxLength: 16
+          description: Номер авто; пробіли й дефіси відкидаються, літери стають великими (2-12 символів)
+        direction:
+          type: string
+          enum:
+            - in
+            - out
+        event_time:
+          type: string
+          pattern: "^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}\\.\\d{3}Z$"
+          description: ISO 8601 UTC з Z і мілісекундами
+        booking_id:
+          type:
+            - string
+            - "null"
+          description: Бронювання Web; лише для в'їзду
+    RequestState:
+      type: object
+      required:
+        - id
+        - event_id
+        - state
+      properties:
+        id:
+          type: string
+        event_id:
+          type: string
+        state:
+          type: string
+          enum:
+            - queued
+            - processing
+            - done
+            - rejected
+            - failed
+        reason:
+          type:
+            - string
+            - "null"
+          description: |
+            Для `rejected`: `full`, `booking-invalid`, `already-entered`, `already-inside`, `not-inside`,
+            `unknown-garage`. Для `failed`: `error` або `lost-on-restart`.
+        detail:
+          type:
+            - string
+            - "null"
+        garage_id:
+          type: string
+        plate:
+          type: string
+        direction:
+          type: string
+          enum:
+            - in
+            - out
+        event_time:
+          type: string
+        booking_id:
+          type:
+            - string
+            - "null"
+        received_at:
+          type: string
+          format: date-time
+        finished_at:
+          type:
+            - string
+            - "null"
+          format: date-time
+        queue_wait_ms:
+          type:
+            - number
+            - "null"
+          description: Від надходження до початку оброблення (монотонний годинник процесу)
+        processing_ms:
+          type:
+            - number
+            - "null"
+          description: Від початку до кінця оброблення (розпізнавання номера й транзакція)
+        total_ms:
+          type:
+            - number
+            - "null"
+          description: Повне виконання, від надходження до кінця оброблення
+        delivery_wait_ms:
+          type:
+            - number
+            - "null"
+          description: Від кінця оброблення до першого GET, що повернув кінцевий стан
+        marks_ms:
+          type: object
+          description: Позначки відносно надходження; порядок 0 ≤ started ≤ finished ≤ delivered
+          properties:
+            received:
+              type: number
+            started:
+              type:
+                - number
+                - "null"
+            finished:
+              type:
+                - number
+                - "null"
+            delivered:
+              type:
+                - number
+                - "null"
+    Garage:
+      type: object
+      required:
+        - garage_id
+        - spots
+        - occupied
+        - inside
+        - invariant_ok
+      properties:
+        garage_id:
+          type: string
+        spots:
+          type: integer
+          description: Сума місць рівнів паркінгу (без тестового рівня race-test)
+        occupied:
+          type: integer
+          description: Лічильник зайнятих місць у garage_state
+        inside:
+          type: integer
+          description: Фактично всередині — прийняті в'їзди мінус виїзди
+        reserved:
+          type: integer
+          description: Невикористані бронювання поточної години
+        free_walk_in:
+          type: integer
+          description: Скільки авто без бронювання може в'їхати зараз
+        invariant_ok:
+          type: boolean
+        mode:
+          type: string
+          enum:
+            - locked
+            - unsafe
+  responses:
+    BadRequest:
+      description: Некоректний запит
+      content:
+        application/problem+json:
+          schema:
+            $ref: "#/components/schemas/Problem"
+    Unauthorized:
+      description: Потрібен токен API
+      content:
+        application/problem+json:
+          schema:
+            $ref: "#/components/schemas/Problem"
+    NotFound:
+      description: Не знайдено (запит або паркінг)
+      content:
+        application/problem+json:
+          schema:
+            $ref: "#/components/schemas/Problem"
+    Conflict:
+      description: event_id уже належить запиту з іншими полями
+      content:
+        application/problem+json:
+          schema:
+            $ref: "#/components/schemas/Problem"
+    TooManyRequests:
+      description: Черга заповнена
+      headers:
+        Retry-After:
+          schema:
+            type: integer
+      content:
+        application/problem+json:
+          schema:
+            $ref: "#/components/schemas/Problem"
+    ShuttingDown:
+      description: Процес завершується; прийняті запити дообробляються
+      headers:
+        Retry-After:
+          schema:
+            type: integer
+      content:
+        application/problem+json:
+          schema:
+            $ref: "#/components/schemas/Problem"
