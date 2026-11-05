@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { ApiError, api, type Booking, type Garage, type HourSlot } from './api'
 import { NavLink, ProblemAlert } from './components'
-import { RETRY, isRetryable, withRetries, type AttemptInfo } from './retry'
+import { isRetryable, withRetries, type AttemptInfo } from './retry'
 import type { View } from './shared'
 import { AlertIcon, Check, CheckCircle, Spinner } from './icons'
 import {
@@ -49,7 +49,7 @@ export default function BookingPage({ userId, params, setParams, onNavigate }: P
   const [checking, setChecking] = useState(false)
   const [checkNote, setCheckNote] = useState<string | null>(null)
   // ONE Idempotency-Key per user action: made at the first click, the same in every retry and in
-  // "Send again" after an unknown result; dropped once the result is known or the request changes
+  // "Try again" after an unknown result; dropped once the result is known or the request changes
   const keyRef = useRef<string | null>(null)
   const startedRef = useRef(0)
   const plateRef = useRef<HTMLInputElement>(null)
@@ -189,7 +189,7 @@ export default function BookingPage({ userId, params, setParams, onNavigate }: P
       done(booking)
     } catch (err) {
       if (isRetryable(err)) {
-        // every attempt went unanswered: the booking may exist. Keep the key for "Send again".
+        // every attempt went unanswered: the booking may exist. Keep the key for "Try again".
         setUnknown(true)
         return
       }
@@ -236,9 +236,9 @@ export default function BookingPage({ userId, params, setParams, onNavigate }: P
           Date.parse(b.created_at) >= startedRef.current - 60_000,
       )
       if (found) done(found)
-      else setCheckNote('No such booking yet. Sending again is safe: it uses the same request key and cannot book twice.')
+      else setCheckNote("This booking isn't in your list. You can try again: you won't be booked twice.")
     } catch {
-      setCheckNote('Could not load your bookings either. Check the connection and try again.')
+      setCheckNote("We couldn't open your bookings. Check your internet connection and try again.")
     } finally {
       setChecking(false)
       loadSlots()
@@ -527,8 +527,7 @@ export default function BookingPage({ userId, params, setParams, onNavigate }: P
                   <div className="alert alert-warn retrying" role="status">
                     <Spinner size={16} color="var(--warn-ink)" />
                     <span>
-                      No answer from the server yet. Trying again ({retry.attempt} of {retry.of}) with the same request, so the spot
-                      cannot be booked twice…
+                      The connection is slow. Still trying to book your spot…
                     </span>
                   </div>
                 )}
@@ -537,19 +536,16 @@ export default function BookingPage({ userId, params, setParams, onNavigate }: P
                   <div className="alert alert-warn unknown" role="alert">
                     <AlertIcon color="var(--warn-ink)" size={20} />
                     <div className="alert-body">
-                      <strong>Result unknown</strong>
-                      <span>
-                        The server did not answer after {RETRY.attempts} attempts. The spot may already be booked for you. Check
-                        your bookings before booking again.
-                      </span>
+                      <strong>We couldn't confirm your booking</strong>
+                      <span>It may have gone through. Check your bookings before you try again.</span>
                       {checkNote && <span className="check-note">{checkNote}</span>}
                       <div className="alert-actions">
                         <button type="button" className="btn btn-dark" onClick={() => void check()} disabled={checking} aria-busy={checking || undefined}>
                           {checking ? <Spinner size={16} color="#fff" /> : null}
-                          Check
+                          Check my bookings
                         </button>
                         <button type="button" className="btn btn-ghost" onClick={() => void send()}>
-                          Send again
+                          Try again
                         </button>
                       </div>
                     </div>
@@ -600,7 +596,7 @@ export default function BookingPage({ userId, params, setParams, onNavigate }: P
                 >
                   {sending ? (
                     <>
-                      <Spinner size={16} color="#fff" /> {retry ? `Retrying (${retry.attempt} of ${retry.of})…` : 'Booking…'}
+                      <Spinner size={16} color="#fff" /> Booking…
                     </>
                   ) : from ? (
                     `Book · ${garage ? money(price, garage.currency) : ''}`

@@ -89,9 +89,9 @@ function explain(error: ApiError): { title: string; detail: string } {
     case 'level-not-found':
       return { title: 'Level not found', detail: 'Reload the page and pick the level again.' }
     case 'idempotency-in-progress':
-      return { title: 'Still being processed', detail: 'Your request is still being processed. Wait a moment and check your bookings.' }
+      return { title: 'Still booking', detail: 'Your booking is still being processed. Wait a moment, then check your bookings.' }
     case 'idempotency-key-reused':
-      return { title: 'Request changed', detail: 'This request was already sent with other data. Reload the page and book again.' }
+      return { title: 'Something changed', detail: 'Reload the page and book again.' }
     case 'version-mismatch':
       return { title: 'The booking has changed', detail: 'It was changed after you opened this page. Refresh the list and try again.' }
     case 'booking-not-modifiable':

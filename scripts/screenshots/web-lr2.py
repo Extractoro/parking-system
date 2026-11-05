@@ -7,7 +7,7 @@ Uses the installed Microsoft Edge (channel "msedge"), so no browser download is 
 
 Writes docs/reports/img/web-lr2-*.png:
   retrying   - the booking form while it retries after a lost answer;
-  unknown    - "Result unknown" after every attempt failed, after pressing "Check";
+  unknown    - "We couldn't confirm your booking" after every attempt failed, after "Check my bookings";
   stale-412  - the plate change refused with 412 because the booking changed meanwhile;
   cancelled  - My bookings after a cancellation (the notice and the Past tab).
 Lost answers are simulated in the browser (the POST is aborted), so the server state is not touched;
@@ -29,6 +29,9 @@ API = os.environ.get("WEB_BASE", "http://localhost:8080")
 USER = "u-2"
 OUT = Path(__file__).resolve().parents[2] / "docs" / "reports" / "img"
 TZ = ZoneInfo("Europe/Kyiv")
+# plates unique per run: the cards are found by plate, and earlier runs leave their bookings
+RUN = f"{uuid.uuid4().int % 10000:04d}"
+STALE, NEW_PLATE, OTHER, CANCEL = f"SC{RUN}AA", f"SC{RUN}BB", f"SC{RUN}CC", f"CX{RUN}AA"
 
 
 def hour_at(days: int, hour: int) -> str:
@@ -63,24 +66,24 @@ def form_shots(page: Page) -> None:
     page.get_by_placeholder("e.g. AA 1234 BB…").fill("AT5050AA")
     page.get_by_role("button", name="Book").click()
     aside = page.locator("aside.col-side")
-    expect(page.get_by_text("No answer from the server yet")).to_be_visible(timeout=15000)
+    expect(page.get_by_text("The connection is slow")).to_be_visible(timeout=15000)
     aside.screenshot(path=OUT / "web-lr2-retrying.png")
 
-    expect(page.get_by_text("Result unknown")).to_be_visible(timeout=30000)
-    page.get_by_role("button", name="Check").click()
-    expect(page.get_by_text("No such booking yet")).to_be_visible(timeout=10000)
+    expect(page.get_by_text("We couldn't confirm your booking")).to_be_visible(timeout=30000)
+    page.get_by_role("button", name="Check my bookings").click()
+    expect(page.get_by_text("isn't in your list")).to_be_visible(timeout=10000)
     aside.screenshot(path=OUT / "web-lr2-unknown.png")
     page.unroute("**/v1/bookings")
 
 
 def stale_shot(page: Page) -> None:
-    b = book("mall-1", hour_at(4, 9), "SC4120AA")
+    b = book("mall-1", hour_at(4, 9), STALE)
     open_as_user(page, {"view": "bookings"})
-    card = booking_card(page, "SC4120AA")
+    card = booking_card(page, STALE)
     card.get_by_role("button", name="Change plate").click()
-    card.locator("input").fill("SC4121AA")
+    card.locator("input").fill(NEW_PLATE)
     # meanwhile the same booking is changed elsewhere (another tab, another device): version 1 -> 2
-    r = httpx.patch(f"{API}/v1/bookings/{b['id']}", json={"plate": "SC4122AA"}, timeout=10,
+    r = httpx.patch(f"{API}/v1/bookings/{b['id']}", json={"plate": OTHER}, timeout=10,
                     headers={"X-User-Id": USER, "If-Match": '"1"'})
     r.raise_for_status()
     card.get_by_role("button", name="Save plate").click()
@@ -89,14 +92,14 @@ def stale_shot(page: Page) -> None:
 
 
 def cancelled_shot(page: Page) -> None:
-    book("mall-2", hour_at(5, 14), "CX1000AA")
+    book("mall-2", hour_at(5, 14), CANCEL)
     open_as_user(page, {"view": "bookings"})
-    card = booking_card(page, "CX1000AA")
+    card = booking_card(page, CANCEL)
     card.get_by_role("button", name="Cancel booking").click()
     card.get_by_role("button", name="Yes, cancel").click()
     expect(page.get_by_text("is cancelled")).to_be_visible()
     page.get_by_role("tab", name="Past").click()
-    cancelled = booking_card(page, "CX1000AA")
+    cancelled = booking_card(page, CANCEL)
     expect(cancelled.get_by_text("Cancelled")).to_be_visible()
     top = page.locator(".page-head").bounding_box()
     bottom = cancelled.bounding_box()
