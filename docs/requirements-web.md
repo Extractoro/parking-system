@@ -26,15 +26,15 @@
 
 | Lab | ID | Ядро/О/Д | Описание | Компонент | Файлы | Тесты | Evidence | Status |
 |---|---|---|---|---|---|---|---|---|
-| ЛР2 | О2.1 | Ядро | Інваріант за одночасних запитів. | — | — | — | — | not_started |
-| ЛР2 | О2.2 | Ядро | Механізм ідемпотентності. | — | — | — | — | not_started |
-| ЛР2 | О2.3 | О | Повтор після втраченої відповіді. | — | — | — | — | not_started |
-| ЛР2 | О2.4 | О | Повторні спроби в клієнті. | — | — | — | — | not_started |
+| ЛР2 | О2.1 | Ядро | Інваріант за одночасних запитів. | Web API, PostgreSQL | web/server/app/bookings.py (`_reserve_hours`), migrations/902 | test_lr1.py::test_7; experiments/web_last_spot.py, web_invariant_check.sql | 10×20 через nginx: protected 0 годин понад місця, unprotected 34 (results/web-lr2/last-spot-*) | done |
+| ЛР2 | О2.2 | Ядро | Механізм ідемпотентності. | Web API, publisher | web/server/app/idempotency.py, publisher.py, migrations/004 | test_lr2.py::test_1–6, test_11; experiments/web_idempotency.py | повтор → той самий id; інше тіло 422; без ключа 400; одночасні з одним ключем → 1 бронювання (results/web-lr2/idempotency.txt) | done |
+| ЛР2 | О2.3 | О | Повтор після втраченої відповіді. | Web API | web/server/app/idempotency.py (`fault("after_commit_before_response")`) | experiments/web_lost_response.sh | app-a: Empty reply + fault.hit; app-b: 201 той самий id, 1 бронювання, free −1 (results/web-lr2/lost-response.txt) | done |
+| ЛР2 | О2.4 | О | Повторні спроби в клієнті. | Клієнт | web/client/src/retry.ts, BookingPage.tsx | вручну в браузері з відмовою на app-a; знімок «Result unknown» | мережева помилка → повтор із тим самим ключем → 201, 1 бронювання (results/web-lr2/client-retry.txt) | done |
 | ЛР2 | Д2.1 | Д | Ліміт частоти змінювальних запитів, спільний для екземплярів; у разі перевищення — 429. | — | — | — | — | not_started |
 | ЛР2 | Д2.2 | Д | Порівняння двох способів забезпечення інваріанта під однаковим навантаженням. | — | — | — | — | not_started |
 | ЛР2 | Д2.3 | Д | Другий інваріант області з картки. | — | — | — | — | not_started |
-| ЛР2 | Д2.4 | Д | Умовна зміна. | — | — | — | — | not_started |
-| ЛР2 | Д2.5 | Д | Повторне скасування. | — | — | — | — | not_started |
+| ЛР2 | Д2.4 | Д | Умовна зміна. | Web API, клієнт | bookings.py (`update_booking`), BookingsPage.tsx | test_lr2.py::test_7 | 428, 412, 422, 200 + ETag; 412 у клієнті | done |
+| ЛР2 | Д2.5 | Д | Повторне скасування. | Web API, клієнт | bookings.py (`cancel_booking`), BookingsPage.tsx | test_lr2.py::test_8–10; experiments/web_cancel_twice.py | послідовно й одночасно: free +1 рівно раз (results/web-lr2/cancel-twice.txt) | done |
 | ЛР2 | Д2.6 | Д | Межі ресурсів. | — | — | — | — | not_started |
 | ЛР2 | Д2.7 | Д | План запиту. | — | — | — | — | not_started |
 
