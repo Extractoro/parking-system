@@ -298,7 +298,15 @@ paths:
         Інтервал `[from_hour, from_hour + hours)` у цілих годинах; `from_hour` — початок години з
         зоною. Ціна = тариф паркінгу × `hours` (неповна година рахується як повна), у копійках.
         `from_hour` — не раніше за початок поточної години (поточна година дозволена), інакше 422.
-        `Idempotency-Key` обов'язковий; механізм повтору — ЛР2.
+
+        `Idempotency-Key` обов'язковий (без нього 400, довжина 1..200, інакше 422). Ключ належить
+        користувачу. Перший запит із ключем виконує операцію, і її підсумкова відповідь (201, 404, 409)
+        зберігається в тій самій транзакції, що й бронювання, на 24 години. Повтор із тим самим ключем
+        і тим самим тілом отримує збережену відповідь із заголовком `Idempotent-Replayed: true` і нічого
+        не бронює вдруге; той самий ключ з іншим тілом — 422 `idempotency-key-reused`; запит із ключем,
+        який ще обробляється, — 409 `idempotency-in-progress` з `Retry-After`. Відповіді 400/422
+        перевірки даних не зберігаються. Повторювати варто лише 409 `idempotency-in-progress`,
+        502/503/504 і мережеві помилки — з тим самим ключем.
       x-course: main
       parameters:
         - $ref: "#/components/parameters/IdempotencyKey"
@@ -339,6 +347,10 @@ paths:
               description: /v1/bookings/{id}
               schema:
                 type: string
+            ETag:
+              $ref: "#/components/headers/ETag"
+            Idempotent-Replayed:
+              $ref: "#/components/headers/IdempotentReplayed"
             X-Request-ID:
               $ref: "#/components/headers/RequestId"
           content:
@@ -363,7 +375,7 @@ paths:
                     created_at: "2026-11-04T13:21:37.111357+02:00"
                     expires_at: "2027-06-15T21:00:00+03:00"
         "400":
-          description: Пошкоджений JSON
+          description: Пошкоджений JSON або немає `Idempotency-Key`
           content:
             application/problem+json:
               schema:
@@ -374,6 +386,13 @@ paths:
                     type: https://example.edu/problems/malformed-json
                     title: Request body is not valid JSON
                     status: 400
+                    instance: /v1/bookings
+                no-key:
+                  value:
+                    type: https://example.edu/problems/idempotency-key-required
+                    title: Idempotency-Key header is required
+                    status: 400
+                    detail: Send a new unique Idempotency-Key with every user action and the same one with its retries
                     instance: /v1/bookings
         "401":
           $ref: "#/components/responses/Unauthorized"
@@ -392,7 +411,14 @@ paths:
                     detail: No level 'no-such-level'
                     instance: /v1/bookings
         "409":
-          description: Місць не вистачає хоча б в одній годині або рівень закрито; жодна година не змінена
+          description: |
+            Три різні конфлікти розрізняє поле `type`: `no-free-spots` (місць не вистачає хоча б в одній
+            годині), `level-closed` (рівень закрито) — жодна година не змінена, повторювати марно;
+            `idempotency-in-progress` (запит із цим ключем ще виконується) — повторити з тим самим ключем
+            після `Retry-After`.
+          headers:
+            Retry-After:
+              $ref: "#/components/headers/RetryAfter"
           content:
             application/problem+json:
               schema:
@@ -420,8 +446,15 @@ paths:
                     status: 409
                     detail: The level takes no new bookings
                     instance: /v1/bookings
+                idempotency-in-progress:
+                  value:
+                    type: https://example.edu/problems/idempotency-in-progress
+                    title: Request with this key is in progress
+                    status: 409
+                    detail: A request with the same Idempotency-Key is being processed; retry later
+                    instance: /v1/bookings
         "422":
-          description: Неправильні дані (поля й причини в `errors`)
+          description: Неправильні дані (поля й причини в `errors`) або той самий ключ з іншим тілом
           content:
             application/problem+json:
               schema:
@@ -436,6 +469,13 @@ paths:
                     errors:
                       - field: body.from_hour
                         message: "Value error, must be the start of an hour (minutes and seconds = 0)"
+                key-reused:
+                  value:
+                    type: https://example.edu/problems/idempotency-key-reused
+                    title: Idempotency-Key reused with another request
+                    status: 422
+                    detail: This key was already used with a different request body; use a new key
+                    instance: /v1/bookings
 
   /v1/bookings/{id}:
     parameters:
@@ -448,7 +488,10 @@ paths:
       x-course: object
       responses:
         "200":
-          description: Бронювання
+          description: Бронювання; `ETag` — його версія для `If-Match`
+          headers:
+            ETag:
+              $ref: "#/components/headers/ETag"
           content:
             application/json:
               schema:
@@ -457,6 +500,110 @@ paths:
           $ref: "#/components/responses/Unauthorized"
         "404":
           $ref: "#/components/responses/NotFound"
+    patch:
+      tags:
+        - bookings
+      operationId: updateBookingPlate
+      summary: Змінити номер авто (умовна зміна з If-Match)
+      description: |
+        Змінюється лише `plate`, однією інструкцією
+        `UPDATE … SET plate, version = version + 1 WHERE id AND user_id AND version = If-Match AND status = 'confirmed'`.
+        Без `If-Match` — 428; інша версія — 412 (у відповіді `ETag` поточної версії); бронювання не
+        `confirmed` — 409; чуже або відсутнє — 404. Будь-яке інше поле тіла (`status`, `version`,
+        `user_id`, `level_id`, `from_hour`, `hours`, …) — 422.
+      x-course: update
+      parameters:
+        - $ref: "#/components/parameters/IfMatch"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/BookingPatch"
+            examples:
+              normal:
+                summary: Новий номер авто
+                value:
+                  plate: AT0001AA
+              forbidden:
+                summary: Зміна стану — заборонено, 422
+                value:
+                  status: cancelled
+      responses:
+        "200":
+          description: Номер змінено; `ETag` — нова версія
+          headers:
+            ETag:
+              $ref: "#/components/headers/ETag"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Booking"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "409":
+          description: Бронювання не в стані `confirmed` (`booking-not-modifiable`)
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/Problem"
+        "412":
+          description: Версія застаріла (`version-mismatch`); `ETag` — поточна версія
+          headers:
+            ETag:
+              $ref: "#/components/headers/ETag"
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/Problem"
+              examples:
+                stale:
+                  value:
+                    type: https://example.edu/problems/version-mismatch
+                    title: Booking has changed
+                    status: 412
+                    detail: The booking was changed after you read it; read it again
+                    instance: /v1/bookings/9fdea44f-e38c-4b74-94c6-4885894dd722
+        "422":
+          $ref: "#/components/responses/Unprocessable"
+        "428":
+          $ref: "#/components/responses/PreconditionRequired"
+  /v1/bookings/{id}/cancel:
+    parameters:
+      - $ref: "#/components/parameters/Id"
+    post:
+      tags:
+        - bookings
+      operationId: cancelBooking
+      summary: Скасувати бронювання (повторне скасування безпечне)
+      description: |
+        Одна транзакція: рядок бронювання `FOR UPDATE`; `confirmed` і інтервал ще не почався →
+        `cancelled`, `version + 1`, `free + 1` у кожній годині інтервалу. Уже `cancelled` → 200 з
+        поточним станом, нічого не звільняється вдруге. Інтервал почався або бронювання завершене → 409.
+        Чуже або відсутнє — 404. Ключ ідемпотентності не потрібен: повтор дає той самий стан.
+      x-course: cancel
+      responses:
+        "200":
+          description: Бронювання скасовано (зараз або раніше)
+          headers:
+            ETag:
+              $ref: "#/components/headers/ETag"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Booking"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "409":
+          description: Інтервал уже почався (`booking-started`) або бронювання завершене (`booking-not-cancellable`)
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/Problem"
   /v1/ws-tickets:
     post:
       tags:
@@ -544,16 +691,18 @@ components:
       name: Idempotency-Key
       in: header
       required: true
-      description: Ключ ідемпотентності. Повтор із тим самим ключем повертає збережений результат
+      description: |
+        Ключ ідемпотентності: новий на кожну дію користувача, той самий у всіх її повторах. Без
+        заголовка — 400, довжина поза 1..200 — 422. Зберігається 24 години.
       schema:
         type: string
-        minLength: 8
-        maxLength: 128
+        minLength: 1
+        maxLength: 200
     IfMatch:
       name: If-Match
       in: header
       required: false
-      description: "Без заголовка — 428"
+      description: '`ETag` з останнього читання бронювання, наприклад `"2"`. Без заголовка — 428'
       schema:
         type: string
 
@@ -563,6 +712,16 @@ components:
       schema:
         type: integer
         minimum: 0
+    ETag:
+      description: Версія бронювання в лапках, наприклад `"2"`
+      schema:
+        type: string
+    IdempotentReplayed:
+      description: "`true` — це збережена відповідь першого запиту з цим ключем, операцію не виконано вдруге"
+      schema:
+        type: string
+        enum:
+          - "true"
     RequestId:
       description: Ідентифікатор запиту для журналу
       schema:
@@ -735,6 +894,17 @@ components:
           minLength: 2
           maxLength: 12
           description: Номер авто (текст)
+    BookingPatch:
+      type: object
+      additionalProperties: false
+      required:
+        - plate
+      properties:
+        plate:
+          type: string
+          minLength: 2
+          maxLength: 12
+          description: Новий номер авто; інші поля змінювати не можна (422)
     Booking:
       type: object
       required:
