@@ -44,3 +44,6 @@ docs/reports/out/~$*
 # Internal working material: stage plans and lab reports stay local only
 docs/plans/
 docs/reports/
+
+# Packages for DL (scripts/submit.sh)
+submit/
