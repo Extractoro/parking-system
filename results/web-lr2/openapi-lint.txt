@@ -1,0 +1,14 @@
+No configurations were provided -- using built in recommended configuration by default.
+
+validating web\openapi.yaml...
+warning no-unused-components: 9
+warning operation-4xx-response: 3
+warning no-invalid-media-type-examples: 2
+warning no-server-example.com: 1
+warning operation-2xx-response: 1
+
+web\openapi.yaml: validated in 249ms
+
+Woohoo! Your API description is valid. 🎉
+You have 16 warnings.
+

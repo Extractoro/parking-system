@@ -1,0 +1,38 @@
+============================= test session starts =============================
+platform win32 -- Python 3.13.7, pytest-9.2.0, pluggy-1.7.0 -- C:\Users\VadymTytarenko\AppData\Local\uv\cache\builds-v0\.tmpRjUmzc\Scripts\python.exe
+cachedir: .pytest_cache
+rootdir: C:\Users\VadymTytarenko\parking-system\web\server
+configfile: pyproject.toml
+plugins: anyio-4.16.0
+collecting ... collected 28 items
+
+web\server\tests\test_lr1.py::test_1_booking_three_hours PASSED          [  3%]
+web\server\tests\test_lr1.py::test_2_partial_busy_changes_nothing PASSED [  7%]
+web\server\tests\test_lr1.py::test_3_over_midnight_takes_two_dates PASSED [ 10%]
+web\server\tests\test_lr1.py::test_4_validation PASSED                   [ 14%]
+web\server\tests\test_lr1.py::test_5_cursor_pages PASSED                 [ 17%]
+web\server\tests\test_lr1.py::test_6_foreign_booking_is_404 PASSED       [ 21%]
+web\server\tests\test_lr1.py::test_7_race_last_spot_two_instances PASSED [ 25%]
+web\server\tests\test_lr1.py::test_8_past_start_is_rejected_current_hour_allowed PASSED [ 28%]
+web\server\tests\test_lr1.py::test_9_closed_level_takes_no_new_bookings PASSED [ 32%]
+web\server\tests\test_lr1.py::test_health_and_request_id PASSED          [ 35%]
+web\server\tests\test_lr2.py::test_1_same_key_same_body_on_both_instances PASSED [ 39%]
+web\server\tests\test_lr2.py::test_2_same_key_other_body_is_422 PASSED   [ 42%]
+web\server\tests\test_lr2.py::test_3_key_header_required_and_bounded PASSED [ 46%]
+web\server\tests\test_lr2.py::test_4_key_belongs_to_its_user PASSED      [ 50%]
+web\server\tests\test_lr2.py::test_5_concurrent_requests_with_one_key PASSED [ 53%]
+web\server\tests\test_lr2.py::test_6_domain_refusal_is_stored_validation_is_not PASSED [ 57%]
+web\server\tests\test_lr2.py::test_7_plate_change_with_if_match PASSED   [ 60%]
+web\server\tests\test_lr2.py::test_8_cancel_twice_frees_once PASSED      [ 64%]
+web\server\tests\test_lr2.py::test_9_concurrent_cancels_free_once PASSED [ 67%]
+web\server\tests\test_lr2.py::test_10_started_booking_is_not_cancelled PASSED [ 71%]
+web\server\tests\test_lr2.py::test_11_cleanup_deletes_expired_keys_only PASSED [ 75%]
+web\server\tests\test_rules.py::test_current_hour_is_truncated PASSED    [ 78%]
+web\server\tests\test_rules.py::test_running_hour_may_be_booked PASSED   [ 82%]
+web\server\tests\test_rules.py::test_future_hour_may_be_booked PASSED    [ 85%]
+web\server\tests\test_rules.py::test_hour_that_just_ended_is_rejected PASSED [ 89%]
+web\server\tests\test_rules.py::test_yesterday_is_rejected PASSED        [ 92%]
+web\server\tests\test_rules.py::test_same_instant_in_another_zone PASSED [ 96%]
+web\server\tests\test_rules.py::test_exact_start_of_hour_boundary PASSED [100%]
+
+============================= 28 passed in 31.08s =============================

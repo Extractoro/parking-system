@@ -1,0 +1,4 @@
+dist/index.html                   0.80 kB │ gzip:  0.43 kB
+dist/assets/index-B3XDOmZN.css   14.65 kB │ gzip:  3.61 kB
+dist/assets/index-DTQ0SXVu.js   255.71 kB │ gzip: 79.71 kB
+✓ built in 3.69s
