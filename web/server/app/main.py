@@ -52,6 +52,6 @@ app.add_middleware(
     allow_origins=[config.CLIENT_ORIGIN],
     allow_methods=["GET", "POST", "PATCH", "DELETE", "OPTIONS"],
     allow_headers=["Content-Type", "X-User-Id", "Idempotency-Key", "If-Match", "X-Request-ID"],
-    expose_headers=["Location", "X-Request-ID", "X-Instance", "ETag", "Retry-After"],
+    expose_headers=["Location", "X-Request-ID", "X-Instance", "ETag", "Retry-After", "Idempotent-Replayed"],
     max_age=600,
 )

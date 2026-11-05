@@ -33,8 +33,15 @@ OTEL_ENDPOINT = os.environ.get("OTEL_EXPORTER_OTLP_ENDPOINT", "http://localhost:
 
 # experiment modes: what each value changes is yours to write
 INVARIANT_MODE = os.environ.get("INVARIANT_MODE", "protected")
+# the only level that INVARIANT_MODE=unprotected changes (test data of migration 902)
+UNPROTECTED_LEVEL = os.environ.get("UNPROTECTED_LEVEL", "race-test")
 RATE_LIMIT_PER_MIN = _int("RATE_LIMIT_PER_MIN", 120)
 JWT_REVOCATION = os.environ.get("JWT_REVOCATION", "on") == "on"
+
+# idempotency keys: how long a stored answer is kept, how often and by how much the publisher cleans up
+IDEMPOTENCY_TTL_H = _int("IDEMPOTENCY_TTL_H", 24)
+IDEMPOTENCY_CLEANUP_S = _float("IDEMPOTENCY_CLEANUP_S", 60.0)
+IDEMPOTENCY_CLEANUP_BATCH = _int("IDEMPOTENCY_CLEANUP_BATCH", 1000)
 
 PROBLEM_BASE = os.environ.get("PROBLEM_BASE", "https://example.edu/problems/")
 

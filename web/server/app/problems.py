@@ -36,7 +36,7 @@ class Problem(Exception):
         self.headers = headers or {}
         self.extra = extra
 
-    def response(self, instance: str) -> JSONResponse:
+    def body(self, instance: str) -> dict[str, Any]:
         body: dict[str, Any] = {
             "type": config.PROBLEM_BASE + self.slug,
             "title": self.title,
@@ -46,8 +46,10 @@ class Problem(Exception):
             body["detail"] = self.detail
         body["instance"] = instance
         body.update(self.extra)
+        return body
 
-        return JSONResponse(body, status_code=self.status, headers=self.headers, media_type=MEDIA_TYPE)
+    def response(self, instance: str) -> JSONResponse:
+        return JSONResponse(self.body(instance), status_code=self.status, headers=self.headers, media_type=MEDIA_TYPE)
 
 
 def install(app: FastAPI) -> None:
