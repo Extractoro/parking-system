@@ -1,0 +1,414 @@
+{
+  "queue_capacity": 50,
+  "workers": 4,
+  "clients": 60,
+  "seconds": 30.0,
+  "health_rate": 10,
+  "statuses": {
+    "202": 396,
+    "429": 42263
+  },
+  "post_202_ms": {
+    "n": 396,
+    "p50": 83.1,
+    "p95": 618.8,
+    "p99": 760.6,
+    "max": 784.5
+  },
+  "post_429_ms": {
+    "n": 42263,
+    "p50": 36.4,
+    "p95": 82.2,
+    "p99": 131.1,
+    "max": 198.9
+  },
+  "health_ms": {
+    "n": 300,
+    "p50": 6.4,
+    "p95": 52.6,
+    "p99": 78.0,
+    "max": 119.8
+  },
+  "health_not_200": 0,
+  "queue_samples": 60,
+  "samples_queue_full": 51,
+  "queue_length_max": 50,
+  "in_flight_max": 4,
+  "final_states": {
+    "done": 67,
+    "rejected": 329
+  },
+  "drained_after_s": 0.6,
+  "garage": {
+    "garage_id": "dpc-race",
+    "spots": 5,
+    "occupied": 5,
+    "inside": 5,
+    "reserved": 0,
+    "free_walk_in": 0,
+    "invariant_ok": true,
+    "mode": "locked"
+  },
+  "samples": [
+    {
+      "t": 0.1,
+      "queue_length": 50,
+      "in_flight": 4,
+      "rejected": 3193
+    },
+    {
+      "t": 0.5,
+      "queue_length": 50,
+      "in_flight": 4,
+      "rejected": 3803
+    },
+    {
+      "t": 1.0,
+      "queue_length": 49,
+      "in_flight": 4,
+      "rejected": 4493
+    },
+    {
+      "t": 1.6,
+      "queue_length": 47,
+      "in_flight": 4,
+      "rejected": 5235
+    },
+    {
+      "t": 2.0,
+      "queue_length": 50,
+      "in_flight": 4,
+      "rejected": 5784
+    },
+    {
+      "t": 2.5,
+      "queue_length": 50,
+      "in_flight": 4,
+      "rejected": 6530
+    },
+    {
+      "t": 3.0,
+      "queue_length": 50,
+      "in_flight": 4,
+      "rejected": 7372
+    },
+    {
+      "t": 3.5,
+      "queue_length": 50,
+      "in_flight": 4,
+      "rejected": 8116
+    },
+    {
+      "t": 4.0,
+      "queue_length": 50,
+      "in_flight": 4,
+      "rejected": 9011
+    },
+    {
+      "t": 4.5,
+      "queue_length": 50,
+      "in_flight": 4,
+      "rejected": 9904
+    },
+    {
+      "t": 5.0,
+      "queue_length": 50,
+      "in_flight": 4,
+      "rejected": 10768
+    },
+    {
+      "t": 5.5,
+      "queue_length": 50,
+      "in_flight": 4,
+      "rejected": 11570
+    },
+    {
+      "t": 6.0,
+      "queue_length": 50,
+      "in_flight": 4,
+      "rejected": 12444
+    },
+    {
+      "t": 6.5,
+      "queue_length": 49,
+      "in_flight": 4,
+      "rejected": 13135
+    },
+    {
+      "t": 7.0,
+      "queue_length": 50,
+      "in_flight": 4,
+      "rejected": 13829
+    },
+    {
+      "t": 7.5,
+      "queue_length": 50,
+      "in_flight": 4,
+      "rejected": 14504
+    },
+    {
+      "t": 8.0,
+      "queue_length": 50,
+      "in_flight": 4,
+      "rejected": 15203
+    },
+    {
+      "t": 8.6,
+      "queue_length": 49,
+      "in_flight": 4,
+      "rejected": 15941
+    },
+    {
+      "t": 9.1,
+      "queue_length": 50,
+      "in_flight": 4,
+      "rejected": 16670
+    },
+    {
+      "t": 9.5,
+      "queue_length": 49,
+      "in_flight": 4,
+      "rejected": 17292
+    },
+    {
+      "t": 10.0,
+      "queue_length": 50,
+      "in_flight": 4,
+      "rejected": 17965
+    },
+    {
+      "t": 10.5,
+      "queue_length": 50,
+      "in_flight": 4,
+      "rejected": 18658
+    },
+    {
+      "t": 11.0,
+      "queue_length": 50,
+      "in_flight": 4,
+      "rejected": 19554
+    },
+    {
+      "t": 11.5,
+      "queue_length": 49,
+      "in_flight": 4,
+      "rejected": 20515
+    },
+    {
+      "t": 12.0,
+      "queue_length": 50,
+      "in_flight": 4,
+      "rejected": 21288
+    },
+    {
+      "t": 12.5,
+      "queue_length": 50,
+      "in_flight": 4,
+      "rejected": 22148
+    },
+    {
+      "t": 13.0,
+      "queue_length": 50,
+      "in_flight": 4,
+      "rejected": 23042
+    },
+    {
+      "t": 13.5,
+      "queue_length": 50,
+      "in_flight": 4,
+      "rejected": 23928
+    },
+    {
+      "t": 14.0,
+      "queue_length": 49,
+      "in_flight": 4,
+      "rejected": 24779
+    },
+    {
+      "t": 14.5,
+      "queue_length": 50,
+      "in_flight": 4,
+      "rejected": 25415
+    },
+    {
+      "t": 15.0,
+      "queue_length": 50,
+      "in_flight": 4,
+      "rejected": 26157
+    },
+    {
+      "t": 15.5,
+      "queue_length": 50,
+      "in_flight": 4,
+      "rejected": 26906
+    },
+    {
+      "t": 16.0,
+      "queue_length": 50,
+      "in_flight": 4,
+      "rejected": 27666
+    },
+    {
+      "t": 16.5,
+      "queue_length": 49,
+      "in_flight": 4,
+      "rejected": 28438
+    },
+    {
+      "t": 17.0,
+      "queue_length": 50,
+      "in_flight": 4,
+      "rejected": 29239
+    },
+    {
+      "t": 17.5,
+      "queue_length": 50,
+      "in_flight": 4,
+      "rejected": 30001
+    },
+    {
+      "t": 18.0,
+      "queue_length": 50,
+      "in_flight": 4,
+      "rejected": 30485
+    },
+    {
+      "t": 18.6,
+      "queue_length": 49,
+      "in_flight": 4,
+      "rejected": 30851
+    },
+    {
+      "t": 19.0,
+      "queue_length": 50,
+      "in_flight": 4,
+      "rejected": 31417
+    },
+    {
+      "t": 19.5,
+      "queue_length": 50,
+      "in_flight": 4,
+      "rejected": 32236
+    },
+    {
+      "t": 20.0,
+      "queue_length": 50,
+      "in_flight": 4,
+      "rejected": 33093
+    },
+    {
+      "t": 20.5,
+      "queue_length": 50,
+      "in_flight": 4,
+      "rejected": 34109
+    },
+    {
+      "t": 21.0,
+      "queue_length": 50,
+      "in_flight": 4,
+      "rejected": 34722
+    },
+    {
+      "t": 21.5,
+      "queue_length": 50,
+      "in_flight": 4,
+      "rejected": 35459
+    },
+    {
+      "t": 22.1,
+      "queue_length": 50,
+      "in_flight": 4,
+      "rejected": 36244
+    },
+    {
+      "t": 22.5,
+      "queue_length": 50,
+      "in_flight": 4,
+      "rejected": 37023
+    },
+    {
+      "t": 23.1,
+      "queue_length": 49,
+      "in_flight": 4,
+      "rejected": 37675
+    },
+    {
+      "t": 23.5,
+      "queue_length": 50,
+      "in_flight": 4,
+      "rejected": 38221
+    },
+    {
+      "t": 24.1,
+      "queue_length": 47,
+      "in_flight": 4,
+      "rejected": 38744
+    },
+    {
+      "t": 24.6,
+      "queue_length": 49,
+      "in_flight": 4,
+      "rejected": 39376
+    },
+    {
+      "t": 25.0,
+      "queue_length": 50,
+      "in_flight": 4,
+      "rejected": 40073
+    },
+    {
+      "t": 25.5,
+      "queue_length": 50,
+      "in_flight": 4,
+      "rejected": 41090
+    },
+    {
+      "t": 26.1,
+      "queue_length": 49,
+      "in_flight": 4,
+      "rejected": 42154
+    },
+    {
+      "t": 26.5,
+      "queue_length": 46,
+      "in_flight": 4,
+      "rejected": 42263
+    },
+    {
+      "t": 27.0,
+      "queue_length": 41,
+      "in_flight": 4,
+      "rejected": 42263
+    },
+    {
+      "t": 27.5,
+      "queue_length": 34,
+      "in_flight": 4,
+      "rejected": 42263
+    },
+    {
+      "t": 28.0,
+      "queue_length": 28,
+      "in_flight": 4,
+      "rejected": 42263
+    },
+    {
+      "t": 28.5,
+      "queue_length": 22,
+      "in_flight": 4,
+      "rejected": 42263
+    },
+    {
+      "t": 29.0,
+      "queue_length": 14,
+      "in_flight": 4,
+      "rejected": 42263
+    },
+    {
+      "t": 29.5,
+      "queue_length": 6,
+      "in_flight": 4,
+      "rejected": 42263
+    }
+  ]
+}

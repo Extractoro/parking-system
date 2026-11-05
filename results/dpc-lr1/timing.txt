@@ -1,0 +1,8 @@
+300 requests, 20 clients, GET poll 50 ms, 26.5 s; states {'done': 135, 'rejected': 165, 'failed': 0}
+interval              n      p50      p95      p99      max   ms
+post_http_ms        300     28.0    132.9    168.1    191.5
+queue_wait_ms       300   1305.0   1596.5   1710.9   1761.2
+processing_ms       300    343.5    529.7    572.8    613.4
+total_ms            300   1647.1   2022.7   2153.9   2291.9
+delivery_wait_ms    300     48.7    107.6    134.9    179.7
+order received <= started <= finished <= delivered: 300 of 300 ok

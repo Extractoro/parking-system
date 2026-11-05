@@ -1,0 +1,7 @@
+== machine
+Name                      : 13th Gen Intel(R) Core(TM) i5-13420H
+NumberOfCores             : 8
+NumberOfLogicalProcessors : 12
+31.5 GiB RAM
+Docker 28.4.0, WSL VM: 4 CPU, 12544360448 bytes memory, Docker Desktop
+Docker Compose version v2.39.4-desktop.1

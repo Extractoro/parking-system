@@ -1,0 +1,40 @@
+[
+  {
+    "mode": "unsafe",
+    "workers": 8,
+    "seconds": 11.6,
+    "states": {
+      "in:done": 59,
+      "in:rejected:already-inside": 13,
+      "in:rejected:full": 86,
+      "out:done": 32,
+      "out:failed:error": 10
+    },
+    "occupied": 5,
+    "inside": 27,
+    "spots": 5,
+    "invariant_ok": false,
+    "garage_mode": "unsafe",
+    "entries": 59,
+    "exits": 32,
+    "requests": 200
+  },
+  {
+    "mode": "locked",
+    "workers": 8,
+    "seconds": 10.9,
+    "states": {
+      "in:done": 25,
+      "in:rejected:full": 155,
+      "out:done": 20
+    },
+    "occupied": 5,
+    "inside": 5,
+    "spots": 5,
+    "invariant_ok": true,
+    "garage_mode": "locked",
+    "entries": 25,
+    "exits": 20,
+    "requests": 200
+  }
+]

@@ -1,0 +1,13 @@
+Web: POST /v1/bookings -> 201, booking 849a19a8-4251-42fb-859d-881bd652f3e8, mall-1, 2026-11-05T15:00:00+02:00 + 1 h, plate RL5909AA
+DPC garage mall before: occupied 0, inside 0, reserved 1
+  1 entry with the booking                     done                       
+    garage mall: occupied 1, inside 1, reserved 0, invariant_ok True
+    exit of the same car                       done                       
+  2 second entry by the same booking           rejected  already-entered  the booking was already used for an entry
+  3 exit of a car that is not inside           rejected  not-inside       NORL5909AA is not inside mall
+  4 same event_id twice: 202 /v1/entries/2045de76-52a4-4597-a042-c4cc632296b6
+                         202 /v1/entries/2045de76-52a4-4597-a042-c4cc632296b6 Repeated-Request=true; stored requests with this event_id: 1
+    exit of that car                           done                       
+  5 entry with the booking, another plate      rejected  booking-invalid  the plate differs from the booking
+DPC garage mall after: occupied 0, inside 0, reserved 0, invariant_ok True
+booking row in Web table after the entry: status confirmed (DPC does not write it)

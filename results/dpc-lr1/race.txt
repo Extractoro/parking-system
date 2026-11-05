@@ -1,0 +1,4 @@
+dpc-race: 5 spots, 40 cars, 200 requests, WORKERS=8
+mode     requests entries  exits occupied inside invariant_ok  states
+unsafe        200      59     32        5     27        False  {'in:done': 59, 'in:rejected:already-inside': 13, 'in:rejected:full': 86, 'out:done': 32, 'out:failed:error': 10}
+locked        200      25     20        5      5         True  {'in:done': 25, 'in:rejected:full': 155, 'out:done': 20}

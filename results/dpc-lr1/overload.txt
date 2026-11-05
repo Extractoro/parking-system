@@ -1,0 +1,8 @@
+api: queue_capacity=50 workers=4; 60 clients x 30 s on dpc-race; /health 10/s
+POST /v1/entries: 42659 in 30.0 s; statuses: 202 x 396, 429 x 42263
+  client latency 202: {'n': 396, 'p50': 83.1, 'p95': 618.8, 'p99': 760.6, 'max': 784.5}
+  client latency 429: {'n': 42263, 'p50': 36.4, 'p95': 82.2, 'p99': 131.1, 'max': 198.9}
+GET /health: {'n': 300, 'p50': 6.4, 'p95': 52.6, 'p99': 78.0, 'max': 119.8}, not 200: 0  (requirement p95 <= 100 ms)
+queue_length: max 50, >= capacity-2 in 51 of 60 samples; in_flight max 4
+accepted 396: final states {'done': 67, 'rejected': 329}, last finished 0.6 s after the load
+garage dpc-race: occupied 5, inside 5, invariant_ok True

@@ -1,0 +1,12 @@
+No configurations were provided -- using built in recommended configuration by default.
+
+validating dpc\openapi.yaml...
+warning operation-4xx-response: 3
+warning info-license: 1
+warning no-server-example.com: 1
+
+dpc\openapi.yaml: validated in 133ms
+
+Woohoo! Your API description is valid. 🎉
+You have 5 warnings.
+

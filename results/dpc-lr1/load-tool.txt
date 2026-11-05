@@ -1,0 +1,6 @@
+$ uv run --no-project --python 3.14 python dpc/tools/load.py http://127.0.0.1:8000/v1/entries experiments/dpc_entry_body.json --requests 6000 --concurrency 60
+6000 requests, 60 parallel, 9.99 s, 600.7 req/s
+statuses: 202 x 159, 429 x 5841
+client latency, ms: p50 84, p95 147, p99 221, max 1032
+Python 3.12.0
+Python 3.14.0rc3

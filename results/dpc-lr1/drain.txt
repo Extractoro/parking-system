@@ -1,0 +1,13 @@
+fill: 80 POSTs at once -> 202 x 54, 429 x 26
+before SIGTERM: queue_length 50, in_flight 4
+docker compose stop api: 8.8 s; container exit code 0
+probe POSTs during the stop (51): 429 Retry-After=1 x 1, 202 x 7, 503 Retry-After=5 x 35, no answer (RemoteDisconnected) x 6, no answer (ConnectionAbortedError) x 1, no answer (TimeoutError) x 1
+  first (0.01, '429 Retry-After=1'), last (8.73, 'no answer (TimeoutError)')
+log:
+  {"time": "2026-11-05T13:40:26.124+00:00", "instance": "api", "event": "api.draining", "queued": 46, "processing": 4}
+  {"time": "2026-11-05T13:40:30.122+00:00", "instance": "api", "event": "api.drained", "count": 50, "seconds": 4.0}
+  INFO:     Shutting down
+  {"time": "2026-11-05T13:40:30.319+00:00", "instance": "api", "event": "api.stopped"}
+  INFO:     Finished server process [1]
+accepted 61 (fill + probe answers 202): states while stopped {'done/-': 5, 'rejected/full': 56}
+accepted 61: states after docker compose start api {'done/-': 5, 'rejected/full': 56}

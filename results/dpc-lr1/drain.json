@@ -1,0 +1,230 @@
+{
+ "fill": {
+  "429": 26,
+  "202": 54
+ },
+ "accepted": 61,
+ "stop_s": 8.8,
+ "exit_code": "0",
+ "probes": [
+  [
+   0.01,
+   "429 Retry-After=1"
+  ],
+  [
+   0.12,
+   "202"
+  ],
+  [
+   0.23,
+   "202"
+  ],
+  [
+   0.35,
+   "202"
+  ],
+  [
+   0.47,
+   "202"
+  ],
+  [
+   0.6,
+   "202"
+  ],
+  [
+   0.72,
+   "202"
+  ],
+  [
+   0.83,
+   "202"
+  ],
+  [
+   0.94,
+   "503 Retry-After=5"
+  ],
+  [
+   1.04,
+   "503 Retry-After=5"
+  ],
+  [
+   1.16,
+   "503 Retry-After=5"
+  ],
+  [
+   1.27,
+   "503 Retry-After=5"
+  ],
+  [
+   1.37,
+   "503 Retry-After=5"
+  ],
+  [
+   1.48,
+   "503 Retry-After=5"
+  ],
+  [
+   1.58,
+   "503 Retry-After=5"
+  ],
+  [
+   1.7,
+   "503 Retry-After=5"
+  ],
+  [
+   1.88,
+   "503 Retry-After=5"
+  ],
+  [
+   2.02,
+   "503 Retry-After=5"
+  ],
+  [
+   2.15,
+   "503 Retry-After=5"
+  ],
+  [
+   2.26,
+   "503 Retry-After=5"
+  ],
+  [
+   2.37,
+   "503 Retry-After=5"
+  ],
+  [
+   2.48,
+   "503 Retry-After=5"
+  ],
+  [
+   2.59,
+   "503 Retry-After=5"
+  ],
+  [
+   2.7,
+   "503 Retry-After=5"
+  ],
+  [
+   2.8,
+   "503 Retry-After=5"
+  ],
+  [
+   2.93,
+   "503 Retry-After=5"
+  ],
+  [
+   3.04,
+   "503 Retry-After=5"
+  ],
+  [
+   3.15,
+   "503 Retry-After=5"
+  ],
+  [
+   3.27,
+   "503 Retry-After=5"
+  ],
+  [
+   3.38,
+   "503 Retry-After=5"
+  ],
+  [
+   3.49,
+   "503 Retry-After=5"
+  ],
+  [
+   3.6,
+   "503 Retry-After=5"
+  ],
+  [
+   3.71,
+   "503 Retry-After=5"
+  ],
+  [
+   3.85,
+   "503 Retry-After=5"
+  ],
+  [
+   3.96,
+   "503 Retry-After=5"
+  ],
+  [
+   4.08,
+   "503 Retry-After=5"
+  ],
+  [
+   4.19,
+   "503 Retry-After=5"
+  ],
+  [
+   4.3,
+   "503 Retry-After=5"
+  ],
+  [
+   4.41,
+   "503 Retry-After=5"
+  ],
+  [
+   4.52,
+   "503 Retry-After=5"
+  ],
+  [
+   4.62,
+   "503 Retry-After=5"
+  ],
+  [
+   4.73,
+   "503 Retry-After=5"
+  ],
+  [
+   4.84,
+   "503 Retry-After=5"
+  ],
+  [
+   4.95,
+   "no answer (RemoteDisconnected)"
+  ],
+  [
+   5.06,
+   "no answer (RemoteDisconnected)"
+  ],
+  [
+   5.16,
+   "no answer (RemoteDisconnected)"
+  ],
+  [
+   5.27,
+   "no answer (RemoteDisconnected)"
+  ],
+  [
+   5.38,
+   "no answer (RemoteDisconnected)"
+  ],
+  [
+   5.5,
+   "no answer (ConnectionAbortedError)"
+  ],
+  [
+   5.62,
+   "no answer (RemoteDisconnected)"
+  ],
+  [
+   8.73,
+   "no answer (TimeoutError)"
+  ]
+ ],
+ "log": [
+  "{\"time\": \"2026-11-05T13:40:26.124+00:00\", \"instance\": \"api\", \"event\": \"api.draining\", \"queued\": 46, \"processing\": 4}",
+  "{\"time\": \"2026-11-05T13:40:30.122+00:00\", \"instance\": \"api\", \"event\": \"api.drained\", \"count\": 50, \"seconds\": 4.0}",
+  "INFO:     Shutting down",
+  "{\"time\": \"2026-11-05T13:40:30.319+00:00\", \"instance\": \"api\", \"event\": \"api.stopped\"}",
+  "INFO:     Finished server process [1]"
+ ],
+ "states_stopped": {
+  "done/-": 5,
+  "rejected/full": 56
+ },
+ "states_restarted": {
+  "done/-": 5,
+  "rejected/full": 56
+ }
+}
