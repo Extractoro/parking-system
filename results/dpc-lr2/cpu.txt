@@ -1,0 +1,26 @@
+# api container (docker compose exec api)
+nproc=4
+CPU(s):                               4
+Model name:                           13th Gen Intel(R) Core(TM) i5-13420H
+Thread(s) per core:                   2
+Core(s) per socket:                   2
+Socket(s):                            1
+Hypervisor vendor:                    Microsoft
+L1d cache:                            96 KiB (2 instances)
+L2 cache:                             2.5 MiB (2 instances)
+L3 cache:                             12 MiB (1 instance)
+os.cpu_count 4 sched_getaffinity 4
+cgroup cpu.max: max 100000
+
+# host (Windows, Get-CimInstance Win32_Processor)
+Name: 13th Gen Intel(R) Core(TM) i5-13420H
+NumberOfCores: 8
+NumberOfLogicalProcessors: 12
+# .wslconfig
+[wsl2]
+memory=12GB
+processors=4
+
+[experimental]
+autoMemoryReclaim=gradual# docker info
+NCPU=4 MemTotal=12544360448 ServerVersion=28.4.0

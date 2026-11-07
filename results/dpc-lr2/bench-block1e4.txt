@@ -1,0 +1,22 @@
+block1e4 run 0 p=1 seconds=1.223 compute=1.151 rel=1.1e-14
+block1e4 run 0 p=2 seconds=0.702 compute=0.633 rel=3.9e-15
+block1e4 run 0 p=4 seconds=0.674 compute=0.537 rel=0.0e+00
+block1e4 run 1 p=1 seconds=1.145 compute=1.073 rel=1.1e-14
+block1e4 run 1 p=2 seconds=0.700 compute=0.635 rel=3.9e-15
+block1e4 run 1 p=4 seconds=0.526 compute=0.452 rel=0.0e+00
+block1e4 run 2 p=1 seconds=1.222 compute=1.147 rel=1.1e-14
+block1e4 run 2 p=2 seconds=0.731 compute=0.651 rel=3.9e-15
+block1e4 run 2 p=4 seconds=0.541 compute=0.448 rel=0.0e+00
+block1e4 run 3 p=1 seconds=1.100 compute=1.030 rel=1.1e-14
+block1e4 run 3 p=2 seconds=0.724 compute=0.656 rel=3.9e-15
+block1e4 run 3 p=4 seconds=0.497 compute=0.420 rel=0.0e+00
+block1e4 run 4 p=1 seconds=1.093 compute=1.028 rel=1.1e-14
+block1e4 run 4 p=2 seconds=0.691 compute=0.633 rel=3.9e-15
+block1e4 run 4 p=4 seconds=0.594 compute=0.499 rel=0.0e+00
+block1e4: n = 600000000, block = 10000, medians of 5 runs, seconds
+
+| p | pool start | process start + dispatch | compute (longest part) | combine | total | shutdown (not in total) |
+|---|---|---|---|---|---|---|
+| 1 | 0.007 | 0.063 | 1.073 | 0.0012 | 1.145 | 0.002 |
+| 2 | 0.009 | 0.057 | 0.635 | 0.0010 | 0.702 | 0.002 |
+| 4 | 0.021 | 0.079 | 0.452 | 0.0007 | 0.541 | 0.004 |

@@ -1,0 +1,29 @@
+none  p=4 value=559.120431582 rel=7.55e-02 seconds=0.159 compute=0.047
+none  p=4 value=555.235189625 rel=8.20e-02 seconds=0.167 compute=0.051
+none  p=4 value=586.938876070 rel=2.95e-02 seconds=0.153 compute=0.069
+none  p=4 value=584.209505305 rel=3.40e-02 seconds=0.306 compute=0.092
+none  p=4 value=579.781153817 rel=4.14e-02 seconds=0.136 compute=0.043
+lock  p=4 value=604.800000000 rel=2.63e-15 seconds=0.174 compute=0.070
+lock  p=4 value=604.800000000 rel=3.20e-15 seconds=0.656 compute=0.391
+lock  p=4 value=604.800000000 rel=1.88e-16 seconds=0.162 compute=0.061
+lock  p=4 value=604.800000000 rel=2.07e-15 seconds=0.203 compute=0.054
+lock  p=4 value=604.800000000 rel=1.13e-15 seconds=0.236 compute=0.069
+local p=4 value=604.800000000 rel=1.88e-16 seconds=0.196 compute=0.065
+local p=4 value=604.800000000 rel=1.88e-16 seconds=0.181 compute=0.059
+local p=4 value=604.800000000 rel=1.88e-16 seconds=0.207 compute=0.061
+local p=4 value=604.800000000 rel=1.88e-16 seconds=0.165 compute=0.071
+local p=4 value=604.800000000 rel=1.88e-16 seconds=0.172 compute=0.071
+none  p=2 value=574.190804319 rel=5.06e-02 seconds=0.157 compute=0.071
+none  p=2 value=547.169307743 rel=9.53e-02 seconds=0.153 compute=0.067
+none  p=2 value=588.321899597 rel=2.72e-02 seconds=0.132 compute=0.064
+none  p=1 value=604.800000000 rel=5.64e-15 seconds=0.176 compute=0.107
+none  p=1 value=604.800000000 rel=5.64e-15 seconds=0.167 compute=0.100
+n = 20000000, block = 1000 (n/block = 20000 shared updates), reference = 604.8, tolerance 1e-9
+
+| mode | p | runs | value min - max | rel error max | within 1e-9 | compute s (median) |
+|---|---|---|---|---|---|---|
+| none | 4 | 5 | 555.235190 - 586.938876 | 8.20e-02 | 0/5 | 0.051 |
+| lock | 4 | 5 | 604.800000 - 604.800000 | 3.20e-15 | 5/5 | 0.069 |
+| local | 4 | 5 | 604.800000 - 604.800000 | 1.88e-16 | 5/5 | 0.065 |
+| none | 2 | 3 | 547.169308 - 588.321900 | 9.53e-02 | 0/3 | 0.067 |
+| none | 1 | 2 | 604.800000 - 604.800000 | 5.64e-15 | 2/2 | 0.103 |
