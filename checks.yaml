@@ -10,9 +10,12 @@ web:
 dpc:
   openapi: dpc/openapi.yaml
   base: http://localhost:8000
-  items: [О1.5, Д1.4]
+  items: [О1.5, Д1.4, О2.2]
   resource: {path: /v1/garage/center, ok_field: invariant_ok}
   metrics: [queue_length, in_flight, rejected]
+  # lab 2: relative tolerance (O2.2: rounding <= 1e-13 at bench_n, method error < 1e-13 for n >= 1e4),
+  # n of the speed-up table (T_1 = 3.8 s with blocks of 1e6), modes of the shared sum
+  compute: {tolerance: 1.0e-9, bench_n: 600000000, modes: {param: mode, values: [none, lock, local]}}
   # services: {api: dpc-api}
 
 # Joint scenario (web -> dpc -> web): filled in at stage 13. Template placeholder, not used yet.

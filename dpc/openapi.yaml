@@ -2,7 +2,7 @@
 # bounded queue, a pool of workers recognizes the plate and changes the occupancy of the garage.
 # Service routes are those of dpc/openapi.example.yaml. x-course marks: receiver, request-state,
 # resource-state. "{uuid}" in an example becomes a new id in every request.
-# Routes of DPC labs 2-6 are added in their labs.
+# Lab 2: /v1/compute (the parallel integral). Routes of DPC labs 3-6 are added in their labs.
 openapi: 3.1.0
 info:
   title: C09 «Паркінги» — DPC, в'їзди й виїзди
@@ -253,6 +253,114 @@ paths:
         "404":
           $ref: "#/components/responses/NotFound"
 
+  /v1/compute:
+    post:
+      operationId: startCompute
+      summary: Паралельний розрахунок машино-годин за день (ЛР2)
+      description: |
+        Інтеграл заповненості `O(t) = 16·Omax/T⁴ · t²(T − t)²`, `T = 14` год, `Omax = 81` авто (типово) на
+        проміжку `[a; b]` годин робочого дня, тобто машино-години; машино-години × тариф дають виручку.
+        Еталон через первісну `F(t) = C(T²t³/3 − T·t⁴/2 + t⁵/5)`, `C = 16·Omax/T⁴`: `F(b) − F(a)`.
+
+        `[0; n)` ділиться на `workers` неперервних діапазонів без пропусків і перекриття; кожен процес
+        пулу рахує локальну суму блоками numpy, головний процес додає `workers` чисел. Ваги кінців
+        трапецій і Сімпсона враховуються один раз. `mode`: `local` - локальні суми (типово), `lock` -
+        спільна сума під блокуванням, `none` - спільна сума без синхронізації (втрата оновлень, лише для
+        досліду). Відповідь 202 надходить одразу, стан і результат дає `GET /v1/compute/{id}`.
+        Одночасно виконується лише один розрахунок: інший `POST` отримує 429 `compute-busy` з `Retry-After`.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ComputeCreate"
+            examples:
+              normal:
+                value:
+                  a: 0
+                  b: 14
+                  n: 20000000
+                  workers: 4
+                  method: midpoint
+              locked-sum:
+                value:
+                  a: 0
+                  b: 14
+                  n: 20000000
+                  workers: 4
+                  method: midpoint
+                  mode: lock
+      responses:
+        "202":
+          description: Розрахунок запущено
+          headers:
+            Location:
+              schema:
+                type: string
+              example: /v1/compute/fdc3e926-f1f5-4a91-92ad-5dcf3c71ef4b
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ComputeJob"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "429":
+          $ref: "#/components/responses/ComputeBusy"
+    get:
+      operationId: listCompute
+      summary: Останні розрахунки (сторінка Compute клієнта), новіші першими
+      parameters:
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 100
+            default: 20
+      responses:
+        "200":
+          description: Розрахунки
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [items, running]
+                properties:
+                  items:
+                    type: array
+                    items:
+                      $ref: "#/components/schemas/ComputeJob"
+                  running:
+                    type: [string, "null"]
+                    description: id розрахунку, що виконується
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+  /v1/compute/{id}:
+    get:
+      operationId: getCompute
+      summary: Стан і результат розрахунку
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Стан
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ComputeJob"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "404":
+          $ref: "#/components/responses/NotFound"
+
 components:
   securitySchemes:
     apiToken:
@@ -446,6 +554,143 @@ components:
           enum:
             - locked
             - unsafe
+    ComputeCreate:
+      type: object
+      additionalProperties: false
+      required: [a, b, n, workers]
+      properties:
+        a:
+          type: number
+          minimum: 0
+          maximum: 14
+          description: Початок проміжку, година робочого дня; a < b
+        b:
+          type: number
+          minimum: 0
+          maximum: 14
+        n:
+          type: integer
+          minimum: 1
+          maximum: 1000000000
+          description: Кількість частин поділу проміжку (навантаження); для simpson парне
+        workers:
+          type: integer
+          enum: [1, 2, 4]
+        method:
+          type: string
+          enum: [midpoint, trapezoid, simpson]
+          default: midpoint
+        order:
+          type: string
+          enum: [forward, reverse]
+          default: forward
+          description: Порядок сумування блоків у частині й частин у головному процесі
+        mode:
+          type: string
+          enum: [none, lock, local]
+          default: local
+          description: Спільна сума без синхронізації, під блокуванням або локальні суми
+        block:
+          type: integer
+          minimum: 1000
+          maximum: 10000000
+          description: Вузлів у блоці numpy; типово 1000000 для local і 1000 для none і lock
+        omax:
+          type: number
+          exclusiveMinimum: 0
+          maximum: 100000
+          default: 81
+          description: Пік заповненості, авто (навчальне припущення - місткість паркінгу mall)
+    ComputeResult:
+      type: object
+      required: [value, reference, abs_error, rel_error, within_tolerance, tolerance, seconds,
+                 pool_start_seconds, workers, method, n, mode]
+      properties:
+        value:
+          type: number
+          description: Машино-години
+        reference:
+          type: number
+          description: F(b) − F(a)
+        abs_error:
+          type: number
+        rel_error:
+          type: number
+        within_tolerance:
+          type: boolean
+          description: rel_error ≤ tolerance
+        tolerance:
+          type: number
+          description: Допуск відносної похибки (1e-9)
+        seconds:
+          type: number
+          description: Від створення пулу до об'єднаного результату
+        pool_start_seconds:
+          type: number
+        workers:
+          type: integer
+        method:
+          type: string
+        n:
+          type: integer
+        mode:
+          type: string
+        order:
+          type: string
+        block:
+          type: integer
+        omax:
+          type: number
+        timing:
+          type: object
+          description: Склад часу - запуск пулу, запуск процесів і передавання частин, обчислення, об'єднання
+          properties:
+            pool_start_s:
+              type: number
+            dispatch_s:
+              type: number
+            compute_s:
+              type: number
+              description: Найдовша частина
+            parts_s:
+              type: array
+              items:
+                type: number
+            first_part_start_s:
+              type: number
+            combine_s:
+              type: number
+            shutdown_s:
+              type: number
+              description: Зупинка пулу, не входить у seconds
+            processes:
+              type: integer
+    ComputeJob:
+      type: object
+      required: [id, state, active_parts, params, result, created_at]
+      properties:
+        id:
+          type: string
+        state:
+          type: string
+          enum: [running, done, failed]
+        active_parts:
+          type: integer
+          description: Скільки частин ще обчислюється
+        params:
+          $ref: "#/components/schemas/ComputeCreate"
+        result:
+          oneOf:
+            - $ref: "#/components/schemas/ComputeResult"
+            - type: "null"
+        error:
+          type: [string, "null"]
+        created_at:
+          type: string
+          format: date-time
+        finished_at:
+          type: [string, "null"]
+          format: date-time
   responses:
     BadRequest:
       description: Некоректний запит
@@ -483,6 +728,16 @@ components:
             $ref: "#/components/schemas/Problem"
     ShuttingDown:
       description: Процес завершується; прийняті запити дообробляються
+      headers:
+        Retry-After:
+          schema:
+            type: integer
+      content:
+        application/problem+json:
+          schema:
+            $ref: "#/components/schemas/Problem"
+    ComputeBusy:
+      description: Уже виконується інший розрахунок
       headers:
         Retry-After:
           schema:
