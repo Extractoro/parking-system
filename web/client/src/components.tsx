@@ -61,6 +61,9 @@ export function Header({
           <NavLink to="barrier" current={view === 'barrier'} onNavigate={onNavigate}>
             Barrier
           </NavLink>
+          <NavLink to="compute" current={view === 'compute'} onNavigate={onNavigate}>
+            Compute
+          </NavLink>
         </nav>
         {/* Until lab 3 there is no login: the account is one of the pre-created users. */}
         <label className="account">

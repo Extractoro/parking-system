@@ -1316,3 +1316,44 @@ fieldset.field {
 .occupancy-reserved {
   background: repeating-linear-gradient(45deg, var(--accent-soft) 0 4px, var(--border-strong) 4px 8px);
 }
+
+/* Compute page (DPC lab 2): parameters, result, comparison 1/2/4, last computations */
+.compute-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+  gap: 16px;
+}
+
+.compute-value {
+  font-size: 28px;
+  font-weight: 600;
+  margin: 8px 0 12px;
+}
+
+.compute-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 14px;
+}
+
+.compute-table caption {
+  text-align: left;
+  color: var(--muted);
+  padding-bottom: 8px;
+}
+
+.compute-table th,
+.compute-table td {
+  text-align: left;
+  padding: 6px 8px;
+  border-bottom: 1px solid var(--border);
+}
+
+.compute-table th {
+  color: var(--muted);
+  font-weight: 500;
+}
+
+.compute-table tr.bad td {
+  color: var(--danger-ink);
+}

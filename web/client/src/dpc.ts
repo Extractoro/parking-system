@@ -1,4 +1,5 @@
-// HTTP client of the DPC api (dpc/openapi.yaml): barrier entries and the garage occupancy.
+// HTTP client of the DPC api (dpc/openapi.yaml): barrier entries, the garage occupancy and the
+// parallel integral of lab 2 (/v1/compute).
 // The DPC api is called directly on :8000 with the API token (Authorization: Bearer); CORS allows
 // DPC_CLIENT_ORIGIN. Errors are Problem Details, the same ApiError as the Web client.
 
@@ -54,6 +55,48 @@ export interface EntryCreate {
   booking_id?: string
 }
 
+export type Method = 'midpoint' | 'trapezoid' | 'simpson'
+export type SumMode = 'none' | 'lock' | 'local'
+
+export interface ComputeParams {
+  a: number
+  b: number
+  n: number
+  workers: 1 | 2 | 4
+  method: Method
+  mode: SumMode
+  order?: 'forward' | 'reverse'
+  block?: number
+}
+
+export interface ComputeResult {
+  value: number
+  reference: number
+  abs_error: number
+  rel_error: number
+  seconds: number
+  pool_start_seconds: number
+  workers: number
+  method: Method
+  n: number
+  mode: SumMode
+  block: number
+  within_tolerance: boolean
+  tolerance: number
+  timing: { dispatch_s: number; compute_s: number; combine_s: number; processes: number }
+}
+
+export interface ComputeJob {
+  id: string
+  state: 'running' | 'done' | 'failed'
+  active_parts: number
+  params: ComputeParams
+  result: ComputeResult | null
+  error: string | null
+  created_at: string
+  finished_at: string | null
+}
+
 async function request<T>(path: string, init: RequestInit = {}): Promise<{ body: T; headers: Headers }> {
   const headers = new Headers(init.headers)
   headers.set('Authorization', `Bearer ${DPC_TOKEN}`)
@@ -99,6 +142,15 @@ export const dpc = {
     request<{ items: EntryRequest[] }>(`/v1/entries?garage_id=${encodeURIComponent(garageId)}&limit=${limit}`).then(
       (r) => r.body.items,
     ),
+
+  /** POST /v1/compute: 202 with the job; 429 compute-busy while another computation runs. */
+  startCompute: (p: ComputeParams) =>
+    request<ComputeJob>('/v1/compute', { method: 'POST', body: JSON.stringify(p) }).then((r) => r.body),
+
+  compute: (id: string) => request<ComputeJob>(`/v1/compute/${encodeURIComponent(id)}`).then((r) => r.body),
+
+  computeList: (limit = 12) =>
+    request<{ items: ComputeJob[]; running: string | null }>(`/v1/compute?limit=${limit}`).then((r) => r.body),
 
   garage: (garageId: string) => request<GarageState>(`/v1/garage/${encodeURIComponent(garageId)}`).then((r) => r.body),
 }

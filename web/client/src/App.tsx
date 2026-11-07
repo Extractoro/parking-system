@@ -2,6 +2,7 @@ import { useState } from 'react'
 import BarrierPage from './BarrierPage'
 import BookingPage from './BookingPage'
 import BookingsPage from './BookingsPage'
+import ComputePage from './ComputePage'
 import { Header } from './components'
 import ErrorBoundary from './ErrorBoundary'
 import { USERS, type View } from './shared'
@@ -15,7 +16,7 @@ export default function App() {
     return USERS.some((u) => u.id === saved) ? (saved as string) : USERS[0].id
   })
   const v = params.get('view')
-  const view: View = v === 'bookings' || v === 'barrier' ? v : 'book'
+  const view: View = v === 'bookings' || v === 'barrier' || v === 'compute' ? v : 'book'
 
   function navigate(v: View) {
     setParams({ view: v === 'book' ? undefined : v, tab: undefined }, 'push')
@@ -34,7 +35,9 @@ export default function App() {
       </a>
       <Header view={view} onNavigate={navigate} userId={userId} onUser={changeUser} />
       <ErrorBoundary key={`${view}/${userId}`}>
-        {view === 'barrier' ? (
+        {view === 'compute' ? (
+          <ComputePage />
+        ) : view === 'barrier' ? (
           <BarrierPage params={params} setParams={setParams} />
         ) : view === 'bookings' ? (
           <BookingsPage userId={userId} params={params} setParams={setParams} onNavigate={navigate} />
