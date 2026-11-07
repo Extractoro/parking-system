@@ -1,0 +1,10 @@
+$ docker compose config --quiet && echo CONFIG_OK
+CONFIG_OK
+
+$ pytest web/server/tests
+............................                                             [100%]
+28 passed in 21.03s
+
+$ pytest dpc/api/tests
+...................s.....s............                                   [100%]
+36 passed, 2 skipped in 77.21s (0:01:17)

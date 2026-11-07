@@ -1,0 +1,5 @@
+$ npx tsc -b && npx eslint . && npm run build  (web/client)
+dist/index.html                   0.80 kB │ gzip:  0.43 kB
+dist/assets/index-Da1kwj2T.css   16.65 kB │ gzip:  4.00 kB
+dist/assets/index-B56wjKBM.js   274.77 kB │ gzip: 84.64 kB
+✓ built in 1.61s
