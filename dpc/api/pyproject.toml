@@ -11,6 +11,8 @@ dependencies = [
     # the same Ray version runs in api (the client), ray-head and ray-worker: one image, one lock
     "ray[default]==2.59.0",
     "py-spy>=0.4.2",
+    # lab 2: the integral is computed in numpy blocks
+    "numpy>=2.3",
 ]
 
 [dependency-groups]

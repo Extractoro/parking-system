@@ -46,6 +46,11 @@ EXECUTION = os.environ.get("EXECUTION", "local")  # local | ray (lab 3)
 IN_FLIGHT_LIMIT = _int("IN_FLIGHT_LIMIT", 8)  # O3.2
 RECEIVER_DELAY_MS = _int("RECEIVER_DELAY_MS", 0)  # D3.4
 FENCING = os.environ.get("FENCING", "on") == "on"  # O6.3
+# lab 2: one computation at a time; relative tolerance of the result (O2.2); niceness of the pool processes
+COMPUTE_TOLERANCE = _float("COMPUTE_TOLERANCE", 1e-9)
+COMPUTE_RETRY_AFTER_S = _int("COMPUTE_RETRY_AFTER_S", 2)
+COMPUTE_KEEP = _int("COMPUTE_KEEP", 100)
+COMPUTE_NICE = _int("COMPUTE_NICE", 10)
 
 PROBLEM_BASE = os.environ.get("PROBLEM_BASE", "https://example.edu/problems/")
 
