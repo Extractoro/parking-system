@@ -42,13 +42,13 @@
 
 | Lab | ID | Ядро/О/Д | Описание | Компонент | Файлы | Тесты | Evidence | Status |
 |---|---|---|---|---|---|---|---|---|
-| ЛР3 | О3.1 | Ядро | Вхід. | — | — | — | — | not_started |
-| ЛР3 | О3.2 | Ядро | Доступ до об’єктів і функції персоналу. | — | — | — | — | not_started |
-| ЛР3 | О3.3 | О | Захист браузерних запитів. | — | — | — | — | not_started |
-| ЛР3 | О3.4 | О | Сценарії входу й доступу в клієнті. | — | — | — | — | not_started |
-| ЛР3 | Д3.1 | Д | JWT і дослід відкликання. | — | — | — | — | not_started |
-| ЛР3 | Д3.2 | Д | Вхід через OpenID Connect із готовим провайдером (Keycloak). | — | — | — | — | not_started |
-| ЛР3 | Д3.3 | Д | Обмеження спроб входу. | — | — | — | — | not_started |
+| ЛР3 | О3.1 | Ядро | Вхід. | Web API, PostgreSQL, publisher | web/server/app/auth.py, users.py, publisher.py; migrations/006, 904; scripts/hash_password.py | test_lr3.py::test_1–5, test_12; experiments/web_lr3_checks.py | вхід app-a → токен на app-b; вихід → 401 на обох; прострочена 401; однакова 401 для пароля й логіна; X-User-Id → 401 (results/web-lr3/checks.txt) | done |
+| ЛР3 | О3.2 | Ядро | Доступ до об’єктів і функції персоналу. | Web API | bookings.py (власник у SQL), catalog.py (`close`/`open`, `StaffUser`) | test_lr3.py::test_7–10, test_lr2.py::test_7 | чуже GET/PATCH/cancel → 404 як відсутнє; user close 403, staff 200, нове бронювання 409, підтверджене лишається (results/web-lr3/checks.txt) | done |
+| ЛР3 | О3.3 | О | Захист браузерних запитів. | Web API, клієнт | main.py (CORS), web/tools/evil-origin/index.html, web/client/src/api.ts | test_lr3.py::test_11; браузер :8082 і :5173 | preflight 5173 → ACAO, 8082 → 400 без ACAO; у браузері заблоковано POST і GET, форма → 401 (results/web-lr3/cors-preflight.txt, знімки) | done |
+| ЛР3 | О3.4 | О | Сценарії входу й доступу в клієнті. | Клієнт | LoginPage.tsx, AccessPage.tsx, App.tsx, components.tsx | вручну в браузері, scripts/screenshots/web-lr3.py | вхід/вихід, логін і роль у шапці; чуже → 404, close у user → 403, у staff → закрито; 401 → вхід | done |
+| ЛР3 | Д3.1 | Д | JWT і дослід відкликання. | — | — | — | — | skipped |
+| ЛР3 | Д3.2 | Д | Вхід через OpenID Connect із готовим провайдером (Keycloak). | — | — | — | — | skipped |
+| ЛР3 | Д3.3 | Д | Обмеження спроб входу. | — | — | — | — | skipped |
 
 ## ЛР4
 

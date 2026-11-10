@@ -1,5 +1,32 @@
 # Стан проєкту C09 «Паркінги»
 
+## Етап 5 - Web ЛР3: **виконано** (2026-11-10, відповідальна Дарина)
+
+Пункти: О3.1, О3.2 (ядро), О3.3, О3.4. `checks.yaml` → `web.items += О3.3, О3.4`; `role_names` типові (`user`, `staff`).
+Стенд: `docker compose up -d nginx publisher` (+ `api` для регресу DPC), клієнт Vite :5173, сторонній сайт
+`python -m http.server 8082 --directory web/tools/evil-origin`. Демо-вхід: user1/user1-pass, user2/user2-pass, staff1/staff1-pass.
+
+| Перевірка | Результат |
+|---|---|
+| Міграції 006 (`app_user.password_hash`, `session`), 904 (хеші argon2id) на наявній базі | applied; образ `project-web` перезібрано з `argon2-cffi` 25.1.0 |
+| `pytest web/server/tests` | 41 passed (10 ЛР1 + 11 ЛР2 + 13 ЛР3 + 7 правило часу) |
+| `pytest dpc/api/tests` (регрес) | 34 passed, 2 failed; повтор 35 passed, 1 failed - `test_1_2_4_workers_within_tolerance` `processes 3 == 4` (PC-12, код DPC не змінювався) |
+| `npx @redocly/cli lint web/openapi.yaml` | valid, 0 помилок, 14 попереджень (службові маршрути й невикористані компоненти) |
+| `tsc -b`, `eslint`, `npm run build` клієнта | без помилок |
+| `docker compose config --quiet` | CONFIG_OK |
+| Вхід/вихід/строк (`experiments/web_lr3_checks.py`) | вхід app-a → `/v1/me` app-b 200; вихід 204 → старий токен 401 на обох; повтор 204; прострочена 401; у `session` лише sha256 |
+| Неправильний пароль / невідомий логін | однакове тіло 401; медіана 75.4 / 73.6 мс (правильний 81.2), 15 спроб |
+| Лише `X-User-Id` | 401 для GET/POST бронювань і `/v1/me` |
+| Чуже бронювання | GET, PATCH, cancel → 404 з тими самими `type`/`title`/`detail`, що й відсутнє |
+| Закриття рівня | user 403 (і для неіснуючого), staff 200 двічі, нове бронювання 409 `level-closed`, підтверджене `confirmed`, open → 201 |
+| CORS | preflight 5173 → `access-control-allow-origin`; 8082 → 400 без нього; у Edge сторінка :8082 - POST і GET заблоковано, форма → 401; на :5173 обидві відповіді прочитано |
+| Клієнт у браузері | «Wrong login or password»; 404 і 403 як Problem Details на «Access check»; staff закриває й відкриває рівень; вихід і 401 → сторінка входу; знімки `docs/reports/img/web-lr3-*.png` |
+| Дослід О2.3 повторено | `Empty reply` + `fault.hit` на app-a; app-b 201 з тим самим id і `Idempotent-Replayed`; 1 бронювання; `free` 40 → 39 - як у ЛР2 |
+| Досліди ЛР2 після переходу на токен | `web_idempotency.py`, `web_cancel_twice.py`, `web_last_spot.py --rounds 2` - ті самі результати (вивід не зберігався, `results/web-lr2` не перезаписано) |
+
+Plan Change: PC-11 (формат відповіді входу з прикладу комплекту, preflight 200, `LOGIN_CONCURRENCY`, типовий хеш `'!'`,
+приклад `race-test`), PC-12 (нестабільний тест DPC ЛР2). Нові рішення M20-M26. Не зроблено: Д3.1-Д3.3 (не вибрані).
+
 ## Етап 4 - DPC ЛР2: **виконано** (2026-11-07, відповідальна Дарина)
 
 Пункти: О2.1, О2.3, О2.4 (ядро), О2.2. `checks.yaml` → `dpc`: `items += О2.2`, `compute {tolerance 1e-9,

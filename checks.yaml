@@ -5,7 +5,8 @@
 web:
   openapi: web/openapi.yaml
   base: http://localhost:8080
-  items: [О1.5, О1.6, О2.3, О2.4, Д2.4, Д2.5]
+  items: [О1.5, О1.6, О2.3, О2.4, Д2.4, Д2.5, О3.3, О3.4]
+  # lab 3: roles of GET /v1/me are the default ones (user, staff); demo logins user1, user2, staff1 (migration 904)
   # services: {app-a: web-app-a, app-b: web-app-b}
 dpc:
   openapi: dpc/openapi.yaml
