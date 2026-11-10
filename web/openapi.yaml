@@ -1,6 +1,6 @@
 # Contract of the Web part of C09 «Паркінги» (OpenAPI 3.1). Built from openapi.example.yaml of the kit:
-# the service routes (/health ... /v1/ws) are kept as in the example; /v1/auth/*, /v1/me and the
-# WebSocket routes are implemented in labs 3 and 5. Until lab 3 the user is the header X-User-Id.
+# the service routes (/health ... /v1/ws) are kept as in the example; /v1/auth/*, /v1/me are implemented
+# in lab 3 (opaque token in Authorization: Bearer), the WebSocket routes in lab 5. X-User-Id is not accepted.
 # Request examples (normal, scarce, missing) refer to the demo data migrations/900_c09_seed.sql (+901 names).
 openapi: 3.1.0
 info:
@@ -16,13 +16,18 @@ info:
 servers:
   - url: http://localhost:8080
 security:
-  - userId: []
+  - bearerAuth: []
 
 tags:
   - name: service
     description: Службові маршрути, однакові для всіх тем
   - name: auth
-    description: Вхід і поточний користувач (ЛР3)
+    description: |
+      Вхід і поточний користувач (ЛР3). Вхід дає непрозорий токен (32 випадкові байти, base64url),
+      який клієнт надсилає в `Authorization: Bearer <token>`; у базі зберігається лише sha256 токена.
+      Строк сесії 8 годин (`SESSION_TTL_H`); вихід видаляє сесію, і старий токен одразу отримує 401
+      на обох екземплярах. Демо-облікові записи: `user1`/`user1-pass`, `user2`/`user2-pass` (роль `user`),
+      `staff1`/`staff1-pass` (роль `staff`).
   - name: catalog
     description: Паркінги, рівні й вільні місця за годинами
   - name: bookings
@@ -69,6 +74,10 @@ paths:
         - auth
       operationId: login
       summary: Вхід
+      description: |
+        Невідомий логін і неправильний пароль дають однакову 401 `invalid-credentials`; обидва випадки
+        виконують одну перевірку argon2id (невідомий логін - з фіктивним хешем), тож час відповіді не
+        видає, чи існує логін. Некоректне тіло - 422.
       security: []
       requestBody:
         required: true
@@ -96,14 +105,20 @@ paths:
                   password: staff1-pass
       responses:
         "200":
-          description: Вхід виконано (токен у тілі або cookie сесії — оберіть одне)
+          description: "Вхід виконано; токен у тілі, клієнт надсилає його в `Authorization: Bearer`"
           content:
             application/json:
               schema:
                 type: object
+                required:
+                  - access_token
+                  - token_type
+                  - expires_at
+                  - user
                 properties:
                   access_token:
                     type: string
+                    description: Непрозорий токен, 43 символи base64url
                   token_type:
                     type: string
                     examples:
@@ -111,19 +126,39 @@ paths:
                   expires_at:
                     type: string
                     format: date-time
+                  user:
+                    $ref: "#/components/schemas/Me"
+              examples:
+                user:
+                  value:
+                    access_token: 3CfB4cruXJ6fan0E8LnWelSJcxySViV4BhLE4VC4hY4
+                    token_type: Bearer
+                    expires_at: "2026-11-11T03:42:25.978467Z"
+                    user:
+                      id: u-1
+                      login: user1
+                      name: user1
+                      role: user
         "400":
           $ref: "#/components/responses/BadRequest"
         "401":
-          $ref: "#/components/responses/Unauthorized"
+          description: Неправильний логін або пароль (`invalid-credentials`), однаково для обох випадків
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/Problem"
+        "422":
+          $ref: "#/components/responses/Unprocessable"
   /v1/auth/logout:
     post:
       tags:
         - auth
       operationId: logout
       summary: Вихід
+      description: Видаляє сесію токена. Повтор із тим самим (уже недійсним) токеном - теж 204. Без заголовка `Authorization` - 401.
       responses:
         "204":
-          description: Вихід виконано
+          description: Вихід виконано (або сесії вже немає)
         "401":
           $ref: "#/components/responses/Unauthorized"
   /v1/me:
@@ -138,20 +173,7 @@ paths:
           content:
             application/json:
               schema:
-                type: object
-                required:
-                  - id
-                  - role
-                properties:
-                  id:
-                    type: string
-                  name:
-                    type: string
-                  role:
-                    type: string
-                    enum:
-                      - user
-                      - staff
+                $ref: "#/components/schemas/Me"
         "401":
           $ref: "#/components/responses/Unauthorized"
 
@@ -243,6 +265,68 @@ paths:
           $ref: "#/components/responses/NotFound"
         "422":
           $ref: "#/components/responses/Unprocessable"
+
+  /v1/levels/{id}/close:
+    parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: string
+        example: race-test
+    post:
+      tags:
+        - catalog
+      operationId: closeLevel
+      summary: Персонал - закрити рівень (лише роль staff)
+      description: |
+        Закритий рівень не приймає нових бронювань (`POST /v1/bookings` -> 409 `level-closed`);
+        підтверджені бронювання лишаються чинними. Роль перевіряється на сервері до будь-якої дії:
+        користувач `user` отримує 403 навіть для неіснуючого рівня. Повтор - 200 з тим самим станом.
+      x-course: staff-action
+      responses:
+        "200":
+          description: Рівень закрито (або вже був закритий)
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/LevelState"
+              examples:
+                closed:
+                  value:
+                    id: race-test
+                    garage_id: mall
+                    name: Race test (1 spot)
+                    spots: 1
+                    closed: true
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+  /v1/levels/{id}/open:
+    parameters:
+      - $ref: "#/components/parameters/Id"
+    post:
+      tags:
+        - catalog
+      operationId: openLevel
+      summary: Персонал - відкрити рівень знову (лише роль staff)
+      description: Зворотна дія до закриття для демонстрації; повтор - 200.
+      responses:
+        "200":
+          description: Рівень відкрито
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/LevelState"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
 
   /v1/bookings:
     get:
@@ -651,18 +735,10 @@ paths:
 
 components:
   securitySchemes:
-    userId:
-      type: apiKey
-      in: header
-      name: X-User-Id
-      description: Тимчасово до ЛР3 — ідентифікатор заздалегідь створеного користувача (u-1, u-2, s-1)
     bearerAuth:
       type: http
       scheme: bearer
-    cookieAuth:
-      type: apiKey
-      in: cookie
-      name: session
+      description: "Непрозорий токен з `POST /v1/auth/login`, заголовок `Authorization: Bearer <token>`"
 
   parameters:
     Id:
@@ -811,6 +887,44 @@ components:
           type: array
           items:
             $ref: "#/components/schemas/Level"
+    Me:
+      type: object
+      required:
+        - id
+        - login
+        - role
+      properties:
+        id:
+          type: string
+        login:
+          type: string
+        name:
+          type: string
+          description: Те саме, що `login`
+        role:
+          type: string
+          enum:
+            - user
+            - staff
+    LevelState:
+      type: object
+      required:
+        - id
+        - garage_id
+        - name
+        - spots
+        - closed
+      properties:
+        id:
+          type: string
+        garage_id:
+          type: string
+        name:
+          type: string
+        spots:
+          type: integer
+        closed:
+          type: boolean
     Level:
       type: object
       required:
@@ -1039,13 +1153,17 @@ components:
           schema:
             $ref: "#/components/schemas/Problem"
     Unauthorized:
-      description: Потрібен вхід
+      description: Потрібен вхід (немає токена, токен невідомий, сесію завершено або строк минув); заголовок `WWW-Authenticate` - `Bearer`
+      headers:
+        WWW-Authenticate:
+          schema:
+            type: string
       content:
         application/problem+json:
           schema:
             $ref: "#/components/schemas/Problem"
     Forbidden:
-      description: Недостатньо прав
+      description: Недостатньо прав (функція персоналу для ролі `user`), `forbidden`
       content:
         application/problem+json:
           schema:
