@@ -1,4 +1,7 @@
-"""Catalog of C09: garages with levels and the current tariff, free spots per hour of a local day."""
+"""Catalog of C09: garages with levels and the current tariff, free spots per hour of a local day.
+
+The catalog is public (no login, decision M10). Closing and opening a level is the staff function of
+the card (lab 3): only the role staff, checked on the server before anything else (403 for others)."""
 
 from datetime import date
 from typing import Annotated, Any
@@ -8,6 +11,7 @@ from fastapi import APIRouter, Query
 from . import db
 from .problems import Problem
 from .timefmt import local_iso
+from .users import StaffUser
 
 router = APIRouter(prefix="/v1")
 
@@ -87,3 +91,28 @@ async def level_hours(level_id: str, day: Annotated[date, Query(description="Loc
         "closed": level["closed"],
         "hours": [{"hour": local_iso(h["hour"], tz), "free": h["free"], "spots": level["spots"]} for h in hours],
     }
+
+
+async def _set_closed(level_id: str, closed: bool) -> dict[str, Any]:
+    """One UPDATE; a repeat finds the level already in this state and answers 200 the same way.
+    Closing refuses only NEW bookings (409 level-closed in POST /v1/bookings, read in its transaction);
+    confirmed bookings of the level stay valid (decision B8), their hours are not touched."""
+    async with db.connection() as conn, conn.transaction():
+        cur = await conn.execute(
+            "UPDATE level SET closed = %s WHERE id = %s RETURNING id, garage_id, name, spots, closed",
+            (closed, level_id),
+        )
+        row = await cur.fetchone()
+    if row is None:
+        raise Problem(404, "level-not-found", "Level not found", "No level with this id")
+    return dict(row)
+
+
+@router.post("/levels/{level_id}/close")
+async def close_level(level_id: str, _: StaffUser) -> dict[str, Any]:
+    return await _set_closed(level_id, True)
+
+
+@router.post("/levels/{level_id}/open")
+async def open_level(level_id: str, _: StaffUser) -> dict[str, Any]:
+    return await _set_closed(level_id, False)
