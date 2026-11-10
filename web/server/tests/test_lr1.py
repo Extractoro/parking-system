@@ -5,7 +5,7 @@ import threading
 from datetime import UTC, datetime, timedelta
 
 import httpx
-from conftest import APP_A, APP_B, BASE, headers
+from conftest import APP_A, APP_B, BASE, auth, headers
 
 def iso(day, hour: int, offset: str) -> str:
     return f"{day.isoformat()}T{hour:02d}:00:00{offset}"
@@ -124,7 +124,7 @@ def test_5_cursor_pages(api, db, day, fresh_user):
     seen, pages, cursor = [], 0, None
     while True:
         params = {"limit": 3} | ({"cursor": cursor} if cursor else {})
-        r = api.get("/v1/bookings", params=params, headers={"X-User-Id": fresh_user})
+        r = api.get("/v1/bookings", params=params, headers=auth(fresh_user))
         assert r.status_code == 200, r.text
         page = r.json()
         pages += 1
@@ -140,10 +140,10 @@ def test_5_cursor_pages(api, db, day, fresh_user):
     assert keys == sorted(keys, reverse=True)  # newest first, then by id
 
     for bad in ("not-base64!!", "eyJ0IjoiIn0", "e30"):
-        r = api.get("/v1/bookings", params={"cursor": bad}, headers={"X-User-Id": fresh_user})
+        r = api.get("/v1/bookings", params={"cursor": bad}, headers=auth(fresh_user))
         assert r.status_code == 400, (bad, r.text)
     for limit in (0, 51, "x"):
-        r = api.get("/v1/bookings", params={"limit": limit}, headers={"X-User-Id": fresh_user})
+        r = api.get("/v1/bookings", params={"limit": limit}, headers=auth(fresh_user))
         assert r.status_code == 422, (limit, r.text)
 
 
@@ -152,9 +152,9 @@ def test_6_foreign_booking_is_404(api, day, users):
     r = book(api, "center-1", iso(day, 12, off), 1, users[0])
     assert r.status_code == 201
     booking_id = r.json()["id"]
-    assert api.get(f"/v1/bookings/{booking_id}", headers={"X-User-Id": users[0]}).status_code == 200
-    foreign = api.get(f"/v1/bookings/{booking_id}", headers={"X-User-Id": users[1]})
-    missing = api.get("/v1/bookings/no-such-booking", headers={"X-User-Id": users[1]})
+    assert api.get(f"/v1/bookings/{booking_id}", headers=auth(users[0])).status_code == 200
+    foreign = api.get(f"/v1/bookings/{booking_id}", headers=auth(users[1]))
+    missing = api.get("/v1/bookings/no-such-booking", headers=auth(users[1]))
     assert foreign.status_code == missing.status_code == 404
     assert foreign.json()["type"] == missing.json()["type"]
 

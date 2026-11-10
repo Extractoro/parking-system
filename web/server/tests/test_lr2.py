@@ -10,14 +10,14 @@ from pathlib import Path
 
 import httpx
 import pytest
-from conftest import APP_A, APP_B, BASE
+from conftest import APP_A, APP_B, BASE, auth
 from test_lr1 import hours_of, iso, local_offset
 
 ROOT = Path(__file__).resolve().parents[3]
 
 
 def post(body, user, key, base=BASE):
-    h = {"X-User-Id": user}
+    h = auth(user)
     if key is not None:
         h["Idempotency-Key"] = key
     return httpx.post(f"{base}/v1/bookings", json=body, headers=h, timeout=10)
@@ -149,7 +149,7 @@ def test_7_plate_change_with_if_match(api, db, day, fresh_user, users):
     off = local_offset(api, "center-1", day)
     b = post(body_of(day, off, level="center-1", hour=9), fresh_user, f"k-{uuid.uuid4()}").json()
     url = f"/v1/bookings/{b['id']}"
-    me = {"X-User-Id": fresh_user}
+    me = auth(fresh_user)
 
     got = api.get(url, headers=me)
     assert got.status_code == 200 and got.headers["etag"] == '"1"'
@@ -171,7 +171,7 @@ def test_7_plate_change_with_if_match(api, db, day, fresh_user, users):
         r = api.patch(url, json=forbidden, headers={**me, "If-Match": '"2"'})
         assert r.status_code == 422, (forbidden, r.text)
 
-    foreign = api.patch(url, json={"plate": "AT0004AA"}, headers={"X-User-Id": users[1], "If-Match": '"2"'})
+    foreign = api.patch(url, json={"plate": "AT0004AA"}, headers={**auth(users[1]), "If-Match": '"2"'})
     assert foreign.status_code == 404
     row = db.execute("SELECT plate, version, status FROM booking WHERE id = %s", (b["id"],)).fetchone()
     assert row == {"plate": "AT0001AA", "version": 2, "status": "confirmed"}
@@ -194,9 +194,9 @@ def _three_hours(api, day, user, level="mall-2", hour=15):
 def test_8_cancel_twice_frees_once(api, day, fresh_user, users):
     b, hrs = _three_hours(api, day, fresh_user)
     taken = hours_of(api, "mall-2", day)
-    me = {"X-User-Id": fresh_user}
+    me = auth(fresh_user)
 
-    assert api.post(f"/v1/bookings/{b['id']}/cancel", headers={"X-User-Id": users[1]}).status_code == 404
+    assert api.post(f"/v1/bookings/{b['id']}/cancel", headers=auth(users[1])).status_code == 404
     first = api.post(f"/v1/bookings/{b['id']}/cancel", headers=me)
     second = api.post(f"/v1/bookings/{b['id']}/cancel", headers=me)
     assert first.status_code == second.status_code == 200
@@ -217,7 +217,7 @@ def test_9_concurrent_cancels_free_once(api, day, fresh_user):
 
     def one(i: int) -> None:
         barrier.wait()
-        r = httpx.post(f"{APP_A if i % 2 else APP_B}/v1/bookings/{b['id']}/cancel", headers={"X-User-Id": fresh_user}, timeout=10)
+        r = httpx.post(f"{APP_A if i % 2 else APP_B}/v1/bookings/{b['id']}/cancel", headers=auth(fresh_user), timeout=10)
         statuses.append(r.status_code)
 
     threads = [threading.Thread(target=one, args=(i,)) for i in range(n)]
@@ -238,7 +238,7 @@ def test_10_started_booking_is_not_cancelled(api, fresh_user):
     if r.status_code == 409:
         pytest.skip("the real current hour of center-1 is full")
     assert r.status_code == 201, r.text
-    c = api.post(f"/v1/bookings/{r.json()['id']}/cancel", headers={"X-User-Id": fresh_user})
+    c = api.post(f"/v1/bookings/{r.json()['id']}/cancel", headers=auth(fresh_user))
     assert c.status_code == 409 and slug(c) == "booking-started", c.text
 
 
