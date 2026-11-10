@@ -1357,3 +1357,66 @@ fieldset.field {
 .compute-table tr.bad td {
   color: var(--danger-ink);
 }
+
+/* lab 3: account in the header, login page, access check */
+.btn-sm {
+  height: 30px;
+  padding: 0 10px;
+  border-radius: 99px;
+  font-size: 13px;
+}
+
+.account-login {
+  font-weight: 500;
+}
+
+.badge.role-staff {
+  background: var(--accent-soft);
+  color: var(--accent-hover);
+}
+
+.login-card {
+  max-width: 420px;
+  margin: 24px auto 0;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.demo-accounts {
+  font-size: 13px;
+  color: var(--muted);
+}
+
+.demo-accounts code {
+  color: var(--ink-2);
+}
+
+.access-grid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 16px;
+}
+
+.access-row {
+  display: flex;
+  gap: 8px;
+  align-items: flex-end;
+  flex-wrap: wrap;
+}
+
+.access-row .field {
+  flex: 1;
+  min-width: 220px;
+}
+
+.problem-json {
+  margin: 0;
+  padding: 10px 12px;
+  border-radius: var(--radius);
+  background: var(--subtle);
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  font-size: 13px;
+  white-space: pre-wrap;
+  word-break: break-all;
+}

@@ -1,7 +1,8 @@
 import type { MouseEvent, ReactNode } from 'react'
 import { ApiError } from './api'
 import { AlertIcon, LogoMark, Wifi } from './icons'
-import { USERS, type View } from './shared'
+import type { Me } from './api'
+import type { View } from './shared'
 import { hrefWith } from './useUrlState'
 
 /** A link that also works with Cmd/Ctrl+click and middle click; a plain click is handled in place. */
@@ -33,15 +34,14 @@ export function NavLink({
 export function Header({
   view,
   onNavigate,
-  userId,
-  onUser,
+  user,
+  onLogout,
 }: {
   view: View
   onNavigate: (v: View) => void
-  userId: string
-  onUser: (id: string) => void
+  user: Me | null
+  onLogout: () => void
 }) {
-  const user = USERS.find((u) => u.id === userId) ?? USERS[0]
   return (
     <header className="header">
       <div className="header-inner">
@@ -58,6 +58,9 @@ export function Header({
           <NavLink to="bookings" current={view === 'bookings'} onNavigate={onNavigate}>
             My bookings
           </NavLink>
+          <NavLink to="access" current={view === 'access'} onNavigate={onNavigate}>
+            Access check
+          </NavLink>
           <NavLink to="barrier" current={view === 'barrier'} onNavigate={onNavigate}>
             Barrier
           </NavLink>
@@ -65,20 +68,18 @@ export function Header({
             Compute
           </NavLink>
         </nav>
-        {/* Until lab 3 there is no login: the account is one of the pre-created users. */}
-        <label className="account">
-          <span className="avatar" aria-hidden>
-            {user.login.slice(0, 1).toUpperCase() + user.login.slice(-1)}
-          </span>
-          <span className="sr-only">Account</span>
-          <select value={user.id} onChange={(e) => onUser(e.target.value)}>
-            {USERS.map((u) => (
-              <option key={u.id} value={u.id}>
-                {u.login}
-              </option>
-            ))}
-          </select>
-        </label>
+        {user && (
+          <div className="account" data-testid="account">
+            <span className="avatar" aria-hidden>
+              {user.login.slice(0, 1).toUpperCase() + user.login.slice(-1)}
+            </span>
+            <span className="account-login">{user.login}</span>
+            <span className={`badge role-${user.role}`}>{user.role}</span>
+            <button type="button" className="btn btn-ghost btn-sm" onClick={onLogout}>
+              Log out
+            </button>
+          </div>
+        )}
       </div>
     </header>
   )
@@ -106,9 +107,13 @@ function explain(error: ApiError): { title: string; detail: string } {
     case 'booking-started':
       return { title: 'The booking has started', detail: 'A booking can be cancelled only before its first hour starts.' }
     case 'booking-not-found':
-      return { title: 'Booking not found', detail: 'Refresh the list: the booking may belong to another account.' }
+      return { title: 'Booking not found', detail: 'There is no booking with this id among your bookings.' }
     case 'unauthorized':
-      return { title: 'Sign-in required', detail: 'Pick an account at the top of the page.' }
+      return { title: 'Sign-in required', detail: 'Your session has ended. Log in again.' }
+    case 'invalid-credentials':
+      return { title: 'Wrong login or password', detail: 'Check both and try again.' }
+    case 'forbidden':
+      return { title: 'Not allowed', detail: 'Only parking staff can do this. Your account has the role user.' }
     case 'invalid-request':
       if (error.problem.errors?.some((e) => e.field.endsWith('from_hour')))
         return { title: 'That time has passed', detail: 'Pick the current hour or a later one.' }

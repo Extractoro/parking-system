@@ -10,12 +10,10 @@ const PLATE_RE = /^.{2,12}$/
 
 /** Change the plate (If-Match with the version shown in the list) and cancel one booking. */
 function BookingActions({
-  userId,
   booking,
   onChanged,
   onRefresh,
 }: {
-  userId: string
   booking: Booking
   onChanged: (b: Booking, what: 'plate' | 'cancel') => void
   onRefresh: () => void
@@ -45,7 +43,7 @@ function BookingActions({
     setError(null)
     try {
       // the version the user saw goes to If-Match: a change made meanwhile gives 412, not an overwrite
-      onChanged(await api.updatePlate(userId, booking.id, p, booking.version), 'plate')
+      onChanged(await api.updatePlate(booking.id, p, booking.version), 'plate')
       setMode('idle')
     } catch (err) {
       setError(err)
@@ -59,7 +57,7 @@ function BookingActions({
     setError(null)
     try {
       // cancelling twice is harmless on the server, so lost answers are simply retried
-      onChanged(await withRetries(() => api.cancelBooking(userId, booking.id)), 'cancel')
+      onChanged(await withRetries(() => api.cancelBooking(booking.id)), 'cancel')
       setMode('idle')
     } catch (err) {
       setError(err)
@@ -146,7 +144,6 @@ function BookingActions({
 }
 
 type Props = {
-  userId: string
   params: URLSearchParams
   setParams: (patch: Record<string, string | undefined>, mode?: 'push' | 'replace') => void
   onNavigate: (v: View) => void
@@ -160,7 +157,7 @@ const STATUS: Record<string, string> = {
   held: 'Pending',
 }
 
-export default function BookingsPage({ userId, params, setParams, onNavigate }: Props) {
+export default function BookingsPage({ params, setParams, onNavigate }: Props) {
   const [data, setData] = useState<{ items: Booking[]; pages: number } | null>(null)
   const [garages, setGarages] = useState<Garage[]>([])
   const [error, setError] = useState<unknown>(null)
@@ -172,9 +169,9 @@ export default function BookingsPage({ userId, params, setParams, onNavigate }: 
     setNotice(null)
     setData(null)
     // every page by next_cursor (O1.5): the tabs split by date, so all bookings are needed
-    api.allBookings(userId).then(setData, setError)
+    api.allBookings().then(setData, setError)
     api.garages().then(setGarages, () => setGarages([]))
-  }, [userId])
+  }, [])
   useEffect(load, [load])
 
   const now = Date.now()
@@ -282,7 +279,7 @@ export default function BookingsPage({ userId, params, setParams, onNavigate }: 
                 </span>
               </div>
               {b.status === 'confirmed' && Date.parse(b.to_hour) > now && (
-                <BookingActions key={`${b.id}/${b.version}`} userId={userId} booking={b} onChanged={changed} onRefresh={load} />
+                <BookingActions key={`${b.id}/${b.version}`} booking={b} onChanged={changed} onRefresh={load} />
               )}
             </li>
           )

@@ -90,9 +90,63 @@ export interface BookingCreate {
   plate: string
 }
 
-async function request<T>(path: string, init: RequestInit = {}, userId?: string): Promise<{ body: T; headers: Headers }> {
+export interface Me {
+  id: string
+  login: string
+  role: 'user' | 'staff'
+}
+
+export interface Session {
+  access_token: string
+  expires_at: string
+  user: Me
+}
+
+export interface LevelState {
+  id: string
+  garage_id: string
+  name: string
+  spots: number
+  closed: boolean
+}
+
+// The login session (O3.1): the opaque token is kept in memory and in sessionStorage. sessionStorage
+// survives a reload of this tab but is not shared with other tabs and is cleared when the tab closes.
+// Any script of this origin can read it (XSS), which is why the page has no third-party scripts and
+// the token lives only 8 hours on the server. It is NOT a cookie, so the browser never adds it to a
+// request on its own: a page of another site cannot send a request as this user (no CSRF).
+const SESSION_KEY = 'session'
+let session: Session | null = loadSession()
+let onUnauthorized: (() => void) | null = null
+
+function loadSession(): Session | null {
+  try {
+    const s = JSON.parse(sessionStorage.getItem(SESSION_KEY) ?? 'null') as Session | null
+    return s && Date.parse(s.expires_at) > Date.now() ? s : null
+  } catch {
+    return null
+  }
+}
+
+export function currentSession(): Session | null {
+  return session
+}
+
+export function setSession(s: Session | null): void {
+  session = s
+  if (s) sessionStorage.setItem(SESSION_KEY, JSON.stringify(s))
+  else sessionStorage.removeItem(SESSION_KEY)
+}
+
+/** Called when the server says the session has ended (401 to a request that had a token). */
+export function setUnauthorizedHandler(handler: (() => void) | null): void {
+  onUnauthorized = handler
+}
+
+async function request<T>(path: string, init: RequestInit = {}): Promise<{ body: T; headers: Headers }> {
   const headers = new Headers(init.headers)
-  if (userId) headers.set('X-User-Id', userId) // until lab 3: the pre-created user
+  const sent = session
+  if (sent) headers.set('Authorization', `Bearer ${sent.access_token}`)
   if (init.body) headers.set('Content-Type', 'application/json')
 
   let response: Response
@@ -114,6 +168,11 @@ async function request<T>(path: string, init: RequestInit = {}, userId?: string)
   } catch {
     body = null
   }
+  if (response.status === 401 && sent && session === sent) {
+    // logged out elsewhere or expired: forget the token and go to the login page
+    setSession(null)
+    onUnauthorized?.()
+  }
   if (!response.ok) {
     const problem: Problem =
       body && typeof body === 'object' ? (body as Problem) : { title: `HTTP ${response.status}`, detail: text.slice(0, 200) }
@@ -133,39 +192,56 @@ function bookingPath(id: string): string {
 }
 
 export const api = {
+  /** 200 with the token; a wrong login or password -> ApiError 401 invalid-credentials. */
+  login: (login: string, password: string) =>
+    request<Session>('/v1/auth/login', { method: 'POST', body: JSON.stringify({ login, password }) }).then((r) => r.body),
+
+  /** Deletes the session on the server; the old token gets 401 everywhere after it. Safe to repeat. */
+  logout: () => request<null>('/v1/auth/logout', { method: 'POST' }).then(() => undefined),
+
+  me: () => request<Me>('/v1/me').then((r) => r.body),
+
   garages: () => request<{ items: Garage[] }>('/v1/garages').then((r) => r.body.items),
 
   levelHours: (levelId: string, day: string) =>
     request<LevelHours>(`/v1/levels/${encodeURIComponent(levelId)}/hours?day=${encodeURIComponent(day)}`).then((r) => r.body),
 
+  /** Staff function of the card: only the role staff, others get 403 from the server. */
+  closeLevel: (levelId: string) =>
+    request<LevelState>(`/v1/levels/${encodeURIComponent(levelId)}/close`, { method: 'POST' }).then((r) => r.body),
+  openLevel: (levelId: string) =>
+    request<LevelState>(`/v1/levels/${encodeURIComponent(levelId)}/open`, { method: 'POST' }).then((r) => r.body),
+
+  /** One booking of the current user; someone else's booking is 404, exactly like a missing one. */
+  booking: (id: string) => request<Booking>(bookingPath(id)).then((r) => r.body),
+
   /** One attempt. The caller makes the key once per user action and sends it with every retry. */
-  createBooking: (userId: string, data: BookingCreate, idempotencyKey: string) =>
-    request<Booking>(
-      '/v1/bookings',
-      { method: 'POST', body: JSON.stringify(data), headers: { 'Idempotency-Key': idempotencyKey } },
-      userId,
-    ).then((r) => ({ booking: r.body, replayed: r.headers.get('Idempotent-Replayed') === 'true' })),
+  createBooking: (data: BookingCreate, idempotencyKey: string) =>
+    request<Booking>('/v1/bookings', {
+      method: 'POST',
+      body: JSON.stringify(data),
+      headers: { 'Idempotency-Key': idempotencyKey },
+    }).then((r) => ({ booking: r.body, replayed: r.headers.get('Idempotent-Replayed') === 'true' })),
 
   /** Plate change with the version the user saw: another version -> 412. */
-  updatePlate: (userId: string, id: string, plate: string, version: number) =>
-    request<Booking>(
-      bookingPath(id),
-      { method: 'PATCH', body: JSON.stringify({ plate }), headers: { 'If-Match': `"${version}"` } },
-      userId,
-    ).then((r) => r.body),
+  updatePlate: (id: string, plate: string, version: number) =>
+    request<Booking>(bookingPath(id), {
+      method: 'PATCH',
+      body: JSON.stringify({ plate }),
+      headers: { 'If-Match': `"${version}"` },
+    }).then((r) => r.body),
 
   /** Safe to repeat: a cancelled booking answers 200 again and frees nothing twice. */
-  cancelBooking: (userId: string, id: string) =>
-    request<Booking>(`${bookingPath(id)}/cancel`, { method: 'POST' }, userId).then((r) => r.body),
+  cancelBooking: (id: string) => request<Booking>(`${bookingPath(id)}/cancel`, { method: 'POST' }).then((r) => r.body),
 
   /** Reads EVERY page of the list by next_cursor (O1.5 + O1.7). */
-  async allBookings(userId: string, limit = 5): Promise<{ items: Booking[]; pages: number }> {
+  async allBookings(limit = 5): Promise<{ items: Booking[]; pages: number }> {
     const items: Booking[] = []
     let cursor: string | null = null
     let pages = 0
     do {
       const query: string = `?limit=${limit}` + (cursor ? `&cursor=${encodeURIComponent(cursor)}` : '')
-      const { body } = await request<BookingPage>('/v1/bookings' + query, {}, userId)
+      const { body } = await request<BookingPage>('/v1/bookings' + query)
       items.push(...body.items)
       cursor = body.next_cursor
       pages += 1

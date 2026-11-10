@@ -25,7 +25,6 @@ const MAX_HOURS = 24
 const PLATE_RE = /^.{2,12}$/
 
 type Props = {
-  userId: string
   params: URLSearchParams
   setParams: (patch: Record<string, string | undefined>, mode?: 'push' | 'replace') => void
   onNavigate: (v: View) => void
@@ -33,7 +32,7 @@ type Props = {
 
 type FieldErrors = { plate?: string; hours?: string }
 
-export default function BookingPage({ userId, params, setParams, onNavigate }: Props) {
+export default function BookingPage({ params, setParams, onNavigate }: Props) {
   const [garages, setGarages] = useState<Garage[] | null>(null)
   const [loadError, setLoadError] = useState<unknown>(null)
   const [slots, setSlots] = useState<Record<string, HourSlot[]>>({})
@@ -185,7 +184,7 @@ export default function BookingPage({ userId, params, setParams, onNavigate }: P
     setCheckNote(null)
     try {
       // retried only on no answer, 502/503/504 and 409 idempotency-in-progress, always with `key`
-      const { booking } = await withRetries(() => api.createBooking(userId, data, key), setRetry)
+      const { booking } = await withRetries(() => api.createBooking(data, key), setRetry)
       done(booking)
     } catch (err) {
       if (isRetryable(err)) {
@@ -225,7 +224,7 @@ export default function BookingPage({ userId, params, setParams, onNavigate }: P
     setChecking(true)
     setCheckNote(null)
     try {
-      const { items } = await api.allBookings(userId)
+      const { items } = await api.allBookings()
       const found = items.find(
         (b) =>
           b.level_id === level.id &&
