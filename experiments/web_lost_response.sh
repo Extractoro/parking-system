@@ -23,8 +23,13 @@ BODY="{\"level_id\":\"mall-1\",\"from_hour\":\"$FROM\",\"hours\":2,\"plate\":\"L
 FREE_SQL="SELECT coalesce(string_agg(free::text, ',' ORDER BY hour), 'no rows yet (free = 40)') FROM level_hour
           WHERE level_id = 'mall-1' AND hour >= '$FROM'::timestamptz AND hour < '$FROM'::timestamptz + interval '2 hours'"
 
-psql -c "INSERT INTO app_user (id, login, role) VALUES ('$USER_ID', '$USER_ID', 'user')" >/dev/null
-echo "== user $USER_ID, key $KEY"
+# since Web lab 3: a new user with the argon2id hash of "test-pass" (scripts/hash_password.py), logged in
+PASS_HASH='$argon2id$v=19$m=65536,t=3,p=4$vkhUgKZZXM9rBCOVlAgdlw$ERIz1Kb2NiHHSPcjNM6xUMfUt5DOgsrB4XycURHXs74'
+psql -c "INSERT INTO app_user (id, login, role, password_hash) VALUES ('$USER_ID', '$USER_ID', 'user', '$PASS_HASH')" >/dev/null
+TOKEN=$(curl -sS --max-time 10 -X POST http://localhost:8080/v1/auth/login -H 'Content-Type: application/json' \
+  -d "{\"login\":\"$USER_ID\",\"password\":\"test-pass\"}" | sed -E 's/.*"access_token":"([^"]+)".*/\1/')
+[ ${#TOKEN} -eq 43 ] || { echo "login failed" >&2; exit 1; }
+echo "== user $USER_ID (logged in, token in Authorization), key $KEY"
 echo "== body $BODY"
 echo "== free of the two hours before: $(psql -c "$FREE_SQL")"
 
@@ -35,7 +40,7 @@ echo "docker compose exec app-a touch /faults/after_commit_before_response -> $(
 echo "== 2) POST to app-a (:8001) with the key"
 set +e
 curl -sS -o /dev/null -w 'http_code=%{http_code}\n' --max-time 10 -X POST http://localhost:8001/v1/bookings \
-  -H "X-User-Id: $USER_ID" -H "Idempotency-Key: $KEY" -H 'Content-Type: application/json' -d "$BODY" 2>&1
+  -H "Authorization: Bearer $TOKEN" -H "Idempotency-Key: $KEY" -H 'Content-Type: application/json' -d "$BODY" 2>&1
 echo "curl exit code: $?"
 set -e
 sleep 1
@@ -48,7 +53,7 @@ echo "-- app-a is back: $(curl -s http://localhost:8001/health)"
 
 echo "== 3) the same request with the same key to app-b (:8002)"
 curl -sS -i --max-time 10 -X POST http://localhost:8002/v1/bookings \
-  -H "X-User-Id: $USER_ID" -H "Idempotency-Key: $KEY" -H 'Content-Type: application/json' -d "$BODY" \
+  -H "Authorization: Bearer $TOKEN" -H "Idempotency-Key: $KEY" -H 'Content-Type: application/json' -d "$BODY" \
   | tr -d '\r' | grep -iE '^HTTP/|^location:|^idempotent-replayed:|^x-instance:|^\{' | sed -E 's/("id":"[^"]*").*/\1, .../'
 
 echo "== 4) database"

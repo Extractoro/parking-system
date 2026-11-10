@@ -3,7 +3,9 @@
     uv run --no-project --python 3.13 --with httpx --with "psycopg[binary]" python experiments/<script>.py
 
 WEB_BASE (http://localhost:8080), APP_A (:8001), APP_B (:8002) and TEST_DATABASE_URL can be overridden.
-Every experiment books hours of its own random future days and its own new users.
+Every experiment books hours of its own random future days and its own new users. Since Web lab 3 a
+new user is inserted with the argon2id hash of TEST_PASSWORD (made by `uv run scripts/hash_password.py
+test-pass`) and logged in; requests send its token in `Authorization: Bearer` (X-User-Id is refused).
 """
 
 import os
@@ -29,10 +31,38 @@ def connect() -> psycopg.Connection:
     return psycopg.connect(DB_URL, autocommit=True, row_factory=dict_row)
 
 
-def new_user(db: psycopg.Connection, prefix: str) -> str:
+TEST_PASSWORD = "test-pass"
+TEST_PASSWORD_HASH = "$argon2id$v=19$m=65536,t=3,p=4$vkhUgKZZXM9rBCOVlAgdlw$ERIz1Kb2NiHHSPcjNM6xUMfUt5DOgsrB4XycURHXs74"
+
+
+class User(str):
+    """The user id (a str: goes straight into SQL parameters) with the token of its login session."""
+
+    token: str
+
+
+def new_user(db: psycopg.Connection, prefix: str) -> User:
     user_id = f"{prefix}-{uuid.uuid4().hex[:10]}"
-    db.execute("INSERT INTO app_user (id, login, role) VALUES (%s, %s, 'user')", (user_id, user_id))
-    return user_id
+    db.execute(
+        "INSERT INTO app_user (id, login, role, password_hash) VALUES (%s, %s, 'user', %s)",
+        (user_id, user_id, TEST_PASSWORD_HASH),
+    )
+    r = httpx.post(f"{BASE}/v1/auth/login", json={"login": user_id, "password": TEST_PASSWORD}, timeout=10)
+    r.raise_for_status()
+    user = User(user_id)
+    user.token = r.json()["access_token"]
+    return user
+
+
+def demo_login(login: str, password: str) -> str:
+    """Token of a demo user (user1/user1-pass, user2/user2-pass, staff1/staff1-pass, migration 904)."""
+    r = httpx.post(f"{BASE}/v1/auth/login", json={"login": login, "password": password}, timeout=10)
+    r.raise_for_status()
+    return r.json()["access_token"]
+
+
+def auth(user: User) -> dict[str, str]:
+    return {"Authorization": f"Bearer {user.token}"}
 
 
 def future_days(n: int, rng: random.Random | None = None) -> list[date]:

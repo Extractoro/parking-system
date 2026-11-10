@@ -30,7 +30,7 @@ from collections import Counter
 from datetime import UTC, datetime
 
 import httpx
-from web_common import BASE, RESULTS, at, compose, connect, future_days, new_user, offset
+from web_common import BASE, RESULTS, at, auth, compose, connect, future_days, new_user, offset
 
 LEVEL = "race-test"
 # overlapping intervals (start hour, hours): every one shares an hour with several others
@@ -68,7 +68,7 @@ def one_round(db, day, users, n: int, new_hours: bool) -> dict:
     def send(i: int) -> None:
         hour, hours = INTERVALS[i % len(INTERVALS)]
         body = {"level_id": LEVEL, "from_hour": at(day, hour, off), "hours": hours, "plate": f"RT{i:04d}AA"}
-        headers = {"X-User-Id": users[i % len(users)], "Idempotency-Key": f"race-{uuid.uuid4()}"}
+        headers = {**auth(users[i % len(users)]), "Idempotency-Key": f"race-{uuid.uuid4()}"}
         with httpx.Client(timeout=15) as client:
             barrier.wait()
             r = client.post(f"{BASE}/v1/bookings", json=body, headers=headers)

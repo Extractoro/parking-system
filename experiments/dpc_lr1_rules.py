@@ -1,7 +1,7 @@
 """DPC lab 1: the rules of the garage on the demo data, with a booking made through the Web API.
 
 Needs both parts: docker compose up -d nginx api. A booking of the current hour on level mall-1 is made
-by user u-1 through Web (POST /v1/bookings via nginx); DPC reads it from the table booking (read only).
+by user u-1 (login user1) through Web (POST /v1/bookings via nginx, token since Web lab 3); DPC reads it from the table booking (read only).
 Then, in garage mall:
   1. entry with booking_id                       -> done
   2. second entry with the same booking_id       -> rejected already-entered (after the car left)
@@ -32,9 +32,12 @@ def show(step: str, r: dict) -> None:
 def main() -> None:
     plate = f"RL{uuid.uuid4().int % 10000:04d}AA"
     hour = datetime.now(ZoneInfo("Europe/Kyiv")).replace(minute=0, second=0, microsecond=0).isoformat()
+    login = httpx.post(f"{WEB}/v1/auth/login", json={"login": "user1", "password": "user1-pass"}, timeout=10)
+    login.raise_for_status()
+    token = login.json()["access_token"]
     w = httpx.post(f"{WEB}/v1/bookings", timeout=10,
                    json={"level_id": "mall-1", "from_hour": hour, "hours": 1, "plate": plate},
-                   headers={"X-User-Id": "u-1", "Idempotency-Key": str(uuid.uuid4())})
+                   headers={"Authorization": f"Bearer {token}", "Idempotency-Key": str(uuid.uuid4())})
     w.raise_for_status()
     bid = w.json()["id"]
     print(f"Web: POST /v1/bookings -> {w.status_code}, booking {bid}, mall-1, {hour} + 1 h, plate {plate}")

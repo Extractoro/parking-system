@@ -55,9 +55,12 @@ def entry(plate: str, direction: str = "in") -> None:
 def prepare() -> None:
     """Two cars inside center and a booking of the current hour on center-1 (made through Web)."""
     hour = datetime.now(ZoneInfo("Europe/Kyiv")).replace(minute=0, second=0, microsecond=0).isoformat()
+    login = httpx.post(f"{WEB}/v1/auth/login", json={"login": "user2", "password": "user2-pass"}, timeout=10)
+    login.raise_for_status()
     httpx.post(f"{WEB}/v1/bookings", timeout=10,
                json={"level_id": "center-1", "from_hour": hour, "hours": 2, "plate": f"BK{RUN}CE"},
-               headers={"X-User-Id": "u-2", "Idempotency-Key": str(uuid.uuid4())}).raise_for_status()
+               headers={"Authorization": f"Bearer {login.json()['access_token']}",
+                        "Idempotency-Key": str(uuid.uuid4())}).raise_for_status()
     for p in (f"AA{RUN}KC", f"AI{RUN}BH"):
         entry(p)
     time.sleep(2)

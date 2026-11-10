@@ -14,13 +14,13 @@ import uuid
 from collections import Counter
 
 import httpx
-from web_common import APP_A, APP_B, at, connect, future_days, new_user, offset
+from web_common import APP_A, APP_B, at, auth, connect, future_days, new_user, offset
 
 LEVEL = "mall-1"
 
 
 def post(base, user, key, body):
-    h = {"X-User-Id": user} | ({"Idempotency-Key": key} if key is not None else {})
+    h = auth(user) | ({"Idempotency-Key": key} if key is not None else {})
     return httpx.post(f"{base}/v1/bookings", json=body, headers=h, timeout=15)
 
 
@@ -70,7 +70,7 @@ def main() -> None:
                 with httpx.Client(timeout=15) as c:
                     barrier.wait()
                     res[j] = c.post(f"{(APP_A, APP_B)[j]}/v1/bookings", json=b,
-                                    headers={"X-User-Id": u, "Idempotency-Key": k})
+                                    headers={**auth(u), "Idempotency-Key": k})
 
             ts = [threading.Thread(target=one, args=(j,)) for j in (0, 1)]
             for t in ts:

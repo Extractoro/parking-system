@@ -13,7 +13,7 @@ import threading
 import uuid
 
 import httpx
-from web_common import APP_A, APP_B, at, connect, future_days, new_user, offset
+from web_common import APP_A, APP_B, at, auth, connect, future_days, new_user, offset
 
 LEVEL = "mall-2"
 
@@ -38,7 +38,7 @@ def main() -> None:
             before = free(db, start)
             r = httpx.post(f"{APP_A}/v1/bookings", timeout=15,
                            json={"level_id": LEVEL, "from_hour": start, "hours": 3, "plate": "CN0001AA"},
-                           headers={"X-User-Id": user, "Idempotency-Key": f"cancel-{uuid.uuid4()}"})
+                           headers={**auth(user), "Idempotency-Key": f"cancel-{uuid.uuid4()}"})
             assert r.status_code == 201, r.text
             booking = r.json()["id"]
             booked = free(db, start)
@@ -47,7 +47,7 @@ def main() -> None:
             if i == 0:
                 case = "sequential"
                 for base in (APP_A, APP_B):
-                    c = httpx.post(base + url, headers={"X-User-Id": user}, timeout=15)
+                    c = httpx.post(base + url, headers=auth(user), timeout=15)
                     answers.append(f"{c.status_code} {c.json()['status']} v{c.json()['version']}")
             else:
                 case = f"concurrent {i}"
@@ -56,7 +56,7 @@ def main() -> None:
                 def one(j: int, barrier=barrier, res=res, url=url, user=user) -> None:
                     with httpx.Client(timeout=15) as cl:
                         barrier.wait()
-                        res[j] = cl.post((APP_A, APP_B)[j] + url, headers={"X-User-Id": user})
+                        res[j] = cl.post((APP_A, APP_B)[j] + url, headers=auth(user))
 
                 ts = [threading.Thread(target=one, args=(j,)) for j in (0, 1)]
                 for t in ts:

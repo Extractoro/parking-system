@@ -12,6 +12,7 @@ Writes docs/reports/img/web-lr2-*.png:
   cancelled  - My bookings after a cancellation (the notice and the Past tab).
 Lost answers are simulated in the browser (the POST is aborted), so the server state is not touched;
 the bookings for the other pictures are created through the API for user u-2 on dates 3-6 days ahead.
+Since Web lab 3 the script logs in as user2 (user2-pass) and puts the session into sessionStorage.
 """
 
 import os
@@ -26,7 +27,7 @@ from playwright.sync_api import Page, expect, sync_playwright
 
 CLIENT = os.environ.get("CLIENT_URL", "http://localhost:5173")
 API = os.environ.get("WEB_BASE", "http://localhost:8080")
-USER = "u-2"
+LOGIN, PASSWORD = "user2", "user2-pass"
 OUT = Path(__file__).resolve().parents[2] / "docs" / "reports" / "img"
 TZ = ZoneInfo("Europe/Kyiv")
 # plates unique per run: the cards are found by plate, and earlier runs leave their bookings
@@ -39,17 +40,27 @@ def hour_at(days: int, hour: int) -> str:
     return d.isoformat()
 
 
+def _login() -> dict:
+    r = httpx.post(f"{API}/v1/auth/login", json={"login": LOGIN, "password": PASSWORD}, timeout=10)
+    r.raise_for_status()
+    return r.json()
+
+
+SESSION = _login()
+AUTH = {"Authorization": f"Bearer {SESSION['access_token']}"}
+
+
 def book(level: str, start: str, plate: str) -> dict:
     r = httpx.post(f"{API}/v1/bookings", timeout=10,
                    json={"level_id": level, "from_hour": start, "hours": 2, "plate": plate},
-                   headers={"X-User-Id": USER, "Idempotency-Key": f"shot-{uuid.uuid4()}"})
+                   headers={**AUTH, "Idempotency-Key": f"shot-{uuid.uuid4()}"})
     r.raise_for_status()
     return r.json()
 
 
 def open_as_user(page: Page, query: dict) -> None:
     page.goto(CLIENT)
-    page.evaluate(f"sessionStorage.setItem('userId', '{USER}')")
+    page.evaluate("s => sessionStorage.setItem('session', JSON.stringify(s))", SESSION)
     page.goto(f"{CLIENT}/?{urlencode(query)}")
 
 
@@ -84,7 +95,7 @@ def stale_shot(page: Page) -> None:
     card.locator("input").fill(NEW_PLATE)
     # meanwhile the same booking is changed elsewhere (another tab, another device): version 1 -> 2
     r = httpx.patch(f"{API}/v1/bookings/{b['id']}", json={"plate": OTHER}, timeout=10,
-                    headers={"X-User-Id": USER, "If-Match": '"1"'})
+                    headers={**AUTH, "If-Match": '"1"'})
     r.raise_for_status()
     card.get_by_role("button", name="Save plate").click()
     expect(card.get_by_text("The booking has changed")).to_be_visible()
