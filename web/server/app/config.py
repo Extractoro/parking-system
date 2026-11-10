@@ -43,6 +43,10 @@ IDEMPOTENCY_TTL_H = _int("IDEMPOTENCY_TTL_H", 24)
 IDEMPOTENCY_CLEANUP_S = _float("IDEMPOTENCY_CLEANUP_S", 60.0)
 IDEMPOTENCY_CLEANUP_BATCH = _int("IDEMPOTENCY_CLEANUP_BATCH", 1000)
 
+# login sessions (lab 3): lifetime of a token; argon2 checks at once per process
+SESSION_TTL_H = _float("SESSION_TTL_H", 8.0)
+LOGIN_CONCURRENCY = _int("LOGIN_CONCURRENCY", 4)
+
 PROBLEM_BASE = os.environ.get("PROBLEM_BASE", "https://example.edu/problems/")
 
 FAULTS = os.environ.get("FAULTS", "off") == "on"

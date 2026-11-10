@@ -3,8 +3,8 @@
 Stub: starts and waits. Yours: read a batch of the outbox with FOR UPDATE SKIP LOCKED, send it
 with broker.send() and mark it published after the broker confirmed; fault("publisher_before_send").
 
-Already here: the cleanup of expired idempotency keys, once per IDEMPOTENCY_CLEANUP_S seconds,
-in batches of IDEMPOTENCY_CLEANUP_BATCH rows. `python -m app.publisher --cleanup-once` runs one
+Already here: the cleanup of expired idempotency keys and expired login sessions (lab 3), once per
+IDEMPOTENCY_CLEANUP_S seconds, in batches of IDEMPOTENCY_CLEANUP_BATCH rows. `python -m app.publisher --cleanup-once` runs one
 pass and exits (used by the tests).
 """
 
@@ -13,7 +13,7 @@ import sys
 
 import psycopg
 
-from . import background, config, db, idempotency
+from . import background, config, db, idempotency, users
 from .jsonlog import log
 
 
@@ -23,6 +23,9 @@ async def cleanup_loop(stop: asyncio.Event) -> None:
             deleted = await idempotency.cleanup_expired(config.IDEMPOTENCY_CLEANUP_BATCH)
             if deleted:
                 log("idempotency.cleanup", deleted=deleted)
+            sessions = await users.cleanup_expired_sessions(config.IDEMPOTENCY_CLEANUP_BATCH)
+            if sessions:
+                log("session.cleanup", deleted=sessions)
         except (psycopg.Error, OSError) as exc:  # database down: try again on the next round
             log("idempotency.cleanup_failed", error=type(exc).__name__)
         try:
@@ -45,6 +48,8 @@ async def cleanup_once() -> None:
     try:
         deleted = await idempotency.cleanup_expired(config.IDEMPOTENCY_CLEANUP_BATCH)
         log("idempotency.cleanup", deleted=deleted)
+        sessions = await users.cleanup_expired_sessions(config.IDEMPOTENCY_CLEANUP_BATCH)
+        log("session.cleanup", deleted=sessions)
     finally:
         await db.close_pool()
 

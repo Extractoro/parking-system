@@ -31,6 +31,7 @@ x-server: &server
     POOL_SIZE: ${POOL_SIZE:-10}
     RATE_LIMIT_PER_MIN: ${RATE_LIMIT_PER_MIN:-120}
     JWT_REVOCATION: ${JWT_REVOCATION:-on}
+    SESSION_TTL_H: ${SESSION_TTL_H:-8}
     FAULTS: "on"
   depends_on:
     migrate:
