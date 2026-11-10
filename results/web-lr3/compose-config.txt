@@ -1,0 +1,2 @@
+$ docker compose config --quiet && echo CONFIG_OK
+CONFIG_OK

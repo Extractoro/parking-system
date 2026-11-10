@@ -1,0 +1,83 @@
+$ uv run --no-project --python 3.13 --with pytest --with httpx --with "psycopg[binary]" --with numpy pytest dpc/api/tests -v
+============================= test session starts =============================
+platform win32 -- Python 3.13.7, pytest-9.2.0, pluggy-1.7.0 -- C:\Users\VadymTytarenko\AppData\Local\uv\cache\builds-v0\.tmpmR7RAW\Scripts\python.exe
+cachedir: .pytest_cache
+rootdir: C:\Users\VadymTytarenko\parking-system\dpc\api
+configfile: pyproject.toml
+plugins: anyio-4.16.0
+collecting ... collected 38 items
+
+dpc\api\tests\test_lr1.py::test_accept_202_and_final_state PASSED        [  2%]
+dpc\api\tests\test_lr1.py::test_validation_and_auth PASSED               [  5%]
+dpc\api\tests\test_lr1.py::test_full_queue_429_not_stored PASSED         [  7%]
+dpc\api\tests\test_lr1.py::test_walk_in_rejected_when_full PASSED        [ 10%]
+dpc\api\tests\test_lr1.py::test_booking_entry_passes_when_full_by_quota PASSED [ 13%]
+dpc\api\tests\test_lr1.py::test_second_entry_by_same_booking PASSED      [ 15%]
+dpc\api\tests\test_lr1.py::test_booking_checks PASSED                    [ 18%]
+dpc\api\tests\test_lr1.py::test_exit_without_entry PASSED                [ 21%]
+dpc\api\tests\test_lr1.py::test_same_event_id_is_the_same_request PASSED [ 23%]
+dpc\api\tests\test_lr1.py::test_time_marks_order PASSED                  [ 26%]
+dpc\api\tests\test_lr1.py::test_metrics PASSED                           [ 28%]
+dpc\api\tests\test_lr1.py::test_invariant_after_200_parallel_requests PASSED [ 31%]
+dpc\api\tests\test_lr1.py::test_health_without_token PASSED              [ 34%]
+dpc\api\tests\test_lr2.py::test_reference_of_the_card PASSED             [ 36%]
+dpc\api\tests\test_lr2.py::test_1_2_4_workers_within_tolerance[midpoint] FAILED [ 39%]
+dpc\api\tests\test_lr2.py::test_1_2_4_workers_within_tolerance[trapezoid] PASSED [ 42%]
+dpc\api\tests\test_lr2.py::test_1_2_4_workers_within_tolerance[simpson] FAILED [ 44%]
+dpc\api\tests\test_lr2.py::test_small_n_parallel_equals_sequential[1-midpoint] PASSED [ 47%]
+dpc\api\tests\test_lr2.py::test_small_n_parallel_equals_sequential[1-trapezoid] PASSED [ 50%]
+dpc\api\tests\test_lr2.py::test_small_n_parallel_equals_sequential[1-simpson] SKIPPED [ 52%]
+dpc\api\tests\test_lr2.py::test_small_n_parallel_equals_sequential[2-midpoint] PASSED [ 55%]
+dpc\api\tests\test_lr2.py::test_small_n_parallel_equals_sequential[2-trapezoid] PASSED [ 57%]
+dpc\api\tests\test_lr2.py::test_small_n_parallel_equals_sequential[2-simpson] PASSED [ 60%]
+dpc\api\tests\test_lr2.py::test_small_n_parallel_equals_sequential[3-midpoint] PASSED [ 63%]
+dpc\api\tests\test_lr2.py::test_small_n_parallel_equals_sequential[3-trapezoid] PASSED [ 65%]
+dpc\api\tests\test_lr2.py::test_small_n_parallel_equals_sequential[3-simpson] SKIPPED [ 68%]
+dpc\api\tests\test_lr2.py::test_small_n_parallel_equals_sequential[6-midpoint] PASSED [ 71%]
+dpc\api\tests\test_lr2.py::test_small_n_parallel_equals_sequential[6-trapezoid] PASSED [ 73%]
+dpc\api\tests\test_lr2.py::test_small_n_parallel_equals_sequential[6-simpson] PASSED [ 76%]
+dpc\api\tests\test_lr2.py::test_small_n_parallel_equals_sequential[10-midpoint] PASSED [ 78%]
+dpc\api\tests\test_lr2.py::test_small_n_parallel_equals_sequential[10-trapezoid] PASSED [ 81%]
+dpc\api\tests\test_lr2.py::test_small_n_parallel_equals_sequential[10-simpson] PASSED [ 84%]
+dpc\api\tests\test_lr2.py::test_small_n_parallel_equals_sequential[1002-midpoint] PASSED [ 86%]
+dpc\api\tests\test_lr2.py::test_small_n_parallel_equals_sequential[1002-trapezoid] PASSED [ 89%]
+dpc\api\tests\test_lr2.py::test_small_n_parallel_equals_sequential[1002-simpson] PASSED [ 92%]
+dpc\api\tests\test_lr2.py::test_shared_sum_modes PASSED                  [ 94%]
+dpc\api\tests\test_lr2.py::test_validation PASSED                        [ 97%]
+dpc\api\tests\test_lr2.py::test_second_computation_429 PASSED            [100%]
+
+================================== FAILURES ===================================
+________________ test_1_2_4_workers_within_tolerance[midpoint] ________________
+
+api = <httpx.Client object at 0x00000219735F8830>, method = 'midpoint'
+
+    @pytest.mark.parametrize("method", ["midpoint", "trapezoid", "simpson"])
+    def test_1_2_4_workers_within_tolerance(api, method):
+        """O2.1: the same parameters on 1, 2 and 4 processes; every value within the tolerance of F(b) - F(a)."""
+        values = []
+        for workers in (1, 2, 4):
+            r = compute(api, a=0, b=14, n=20_000_000, workers=workers, method=method)
+            assert (r["workers"], r["n"], r["method"], r["mode"]) == (workers, 20_000_000, method, "local")
+>           assert r["timing"]["processes"] == workers
+E           assert 3 == 4
+
+dpc\api\tests\test_lr2.py:53: AssertionError
+________________ test_1_2_4_workers_within_tolerance[simpson] _________________
+
+api = <httpx.Client object at 0x00000219735F8830>, method = 'simpson'
+
+    @pytest.mark.parametrize("method", ["midpoint", "trapezoid", "simpson"])
+    def test_1_2_4_workers_within_tolerance(api, method):
+        """O2.1: the same parameters on 1, 2 and 4 processes; every value within the tolerance of F(b) - F(a)."""
+        values = []
+        for workers in (1, 2, 4):
+            r = compute(api, a=0, b=14, n=20_000_000, workers=workers, method=method)
+            assert (r["workers"], r["n"], r["method"], r["mode"]) == (workers, 20_000_000, method, "local")
+>           assert r["timing"]["processes"] == workers
+E           assert 3 == 4
+
+dpc\api\tests\test_lr2.py:53: AssertionError
+=========================== short test summary info ===========================
+FAILED dpc\api\tests\test_lr2.py::test_1_2_4_workers_within_tolerance[midpoint]
+FAILED dpc\api\tests\test_lr2.py::test_1_2_4_workers_within_tolerance[simpson]
+============= 2 failed, 34 passed, 2 skipped in 141.59s (0:02:21) =============

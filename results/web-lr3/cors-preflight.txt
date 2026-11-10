@@ -1,0 +1,31 @@
+$ curl -si -X OPTIONS http://localhost:8080/v1/bookings -H 'Origin: http://localhost:5173' -H 'Access-Control-Request-Method: POST' -H 'Access-Control-Request-Headers: authorization,content-type,idempotency-key'
+HTTP/1.1 200 OK
+Server: nginx/1.31.7
+Content-Type: text/plain; charset=utf-8
+Content-Length: 2
+Connection: keep-alive
+vary: Origin, Access-Control-Request-Method, Access-Control-Request-Headers, Access-Control-Request-Private-Network
+access-control-allow-methods: GET, POST, PATCH, OPTIONS
+access-control-max-age: 600
+access-control-allow-headers: Accept, Accept-Language, Authorization, Content-Language, Content-Type, Idempotency-Key, If-Match, X-Request-ID
+access-control-allow-origin: http://localhost:5173
+X-Pool: app
+
+OK
+
+
+$ curl -si -X OPTIONS http://localhost:8080/v1/bookings -H 'Origin: http://localhost:8082' -H 'Access-Control-Request-Method: POST' -H 'Access-Control-Request-Headers: authorization,content-type,idempotency-key'
+HTTP/1.1 400 Bad Request
+Server: nginx/1.31.7
+Content-Type: text/plain; charset=utf-8
+Content-Length: 22
+Connection: keep-alive
+vary: Origin, Access-Control-Request-Method, Access-Control-Request-Headers, Access-Control-Request-Private-Network
+access-control-allow-methods: GET, POST, PATCH, OPTIONS
+access-control-max-age: 600
+access-control-allow-headers: Accept, Accept-Language, Authorization, Content-Language, Content-Type, Idempotency-Key, If-Match, X-Request-ID
+X-Pool: app
+
+Disallowed CORS origin
+
+

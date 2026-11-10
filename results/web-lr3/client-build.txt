@@ -1,0 +1,16 @@
+$ npx tsc -b && npx eslint . && npm run build   (web/client)
+tsc: ok
+eslint: ok
+
+> parking-client@0.0.0 build
+> tsc -b && vite build
+
+vite v6.4.5 building for production...
+transforming...
+✓ 44 modules transformed.
+rendering chunks...
+computing gzip size...
+dist/index.html                   0.80 kB │ gzip:  0.43 kB
+dist/assets/index-DLxTSFTl.css   17.39 kB │ gzip:  4.19 kB
+dist/assets/index-D3J4H8px.js   280.84 kB │ gzip: 85.75 kB
+✓ built in 1.56s

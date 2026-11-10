@@ -1,0 +1,68 @@
+stand http://localhost:8080 (app-a http://localhost:8001, app-b http://localhost:8002); test day 2031-11-13, level mall-2
+
+== 1) login on app-a, token on app-b, logout, expiry
+  POST /v1/auth/login user1 -> app-a                   200                        [app-a] token 43 chars, expires_at 2026-11-11T04:01:39.932297Z
+  rows of session with sha256(token): 1; with the token itself: 0
+  GET /v1/me with this token -> app-b                  200                        [app-b] {'id': 'u-1', 'login': 'user1', 'name': 'user1', 'role': 'user'}
+  POST /v1/auth/logout -> app-a                        204                        [app-a] 
+  GET /v1/me with the old token -> 8001                401 unauthorized           [app-a] Bearer error="invalid_token"
+  GET /v1/me with the old token -> 8002                401 unauthorized           [app-b] Bearer error="invalid_token"
+  POST /v1/auth/logout again (same token)              204                        [app-b] 
+  GET /v1/me user2 before expiry                       200                        [app-a] 
+  SQL: expires_at of this session moved 1 minute into the past
+  GET /v1/me user2 after expiry                        401 unauthorized           [app-b] Bearer error="invalid_token"
+
+== 2) wrong password and unknown login
+  user1 + wrong password                               401 invalid-credentials    [app-a] 
+  unknown login                                        401 invalid-credentials    [app-b] 
+  bodies equal: True; body {'type': 'https://example.edu/problems/invalid-credentials', 'title': 'Invalid login or password', 'status': 401, 'detail': 'Check the login and the password', 'instance': '/v1/auth/login'}
+  wrong password   median   75.4 ms, min   64.0, max  258.9 (n = 15, app-a)
+  unknown login    median   73.6 ms, min   61.3, max  126.5 (n = 15, app-a)
+  right password   median   81.2 ms, min   66.0, max  189.4 (n = 15, app-a)
+
+== 3) X-User-Id only
+  GET /v1/bookings, X-User-Id: u-1                     401 unauthorized           [app-a] 
+  POST /v1/bookings, X-User-Id: u-1                    401 unauthorized           [app-b] 
+  GET /v1/me, X-User-Id: s-1                           401 unauthorized           [app-a] 
+
+== 4) user1 and a booking of user2
+  user2 POST /v1/bookings                              201                        [app-b] id 5d6e1ddf-46fc-4ad1-b2cc-eb9e7543f5d6
+  user1 GET booking of user2                           404 booking-not-found      [app-a] 
+  user1 GET missing id                                 404 booking-not-found      [app-b] 
+  same type/title/detail: True
+  user1 PATCH plate booking of user2                   404 booking-not-found      [app-a] 
+  user1 PATCH plate missing id                         404 booking-not-found      [app-b] 
+  same type/title/detail: True
+  user1 POST cancel booking of user2                   404 booking-not-found      [app-a] 
+  user1 POST cancel missing id                         404 booking-not-found      [app-b] 
+  same type/title/detail: True
+  booking of user2 in the list of user1: False
+  user2 reads it: plate OW0002BB, status confirmed, version 1
+
+== 5) staff function: close a level
+  user1 POST /v1/levels/mall-2/close                   403 forbidden              [app-b] 
+  user1 POST /v1/levels/no-such-level/close            403 forbidden              [app-a] 
+  no token POST /v1/levels/mall-2/close                401 unauthorized           [app-b] 
+  staff1 POST /v1/levels/mall-2/close (1)              200                        [app-a] closed=True
+  staff1 POST /v1/levels/mall-2/close (2)              200                        [app-b] closed=True
+  user1 POST /v1/bookings on the closed level          409 level-closed           [app-a] 
+  user2 GET its confirmed booking of this level        200                        [app-b] confirmed
+  user1 POST /v1/levels/mall-2/open                    403 forbidden              [app-b] 
+  staff1 POST /v1/levels/mall-2/open                   200                        [app-a] closed=False
+  user1 POST /v1/bookings after open                   201                        [app-b] 
+
+== 6) CORS (nginx :8080)
+  OPTIONS /v1/bookings Origin http://localhost:5173: 200
+    access-control-allow-origin: http://localhost:5173
+    access-control-allow-methods: GET, POST, PATCH, OPTIONS
+    access-control-allow-headers: Accept, Accept-Language, Authorization, Content-Language, Content-Type, Idempotency-Key, If-Match, X-Request-ID
+    access-control-allow-credentials: (absent)
+    access-control-max-age: 600
+  GET /v1/garages Origin http://localhost:5173: 200, access-control-allow-origin: http://localhost:5173, access-control-expose-headers: Location, ETag, Retry-After, X-Request-ID, Idempotent-Replayed, X-Instance
+  OPTIONS /v1/bookings Origin http://localhost:8082: 400
+    access-control-allow-origin: (absent)
+    access-control-allow-methods: GET, POST, PATCH, OPTIONS
+    access-control-allow-headers: Accept, Accept-Language, Authorization, Content-Language, Content-Type, Idempotency-Key, If-Match, X-Request-ID
+    access-control-allow-credentials: (absent)
+    access-control-max-age: 600
+  GET /v1/garages Origin http://localhost:8082: 200, access-control-allow-origin: (absent), access-control-expose-headers: Location, ETag, Retry-After, X-Request-ID, Idempotent-Replayed, X-Instance
