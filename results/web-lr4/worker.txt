@@ -1,0 +1,21 @@
+== web lab 4: worker, 2026-11-11T10:17:30+00:00
+booking 53dd8000-4d4e-4352-a307-bc24c44556ba plate LR75BDEX 2026-11-11T12:00:00+02:00 .. 2026-11-11T14:00:00+02:00 status confirmed
+$ docker compose exec -T worker touch /faults/after_external_before_commit
+POST /v1/bookings/53dd8000../entries -> 202 Location=/v1/operations/cc2ef3b8-adb3-427e-aceb-9723cf07a31c Retry-After=2 replayed=None
+after the external action: running | effects: 1 | notifications: 0
+   {"time": "2026-11-11T10:17:33.127+00:00", "instance": "worker", "event": "fault.hit", "place": "after_external_before_commit"}
+   {"time": "2026-11-11T10:17:33.819+00:00", "instance": "worker", "event": "process.started"}
+  t=12:17:37 state=running version=2 result=None error=None
+  t=12:17:43 state=succeeded version=3 result={'effect_id': 'bar-9a77cf86c9', 'opened_at': '2026-11-11T10:17:33.126Z'} error=None
+   {"time": "2026-11-11T10:17:31.653+00:00", "instance": "worker", "event": "worker.started", "event_id": "72cb144f-2146-450f-a0b6-4cb0c111e4ae", "operation_id": "cc2ef3b8-adb3-427e-aceb-9723cf07a31c", "booking_id": "53dd8000-4d4e-4352-a307-bc24c44556ba"}
+   {"time": "2026-11-11T10:17:42.637+00:00", "instance": "worker", "event": "worker.started", "event_id": "72cb144f-2146-450f-a0b6-4cb0c111e4ae", "operation_id": "cc2ef3b8-adb3-427e-aceb-9723cf07a31c", "booking_id": "53dd8000-4d4e-4352-a307-bc24c44556ba"}
+   {"time": "2026-11-11T10:17:42.777+00:00", "instance": "worker", "event": "worker.done", "event_id": "72cb144f-2146-450f-a0b6-4cb0c111e4ae", "operation_id": "cc2ef3b8-adb3-427e-aceb-9723cf07a31c", "outcome": "succeeded", "external": "accepted", "reason": null}
+   {"time": "2026-11-11T10:17:33.126+00:00", "sim": "barrier", "event": "final", "key": "cc2ef3b8-adb3-427e-aceb-9723cf07a31c", "attempt": 1, "status": "accepted", "request": {"booking_id": "53dd8000-4d4e-4352-a307-bc24c44556ba", "garage_id": "center", "plate": "
+   {"time": "2026-11-11T10:17:42.736+00:00", "sim": "barrier", "event": "repeat", "key": "cc2ef3b8-adb3-427e-aceb-9723cf07a31c", "status": "accepted"}
+GET :8090/effects?key=cc2ef3b8.. -> effects=1 result=accepted ids=['bar-9a77cf86c9']
+notifications of the operation: 1
+processed_message (worker) of entry.requested: 1
+outbox of the booking: [('booking.created', True), ('entry.requested', True), ('entry.opened', True)]
+DPC entry_request with event_id = operation: [('done', None)]
+DPC entry rows of the booking: 1
+booking status: entered

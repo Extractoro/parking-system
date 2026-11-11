@@ -1,0 +1,32 @@
+== web lab 4: dpcdown, 2026-11-11T10:22:36+00:00
+booking 72c9cae5-94f4-4fed-86ec-e61d239d6b53 plate LRAD65EX 2026-11-11T12:00:00+02:00 .. 2026-11-11T14:00:00+02:00 status confirmed
+$  docker compose stop api
+Container parking-system-api-1  Stopping
+ Container parking-system-api-1  Stopped
+POST /v1/bookings/72c9cae5../entries -> 202 Location=/v1/operations/a712b349-122f-4b4d-b580-395bbb3277e6 Retry-After=2 replayed=None
+  t=12:22:38 state=pending version=1 result=None error=None
+  t=12:22:39 state=running version=2 result=None error=None
+  t=12:22:41 state=succeeded version=3 result={'effect_id': 'bar-5277fc327f', 'opened_at': '2026-11-11T10:22:41.066Z'} error=None
+while DPC is stopped: booking status confirmed
+$  docker compose start api
+Container parking-system-postgres-1  Waiting
+ Container parking-system-postgres-1  Healthy
+ Container parking-system-migrate-1  Starting
+ Container parking-system-migrate-1  Started
+ Container parking-system-migrate-1  Waiting
+ Container parking-system-migrate-1  Exited
+ Container parking-system-api-1  Starting
+ Container parking-system-api-1  Started
+booking status: entered (33.5 s after the stop)
+   {"time": "2026-11-11T10:22:45.148+00:00", "instance": "relay", "event": "relay.retry", "operation_id": "a712b349-122f-4b4d-b580-395bbb3277e6", "attempt": 1, "reason": "ConnectError", "pause_s": 1.0}
+   {"time": "2026-11-11T10:22:49.332+00:00", "instance": "relay", "event": "relay.retry", "operation_id": "a712b349-122f-4b4d-b580-395bbb3277e6", "attempt": 2, "reason": "ConnectError", "pause_s": 2.0}
+   {"time": "2026-11-11T10:22:55.338+00:00", "instance": "relay", "event": "relay.retry", "operation_id": "a712b349-122f-4b4d-b580-395bbb3277e6", "attempt": 3, "reason": "ConnectError", "pause_s": 4.0}
+   {"time": "2026-11-11T10:23:03.343+00:00", "instance": "relay", "event": "relay.retry", "operation_id": "a712b349-122f-4b4d-b580-395bbb3277e6", "attempt": 4, "reason": "ConnectError", "pause_s": 8.0}
+   {"time": "2026-11-11T10:23:11.366+00:00", "instance": "relay", "event": "relay.sent", "event_id": "8ad5ece2-7a82-48c2-8b57-d8e8bc8e32cf", "operation_id": "a712b349-122f-4b4d-b580-395bbb3277e6", "booking_id": "72c9cae5-94f4-4fed-86ec-e61d239d6b53", "location": 
+GET :8090/effects?key=a712b349.. -> effects=1 result=accepted ids=['bar-5277fc327f']
+notifications of the operation: 1
+processed_message (worker) of entry.requested: 1
+outbox of the booking: [('booking.created', True), ('entry.requested', True), ('entry.opened', True)]
+DPC entry_request with event_id = operation: [('done', None)]
+DPC entry rows of the booking: 1
+cleanup: LRAD65EX leaves the garage (DPC exit) -> 202

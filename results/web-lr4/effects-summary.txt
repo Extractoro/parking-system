@@ -1,0 +1,1 @@
+simulator: keys 20 total_effects 20 keys_with_duplicates []

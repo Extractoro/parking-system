@@ -1,0 +1,27 @@
+== web lab 4: rejected, 2026-11-11T10:23:31+00:00
+$ SIM_REJECT_SHARE=1 docker compose up -d external-sim
+Container parking-system-external-sim-1  Recreate
+ Container parking-system-external-sim-1  Recreated
+ Container parking-system-external-sim-1  Starting
+ Container parking-system-external-sim-1  Started
+booking 12969b0c-9e07-48c2-b90b-288bbe3ec918 plate LR346DEX 2026-11-11T12:00:00+02:00 .. 2026-11-11T14:00:00+02:00 status confirmed
+POST /v1/bookings/12969b0c../entries -> 202 Location=/v1/operations/32d23c10-bc00-4079-92c7-e5b914744118 Retry-After=2 replayed=None
+  t=12:23:36 state=pending version=1 result=None error=None
+  t=12:23:37 state=running version=2 result=None error=None
+  t=12:23:38 state=failed version=3 result=None error=шлагбаум несправний
+GET :8090/effects?key=32d23c10.. -> effects=0 result=rejected ids=[]
+notifications of the operation: 1
+processed_message (worker) of entry.requested: 1
+outbox of the booking: [('booking.created', True), ('entry.requested', True)]
+DPC entry_request with event_id = operation: []
+DPC entry rows of the booking: 0
+booking status: confirmed
+notification: Barrier not opened: шлагбаум несправний
+POST /v1/bookings/12969b0c../entries -> 202 Location=/v1/operations/af14ae32-b36f-4103-b14f-62dd8b95899d Retry-After=2 replayed=None
+  new attempt with a new key: 202 pending
+  -> failed
+$  docker compose up -d external-sim
+Container parking-system-external-sim-1  Recreate
+ Container parking-system-external-sim-1  Recreated
+ Container parking-system-external-sim-1  Starting
+ Container parking-system-external-sim-1  Started

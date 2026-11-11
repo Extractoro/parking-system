@@ -1,0 +1,22 @@
+== web lab 4: simdown, 2026-11-11T10:19:16+00:00
+booking 10150208-2e51-48ac-bfb0-ac9d0e5f2825 plate LR91ABEX 2026-11-11T12:00:00+02:00 .. 2026-11-11T14:00:00+02:00 status confirmed
+{"unavailable_for_s":20.0}
+POST /v1/bookings/10150208../entries -> 202 Location=/v1/operations/b4d9fb70-387f-4ee6-a9f0-43e789d97881 Retry-After=2 replayed=None
+  t=12:19:17 state=pending version=1 result=None error=None
+  t=12:19:18 state=running version=2 result=None error=None
+  t=12:19:54 state=succeeded version=3 result={'effect_id': 'bar-a1a5d3df44', 'opened_at': '2026-11-11T10:19:54.227Z'} error=None
+final after 37.3 s
+   {"time": "2026-11-11T10:19:17.361+00:00", "instance": "worker", "event": "worker.started", "event_id": "0786ef0f-d620-4df5-8a35-9295c2d3ccf5", "operation_id": "b4d9fb70-387f-4ee6-a9f0-43e789d97881", "booking_id": "10150208-2e51-48ac-bfb0-ac9d0e5f2825"}
+   {"time": "2026-11-11T10:19:17.373+00:00", "instance": "worker", "event": "worker.external_retry", "operation_id": "b4d9fb70-387f-4ee6-a9f0-43e789d97881", "attempt": 1, "reason": "http-503", "pause_s": 2.0}
+   {"time": "2026-11-11T10:19:19.381+00:00", "instance": "worker", "event": "worker.external_retry", "operation_id": "b4d9fb70-387f-4ee6-a9f0-43e789d97881", "attempt": 2, "reason": "http-503", "pause_s": 2.0}
+   {"time": "2026-11-11T10:19:21.388+00:00", "instance": "worker", "event": "worker.external_retry", "operation_id": "b4d9fb70-387f-4ee6-a9f0-43e789d97881", "attempt": 3, "reason": "http-503", "pause_s": 4.0}
+   {"time": "2026-11-11T10:19:25.395+00:00", "instance": "worker", "event": "worker.external_retry", "operation_id": "b4d9fb70-387f-4ee6-a9f0-43e789d97881", "attempt": 4, "reason": "http-503", "pause_s": 8.0}
+   {"time": "2026-11-11T10:19:33.399+00:00", "instance": "worker", "event": "worker.external_retry", "operation_id": "b4d9fb70-387f-4ee6-a9f0-43e789d97881", "attempt": 5, "reason": "http-503", "pause_s": 8.0}
+   {"time": "2026-11-11T10:19:43.601+00:00", "instance": "worker", "event": "worker.external_retry", "operation_id": "b4d9fb70-387f-4ee6-a9f0-43e789d97881", "attempt": 6, "reason": "http-503", "pause_s": 8.0}
+   {"time": "2026-11-11T10:19:54.241+00:00", "instance": "worker", "event": "worker.done", "event_id": "0786ef0f-d620-4df5-8a35-9295c2d3ccf5", "operation_id": "b4d9fb70-387f-4ee6-a9f0-43e789d97881", "outcome": "succeeded", "external": "accepted", "reason": null}
+GET :8090/effects?key=b4d9fb70.. -> effects=1 result=accepted ids=['bar-a1a5d3df44']
+notifications of the operation: 1
+processed_message (worker) of entry.requested: 1
+outbox of the booking: [('booking.created', True), ('entry.requested', True), ('entry.opened', True)]
+DPC entry_request with event_id = operation: [('done', None)]
+DPC entry rows of the booking: 1

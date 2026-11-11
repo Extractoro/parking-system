@@ -1,0 +1,15 @@
+== web lab 4: api, 2026-11-11T10:16:53+00:00
+booking dce2fa3e-9940-4e4c-b4fa-34add153b19b plate LR532FEX 2026-11-11T12:00:00+02:00 .. 2026-11-11T13:00:00+02:00 status confirmed
+POST /v1/bookings/dce2fa3e../entries -> 202 Location=/v1/operations/ffa23b12-5693-42bc-9cbd-b675479e66ea Retry-After=2 replayed=None
+POST /v1/bookings/dce2fa3e../entries -> 202 Location=/v1/operations/ffa23b12-5693-42bc-9cbd-b675479e66ea Retry-After=2 replayed=true
+same operation: True | operations of the booking: 1
+POST /v1/bookings/dce2fa3e../entries -> 409 Location=/v1/operations/ffa23b12-5693-42bc-9cbd-b675479e66ea Retry-After=None replayed=None
+  another key while it runs: entry-in-progress
+user2 GET foreign operation -> 404 operation-not-found; missing -> 404 operation-not-found
+POST /v1/bookings/dce2fa3e../entries -> 404 Location=None Retry-After=None replayed=None
+  user2 opens the booking of user1: booking-not-found
+booking 5991e09c-c13a-4ada-82b2-3ca91956d4e4 plate LRE7DAEX 2026-11-13T12:00:00+02:00 .. 2026-11-13T13:00:00+02:00 status confirmed
+POST /v1/bookings/5991e09c../entries -> 409 Location=None Retry-After=None replayed=None
+  outside the interval: outside-interval | operations: 0
+POST /v1/bookings/dce2fa3e../entries -> 409 Location=None Retry-After=None replayed=None
+  after it succeeded: already-entered
