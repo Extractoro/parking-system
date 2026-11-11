@@ -532,7 +532,7 @@ p = 4 (у спокої 4.9 мс).
 
 | Пункт | Де реалізовано | Перевірка та свідчення |
 |---|---|---|
-| О2.1 Паралельне інтегрування | `dpc/api/app/integrate.py` (`split`, `block_sum`, `end_terms`, `part_sum`, `run`, `reference`), `dpc/api/app/compute.py` (маршрути, один розрахунок, 429), контракт `dpc/openapi.yaml` | `test_1_2_4_workers_within_tolerance` (3 методи × p = 1, 2, 4, `n = 2·10⁷`, rel ≤ 1e-9), `test_small_n_parallel_equals_sequential` (16 тестів, 64 порівняння), `test_validation`, `test_second_computation_429` |
+| О2.1 Паралельне інтегрування | `dpc/api/app/integrate.py` (`split`, `block_sum`, `end_terms`, `part_sum`, `run`, `reference`; бар'єр `workers` учасників на старті частини - кожна частина в окремому процесі, PC-12), `dpc/api/app/compute.py` (маршрути, один розрахунок, 429), контракт `dpc/openapi.yaml` | `test_1_2_4_workers_within_tolerance` (3 методи × p = 1, 2, 4, `n = 2·10⁷`, rel ≤ 1e-9), `test_small_n_parallel_equals_sequential` (16 тестів, 64 порівняння), `test_validation`, `test_second_computation_429` |
 | О2.2 Точність | `experiments/dpc_lr2_compute.py accuracy` | `n` і `2n` для `n = 100…12800`, 3 методи, `[0; 14]` і `[0; 10]`; відношення 16/16/16 і 4/4/16; допуск 1e-9. `results/dpc-lr2/accuracy.{md,json}`, `accuracy.png` |
 | О2.3 Прискорення | `experiments/dpc_lr2_compute.py bench`, `dpc/tools/bench_table.py`, профіль `py-spy` | `n = 6·10⁸`, p = 1, 2, 4, по 5 замірів: S₄ 1.76; гіпотеза «пам'ять, а не арифметика», блок 10⁶ → 10⁴: T₁ 3.78 → 1.15 с, S₄ 2.12. `results/dpc-lr2/speedup-*.md`, `timing-*.md`, `profile-p4.svg`, `speedup.png` |
 | О2.4 Спільна сума | `part_sum` (`mode`), `run` (`Value` з `lock=False` або з блокуванням) | `experiments/dpc_lr2_compute.py modes`: `none` 0/5 і 0/3 (p = 4, 2), `lock` 5/5, `local` 5/5. `results/dpc-lr2/modes.md` |
@@ -634,7 +634,7 @@ uv run --no-project --python 3.13 --with httpx --with "psycopg[binary]" python e
 | preflight з `http://localhost:8082` | 400 `Disallowed CORS origin`, `access-control-allow-origin` відсутній |
 | сторінка :8082 у браузері (Edge) | POST: «blocked by the browser (CORS)», у консолі «Response to preflight request doesn't pass access control check»; GET: заблоковано, хоча сервер відповів 200; форма → 401 |
 | та сама сторінка на :5173 | обидві відповіді прочитано (POST 401 - немає токена, GET 200) |
-| регрес | `pytest web/server/tests` 41 passed; `pytest dpc/api/tests` 34-35 passed, 1-2 failed (`processes 3 == 4`, PC-12); lint 0 помилок; дослід О2.3 повторено |
+| регрес | `pytest web/server/tests` 41 passed; `pytest dpc/api/tests` 34-35 passed, 1-2 failed (`processes 3 == 4`, PC-12; виправлено бар'єром частин, тег `dpc-lr2.1`: 36 passed, 2 skipped); lint 0 помилок; дослід О2.3 повторено |
 
 ### DPC ЛР1
 

@@ -1,5 +1,10 @@
 # Стан проєкту C09 «Паркінги»
 
+## PC-12 - DPC ЛР2, процес на частину: **виконано** (2026-11-11, тег `dpc-lr2.1`)
+
+Бар'єр `multiprocessing.Barrier(workers)` на старті частини; `test_1_2_4_workers_within_tolerance` 10/10 при стенді Web;
+`pytest dpc/api/tests` 36 passed, 2 skipped; контроль О2.3: S₄ 1.73 (було 1.76), таблиця не змінена (деталі - PC-12).
+
 ## Етап 5 - Web ЛР3: **виконано** (2026-11-10, відповідальна Дарина)
 
 Пункти: О3.1, О3.2 (ядро), О3.3, О3.4. `checks.yaml` → `web.items += О3.3, О3.4`; `role_names` типові (`user`, `staff`).
@@ -10,7 +15,7 @@
 |---|---|
 | Міграції 006 (`app_user.password_hash`, `session`), 904 (хеші argon2id) на наявній базі | applied; образ `project-web` перезібрано з `argon2-cffi` 25.1.0 |
 | `pytest web/server/tests` | 41 passed (10 ЛР1 + 11 ЛР2 + 13 ЛР3 + 7 правило часу) |
-| `pytest dpc/api/tests` (регрес) | 34 passed, 2 failed; повтор 35 passed, 1 failed - `test_1_2_4_workers_within_tolerance` `processes 3 == 4` (PC-12, код DPC не змінювався) |
+| `pytest dpc/api/tests` (регрес) | 34 passed, 2 failed; повтор 35 passed, 1 failed - `test_1_2_4_workers_within_tolerance` `processes 3 == 4` (PC-12, код DPC не змінювався); виправлено 2026-11-11 (бар'єр частин, тег `dpc-lr2.1`): 36 passed, 2 skipped |
 | `npx @redocly/cli lint web/openapi.yaml` | valid, 0 помилок, 14 попереджень (службові маршрути й невикористані компоненти) |
 | `tsc -b`, `eslint`, `npm run build` клієнта | без помилок |
 | `docker compose config --quiet` | CONFIG_OK |
