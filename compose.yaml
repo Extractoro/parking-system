@@ -216,7 +216,7 @@ services:
     restart: "no"
 
   # ===========================================================================================
-  # Web: nginx :8080 -> app-a/app-b(/app-canary), gateways, outbox publisher, worker, router
+  # Web: nginx :8080 -> app-a/app-b(/app-canary), gateways, outbox publisher, worker, relay, router
   # ===========================================================================================
   app-a:
     <<: *server
@@ -280,6 +280,20 @@ services:
       <<: *server-env
       INSTANCE: worker
       GROUP_ID: worker
+    depends_on: *after-broker
+  # Joint project (Web lab 4): entry.opened of domain-events -> POST /v1/entries of the DPC api.
+  relay:
+    <<: *server
+    command:
+      - "python"
+      - "-m"
+      - "app.relay"
+    environment:
+      <<: *server-env
+      INSTANCE: relay
+      GROUP_ID: relay
+      DPC_URL: http://api:8000
+      DPC_TOKEN: ${API_TOKEN:-dev-token}
     depends_on: *after-broker
   router:
     <<: *server
