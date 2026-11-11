@@ -1,0 +1,22 @@
+pc12 run 0 p=1 seconds=4.565 compute=4.456 rel=5.6e-16
+pc12 run 0 p=2 seconds=3.664 compute=3.406 rel=1.9e-16
+pc12 run 0 p=4 seconds=2.345 compute=2.185 rel=1.9e-16
+pc12 run 1 p=1 seconds=4.637 compute=4.555 rel=5.6e-16
+pc12 run 1 p=2 seconds=3.787 compute=3.657 rel=1.9e-16
+pc12 run 1 p=4 seconds=2.302 compute=2.185 rel=1.9e-16
+pc12 run 2 p=1 seconds=6.975 compute=6.865 rel=5.6e-16
+pc12 run 2 p=2 seconds=3.682 compute=3.536 rel=1.9e-16
+pc12 run 2 p=4 seconds=2.719 compute=2.621 rel=1.9e-16
+pc12 run 3 p=1 seconds=4.692 compute=4.578 rel=5.6e-16
+pc12 run 3 p=2 seconds=3.009 compute=2.936 rel=1.9e-16
+pc12 run 3 p=4 seconds=3.002 compute=2.881 rel=1.9e-16
+pc12 run 4 p=1 seconds=5.622 compute=5.526 rel=5.6e-16
+pc12 run 4 p=2 seconds=4.213 compute=4.052 rel=1.9e-16
+pc12 run 4 p=4 seconds=3.721 compute=3.348 rel=1.9e-16
+pc12: n = 600000000, block = 1000000, medians of 5 runs, seconds
+
+| p | pool start | process start + dispatch | compute (longest part) | combine | total | shutdown (not in total) |
+|---|---|---|---|---|---|---|
+| 1 | 0.005 | 0.092 | 4.578 | 0.0015 | 4.692 | 0.003 |
+| 2 | 0.012 | 0.116 | 3.536 | 0.0028 | 3.682 | 0.003 |
+| 4 | 0.025 | 0.096 | 2.621 | 0.0008 | 2.719 | 0.006 |
