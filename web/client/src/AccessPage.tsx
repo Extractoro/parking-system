@@ -4,8 +4,9 @@ import { ProblemAlert } from './components'
 import { bookingCode } from './shared'
 import { CheckCircle, Spinner } from './icons'
 
-/** O3.4: an attempt to read a booking by id (someone else's -> 404 like a missing one) and the staff
- *  function "close a level" (role user -> 403). The server decides; the page only shows the answer. */
+/** O3.4: an attempt to read a booking by id (someone else's -> 404 like a missing one) and, for the role
+ *  staff only, the staff function "close a level". A driver does not see the staff function at all; the
+ *  server still refuses it to the role user with 403 (the route checks the role, not this page). */
 export default function AccessPage({ user }: { user: Me }) {
   const [bookingId, setBookingId] = useState('')
   const [reading, setReading] = useState(false)
@@ -95,37 +96,39 @@ export default function AccessPage({ user }: { user: Me }) {
           {readError != null && <ProblemAlert error={readError} />}
         </form>
 
-        <section className="card section" data-testid="access-level">
-          <h2 className="eyebrow">Staff function: close a level</h2>
-          <div className="access-row">
-            <label className="field">
-              <span>Level</span>
-              <select className="input" value={levelId} onChange={(e) => setLevelId(e.target.value)}>
-                {levels.length === 0 && <option value={levelId}>{levelId}</option>}
-                {levels.map((l) => (
-                  <option key={l.id} value={l.id}>
-                    {l.garage} · {l.name} ({l.id}){l.closed ? ' · closed' : ''}
-                  </option>
-                ))}
-              </select>
-            </label>
-            <button type="button" className="btn btn-danger" disabled={acting} onClick={() => act(true)}>
-              Close level
-            </button>
-            <button type="button" className="btn btn-ghost" disabled={acting} onClick={() => act(false)}>
-              Open level
-            </button>
-          </div>
-          {level && (
-            <div className="alert alert-success" role="status">
-              <CheckCircle color="var(--success)" />
-              <span>
-                Level {level.name} ({level.id}) is now {level.closed ? 'closed: new bookings get 409, confirmed ones stay' : 'open'}.
-              </span>
+        {user.role === 'staff' && (
+          <section className="card section" data-testid="access-level">
+            <h2 className="eyebrow">Staff function: close a level</h2>
+            <div className="access-row">
+              <label className="field">
+                <span>Level</span>
+                <select className="input" value={levelId} onChange={(e) => setLevelId(e.target.value)}>
+                  {levels.length === 0 && <option value={levelId}>{levelId}</option>}
+                  {levels.map((l) => (
+                    <option key={l.id} value={l.id}>
+                      {l.garage} · {l.name} ({l.id}){l.closed ? ' · closed' : ''}
+                    </option>
+                  ))}
+                </select>
+              </label>
+              <button type="button" className="btn btn-danger" disabled={acting} onClick={() => act(true)}>
+                Close level
+              </button>
+              <button type="button" className="btn btn-ghost" disabled={acting} onClick={() => act(false)}>
+                Open level
+              </button>
             </div>
-          )}
-          {levelError != null && <ProblemAlert error={levelError} />}
-        </section>
+            {level && (
+              <div className="alert alert-success" role="status">
+                <CheckCircle color="var(--success)" />
+                <span>
+                  Level {level.name} ({level.id}) is now {level.closed ? 'closed: new bookings get 409, confirmed ones stay' : 'open'}.
+                </span>
+              </div>
+            )}
+            {levelError != null && <ProblemAlert error={levelError} />}
+          </section>
+        )}
       </div>
     </main>
   )
