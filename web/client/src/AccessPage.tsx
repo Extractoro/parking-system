@@ -29,7 +29,8 @@ export default function AccessPage({ user }: { user: Me }) {
     setFound(null)
     setReadError(null)
     try {
-      setFound(await api.booking(bookingId.trim()))
+      // the short id from a card may come with its '#'
+      setFound(await api.booking(bookingId.trim().replace(/^#/, '')))
     } catch (err) {
       setReadError(err)
     } finally {
@@ -69,12 +70,12 @@ export default function AccessPage({ user }: { user: Me }) {
           <h2 className="eyebrow">Read a booking by id</h2>
           <div className="access-row">
             <label className="field">
-              <span>Booking id</span>
+              <span>Booking id (full or short, as on the card)</span>
               <input
                 className="input mono"
                 value={bookingId}
                 onChange={(e) => setBookingId(e.target.value)}
-                placeholder="e.g. a booking id of another user"
+                placeholder="e.g. 0411A5B7 or a booking id of another user"
                 spellCheck={false}
               />
             </label>

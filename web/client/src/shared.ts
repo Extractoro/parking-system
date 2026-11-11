@@ -2,7 +2,8 @@
 
 export type View = 'book' | 'bookings' | 'access' | 'barrier' | 'compute'
 
-/** Short human reference of a booking instead of its full id. */
+/** Short id of a booking shown to people: the first group of the uuid (8 hex digits). The server
+ *  accepts it in GET /v1/bookings/{id} too, among the bookings of the logged-in user only. */
 export function bookingCode(id: string): string {
-  return '#' + id.replace(/-/g, '').slice(0, 6).toUpperCase()
+  return '#' + id.split('-')[0].toUpperCase()
 }
