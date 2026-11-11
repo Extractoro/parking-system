@@ -1,18 +1,8 @@
 import { useEffect, useState } from 'react'
-import { ApiError, api, type Booking, type Garage, type LevelState, type Me } from './api'
+import { api, type Booking, type Garage, type LevelState, type Me } from './api'
 import { ProblemAlert } from './components'
 import { bookingCode } from './shared'
 import { CheckCircle, Spinner } from './icons'
-
-/** The answer of the server as it came: Problem Details (RFC 9457) of an error, shown as JSON. */
-function RawProblem({ error }: { error: unknown }) {
-  if (!(error instanceof ApiError) || error.status === 0) return null
-  return (
-    <pre className="problem-json" data-testid="problem-json">
-      {`HTTP ${error.status} application/problem+json\n` + JSON.stringify(error.problem, null, 2)}
-    </pre>
-  )
-}
 
 /** O3.4: an attempt to read a booking by id (someone else's -> 404 like a missing one) and the staff
  *  function "close a level" (role user -> 403). The server decides; the page only shows the answer. */
@@ -101,12 +91,7 @@ export default function AccessPage({ user }: { user: Me }) {
               </span>
             </div>
           )}
-          {readError != null && (
-            <>
-              <ProblemAlert error={readError} />
-              <RawProblem error={readError} />
-            </>
-          )}
+          {readError != null && <ProblemAlert error={readError} />}
         </form>
 
         <section className="card section" data-testid="access-level">
@@ -138,12 +123,7 @@ export default function AccessPage({ user }: { user: Me }) {
               </span>
             </div>
           )}
-          {levelError != null && (
-            <>
-              <ProblemAlert error={levelError} />
-              <RawProblem error={levelError} />
-            </>
-          )}
+          {levelError != null && <ProblemAlert error={levelError} />}
         </section>
       </div>
     </main>

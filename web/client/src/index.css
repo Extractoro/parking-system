@@ -1410,13 +1410,3 @@ fieldset.field {
   min-width: 220px;
 }
 
-.problem-json {
-  margin: 0;
-  padding: 10px 12px;
-  border-radius: var(--radius);
-  background: var(--subtle);
-  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
-  font-size: 13px;
-  white-space: pre-wrap;
-  word-break: break-all;
-}

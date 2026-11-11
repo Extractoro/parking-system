@@ -8,7 +8,7 @@ Uses the installed Microsoft Edge (channel "msedge"):
 
 Writes docs/reports/img/web-lr3-*.png:
   login        - the login form after a wrong password (401 invalid-credentials), then the header after login;
-  foreign-404  - Access check as user1: a booking of user2 read by id -> 404 as Problem Details;
+  foreign-404  - Access check as user1: a booking of user2 read by id -> 404 as Problem Details (the alert of the client);
   close-403    - Access check as user1: "Close level" -> 403 as Problem Details;
   evil-blocked - the page of http://localhost:8082: both fetch attempts blocked by the browser, the form sent;
   evil-allowed - the same page opened on the client origin http://localhost:5173: both answers read.
@@ -73,13 +73,13 @@ def access_shots(page: Page, foreign_id: str) -> None:
     card = page.get_by_test_id("access-booking")
     card.get_by_label("Booking id").fill(foreign_id)
     card.get_by_role("button", name="Read").click()
-    expect(card.get_by_test_id("problem-json")).to_be_visible()
+    expect(card.get_by_role("alert")).to_be_visible()
     card.screenshot(path=OUT / "web-lr3-foreign-404.png")
 
     level = page.get_by_test_id("access-level")
     level.get_by_label("Level").select_option("mall-2")
     level.get_by_role("button", name="Close level").click()
-    expect(level.get_by_test_id("problem-json")).to_be_visible()
+    expect(level.get_by_role("alert")).to_be_visible()
     level.screenshot(path=OUT / "web-lr3-close-403.png")
 
 
