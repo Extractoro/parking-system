@@ -5,7 +5,10 @@
 web:
   openapi: web/openapi.yaml
   base: http://localhost:8080
-  items: [О1.5, О1.6, О2.3, О2.4, Д2.4, Д2.5, О3.3, О3.4]
+  items: [О1.5, О1.6, О2.3, О2.4, Д2.4, Д2.5, О3.3, О3.4, О4.4, О4.5, Д4.1]
+  # lab 4: the long operation POST /v1/bookings/{id}/entries (x-course: long-operation) needs a booking of
+  # the CURRENT hour (entry only inside the booked interval), the example `normal` gets 409 outside-interval;
+  # the simulator is the kit one with the default route POST /admin/unavailable (simulator_down not set)
   # lab 3: roles of GET /v1/me are the default ones (user, staff); demo logins user1, user2, staff1 (migration 904)
   # services: {app-a: web-app-a, app-b: web-app-b}
 dpc:

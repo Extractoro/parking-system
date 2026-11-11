@@ -54,15 +54,15 @@
 
 | Lab | ID | Ядро/О/Д | Описание | Компонент | Файлы | Тесты | Evidence | Status |
 |---|---|---|---|---|---|---|---|---|
-| ЛР4 | О4.1 | Ядро | Асинхронна операція. | — | — | — | — | not_started |
-| ЛР4 | О4.2 | Ядро | Таблиця вихідних подій і публікатор. | — | — | — | — | not_started |
-| ЛР4 | О4.3 | Ядро | Обробник події. | — | — | — | — | not_started |
-| ЛР4 | О4.4 | О | Відновлення після керованих відмов. | — | — | — | — | not_started |
-| ЛР4 | О4.5 | О | Клієнт асинхронної операції. | — | — | — | — | not_started |
-| ЛР4 | Д4.1 | Д | Формат подій CloudEvents 1.0. | — | — | — | — | not_started |
-| ЛР4 | Д4.2 | Д | Опис каналів і повідомлень в AsyncAPI 3.0. | — | — | — | — | not_started |
-| ЛР4 | Д4.3 | Д | Наскрізна траса однієї операції через HTTP, брокер і обробник. | — | — | — | — | not_started |
-| ЛР4 | Д4.4 | Д | Проблемні повідомлення. | — | — | — | — | not_started |
+| ЛР4 | О4.1 | Ядро | Асинхронна операція. | Web API, PostgreSQL | migrations/007; operations.py, rules.py (`can_enter`), idempotency.py (202) | test_lr4.py::test_1, 4–6; test_rules.py; experiments/web_lr4.py api | 202 + Location + Retry-After; повтор ключа → та сама операція; чужа → 404; поза інтервалом → 409; in-progress/already-entered → 409 (results/web-lr4/api.txt) | done |
+| ЛР4 | О4.2 | Ядро | Таблиця вихідних подій і публікатор. | Web API, publisher, Kafka | events.py, bookings.py (`booking.created`), publisher.py | test_lr4.py::test_1, 7 | 3 події бронювання в outbox, опубліковані з тим самим id (results/web-lr4/e2e.txt) | done |
+| ЛР4 | О4.3 | Ядро | Обробник події. | worker, external-sim | worker.py, retrying.py, notifications.py | test_lr4.py::test_2, 3 | succeeded, effects 1, сповіщень 1; повтор події без другого сповіщення; 503 → повтори (results/web-lr4/e2e.txt, simdown.txt) | done |
+| ЛР4 | О4.4 | О | Відновлення після керованих відмов. | publisher, worker | publisher.py, worker.py (`fault`) | experiments/web_lr4.py publisher, worker, rejected | publisher: подія не опублікована до перезапуску, потім опублікована й оброблена; worker: 1 ефект, 1 сповіщення; rejected: failed, без entry.opened і в'їзду (results/web-lr4/) | done |
+| ЛР4 | О4.5 | О | Клієнт асинхронної операції. | Клієнт | BookingsPage.tsx (`BarrierAction`), api.ts, components.tsx | scripts/screenshots/web-lr4.py (Edge) | Open barrier → Opened at … → Parked (docs/reports/img/web-lr4-opened.png) | done |
+| ЛР4 | Д4.1 | Д | Формат подій CloudEvents 1.0. | Web API, Kafka | events.py, publisher.py (заголовки ce_*), web/asyncapi.yaml | test_lr4.py::test_1 | конверт у Kafka UI (docs/reports/img/web-lr4-kafka.png) | done |
+| ЛР4 | Д4.2 | Д | Опис каналів і повідомлень в AsyncAPI 3.0. | Документація | web/asyncapi.yaml | npx @asyncapi/cli validate | valid (results/web-lr4/asyncapi-validate.txt); у checks.yaml не заявлено до рішення команди | in_progress |
+| ЛР4 | Д4.3 | Д | Наскрізна траса однієї операції через HTTP, брокер і обробник. | — | — | — | — | skipped |
+| ЛР4 | Д4.4 | Д | Проблемні повідомлення. | — | — | — | — | skipped |
 
 ## ЛР5
 

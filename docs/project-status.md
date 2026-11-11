@@ -1,5 +1,32 @@
 # Стан проєкту C09 «Паркінги»
 
+## Етап 6 - Web ЛР4: **виконано** (2026-11-11, відповідальний Вадим)
+
+Пункти: О4.1, О4.2, О4.3 (ядро), О4.4, О4.5, Д4.1. `checks.yaml` → `web.items += О4.4, О4.5, Д4.1`; `web/asyncapi.yaml`
+валідний, Д4.2 не заявлено. Стенд: `docker compose up -d nginx publisher worker relay external-sim api`
+(+ `--profile observability up -d kafka-ui`), клієнт Vite :5173. Новий сервіс `relay` у `compose.yaml`.
+
+| Перевірка | Результат |
+|---|---|
+| Міграція 007 (`operation`, `outbox`, `processed_message`, `notification_seq`, `notification`) на наявній базі | applied; образ `project-web` перезібрано |
+| `pytest web/server/tests` | 50 passed, 1 skipped (`test_lr2::test_10`: поточна година `center-1` заповнена дослідами ЛР4, охоронна умова тесту) - 10 ЛР1 + 11 ЛР2 + 13 ЛР3 + 8 ЛР4 + 9 правило часу; до дослідів 51 passed |
+| `pytest dpc/api/tests` (регрес) | 36 passed, 2 skipped |
+| `npx @redocly/cli lint web/openapi.yaml` / `dpc/openapi.yaml` | valid, 0 помилок (13 / 5 давніх попереджень) |
+| `npx @asyncapi/cli validate web/asyncapi.yaml` | valid (1 info: версія 3.1.0) |
+| `tsc -b`, `eslint`, `npm run build` клієнта; `docker compose config --quiet` | без помилок; CONFIG_OK |
+| Наскрізний шлях (`experiments/web_lr4.py e2e`) | 202 → succeeded за 8 с → relay → DPC `done` → `entered`; effects 1, сповіщень 1, в'їздів 1; повтор `event_id` у DPC → той самий запит (`Repeated-Request`) |
+| `publisher_before_send` | подія не опублікована до перезапуску (1.15 с), потім опублікована з тим самим id, операція succeeded |
+| `after_external_before_commit` | після перезапуску симулятор `repeat`, effects 1, сповіщень 1 |
+| Відхилення (`SIM_REJECT_SHARE=1`) | failed «шлагбаум несправний», effects 0, без `entry.opened`, запитів у DPC 0 |
+| Симулятор недоступний 20 с | 6 повторів, succeeded через 37.3 с |
+| DPC зупинено 20 с | relay 4 повтори, `entered` через 33.5 с, в'їзд 1 |
+| Клієнт (Edge, Playwright) | Open barrier → Opened at … → Parked; знімки `docs/reports/img/web-lr4-*.png` |
+
+Plan Change: PC-13 (`status` = `state` у відповіді операції; відкрите питання про засіб перевірки довгої операції),
+PC-14 (одночасні запити відкриття, `entry-in-progress`), PC-15 (повтори без межі), PC-16 (`outbox.seq`),
+PC-17 (DPC відхилив в'їзд `full` після відкриття; тестові авто випущено). Нові рішення M27-M34.
+Не зроблено: Д4.2 (не заявлено), Д4.3, Д4.4, стан `expired` бронювання.
+
 ## PC-12 - DPC ЛР2, процес на частину: **виконано** (2026-11-11, тег `dpc-lr2.1`)
 
 Бар'єр `multiprocessing.Barrier(workers)` на старті частини; `test_1_2_4_workers_within_tolerance` 10/10 при стенді Web;
