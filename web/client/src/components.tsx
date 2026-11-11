@@ -106,6 +106,12 @@ function explain(error: ApiError): { title: string; detail: string } {
       return { title: 'Cannot change this booking', detail: 'It is no longer active. Refresh the list to see its current state.' }
     case 'booking-started':
       return { title: 'The booking has started', detail: 'A booking can be cancelled only before its first hour starts.' }
+    case 'outside-interval':
+      return { title: 'Not your hours', detail: 'The barrier opens only inside the booked hours.' }
+    case 'already-entered':
+      return { title: 'Already entered', detail: 'The barrier was already opened for this booking.' }
+    case 'booking-not-active':
+      return { title: 'Booking is not active', detail: 'Only a confirmed booking opens the barrier. Refresh the list.' }
     case 'booking-not-found':
       return { title: 'Booking not found', detail: 'There is no booking with this id among your bookings.' }
     case 'unauthorized':

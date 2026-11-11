@@ -1,5 +1,5 @@
-import { useCallback, useEffect, useState } from 'react'
-import { ApiError, api, type Booking, type Garage } from './api'
+import { useCallback, useEffect, useRef, useState } from 'react'
+import { ApiError, api, type Booking, type Garage, type Operation, type OperationAnswer } from './api'
 import { NavLink, ProblemAlert } from './components'
 import { problemSlug, withRetries } from './retry'
 import { bookingCode, type View } from './shared'
@@ -143,6 +143,121 @@ function BookingActions({
   )
 }
 
+const POLL_DEFAULT_S = 2
+const ENTERED_POLLS = 15 // after "Opened": read the booking until DPC records the entry (~30 s)
+
+function sleep(ms: number): Promise<void> {
+  return new Promise((r) => setTimeout(r, ms))
+}
+
+/** Open the barrier (lab 4): POST .../entries -> 202 -> GET Location while Retry-After says so ->
+ *  "Opened" or the reason of the refusal; then the booking is read again until DPC has the entry
+ *  (status entered). ONE Idempotency-Key per click, the same in every retry of that click. */
+function BarrierAction({ booking, tz, onEntered }: { booking: Booking; tz: string; onEntered: (b: Booking) => void }) {
+  const [phase, setPhase] = useState<'idle' | 'sending' | 'waiting' | 'done'>('idle')
+  const [op, setOp] = useState<Operation | null>(null)
+  const [error, setError] = useState<unknown>(null)
+  const [entered, setEntered] = useState(booking.status === 'entered')
+  const alive = useRef(true)
+  useEffect(() => {
+    alive.current = true
+    return () => {
+      alive.current = false
+    }
+  }, [])
+
+  async function follow(first: OperationAnswer) {
+    let answer = first
+    setOp(answer.operation)
+    setPhase('waiting')
+    while (alive.current && (answer.operation.state === 'pending' || answer.operation.state === 'running')) {
+      // the server says when to ask again; a lost answer of a GET is simply asked again
+      await sleep((answer.retryAfter ?? POLL_DEFAULT_S) * 1000)
+      if (!alive.current) return
+      answer = await withRetries(() => api.operation(first.location))
+      setOp(answer.operation)
+    }
+    setPhase('done')
+    if (answer.operation.state !== 'succeeded') return
+    for (let i = 0; i < ENTERED_POLLS && alive.current; i++) {
+      await sleep(POLL_DEFAULT_S * 1000)
+      const b = await api.booking(booking.id).catch(() => null)
+      if (b?.status === 'entered') {
+        setEntered(true)
+        onEntered(b)
+        return
+      }
+    }
+  }
+
+  async function open() {
+    const key = crypto.randomUUID() // one per click
+    setPhase('sending')
+    setError(null)
+    setOp(null)
+    try {
+      await follow(await withRetries(() => api.openBarrier(booking.id, key)))
+    } catch (err) {
+      let last = err
+      const live = err instanceof ApiError && problemSlug(err) === 'entry-in-progress' ? err.problem.operation_id : null
+      if (typeof live === 'string') {
+        // another click (or tab) is already opening it: follow that operation instead
+        try {
+          await follow(await api.operation(`/v1/operations/${live}`))
+          return
+        } catch (err2) {
+          last = err2
+        }
+      }
+      if (alive.current) {
+        setError(last)
+        setPhase('idle')
+      }
+    }
+  }
+
+  if (entered && !op) return null
+  const opened = op?.state === 'succeeded'
+  const failed = op?.state === 'failed'
+  return (
+    <div className="booking-actions barrier" data-testid="barrier">
+      {(phase === 'idle' || failed) && !opened && (
+        <div className="row-actions">
+          <button type="button" className="btn btn-primary btn-sm" onClick={() => void open()}>
+            {failed ? 'Try again' : 'Open barrier'}
+          </button>
+          <span className="muted small">You are inside your booked hours.</span>
+        </div>
+      )}
+      {(phase === 'sending' || (phase === 'waiting' && !opened && !failed)) && (
+        <div className="row-actions" role="status">
+          <Spinner size={16} />
+          <span>
+            Opening the barrier… <span className="muted small">{op ? op.state : 'sending'}</span>
+          </span>
+        </div>
+      )}
+      {opened && (
+        <div className="alert alert-success" role="status">
+          <CheckCircle color="var(--success)" />
+          <span>
+            Opened at <span className="mono">{op?.result ? time(op.result.opened_at, tz) : ''}</span>
+            {entered ? '. Entry recorded: the booking is now Parked.' : '. Recording the entry…'}
+          </span>
+        </div>
+      )}
+      {failed && (
+        <div className="alert alert-danger" role="alert">
+          <span>
+            <strong>Barrier not opened.</strong> {op?.error}
+          </span>
+        </div>
+      )}
+      {error != null && <ProblemAlert error={error} />}
+    </div>
+  )
+}
+
 type Props = {
   params: URLSearchParams
   setParams: (patch: Record<string, string | undefined>, mode?: 'push' | 'replace') => void
@@ -188,6 +303,10 @@ export default function BookingsPage({ params, setParams, onNavigate }: Props) {
         ? `Booking ${bookingCode(b.id)} is cancelled. Its hours are free again; you can find it under Past.`
         : `Plate of booking ${bookingCode(b.id)} changed to ${b.plate}.`,
     )
+  }
+
+  function entered(b: Booking) {
+    setData((d) => (d ? { ...d, items: d.items.map((x) => (x.id === b.id ? b : x)) } : d))
   }
 
   const garageOf = (b: Booking) => garages.find((g) => g.id === b.garage_id)
@@ -278,6 +397,9 @@ export default function BookingsPage({ params, setParams, onNavigate }: Props) {
                   </span>
                 </span>
               </div>
+              {(b.status === 'confirmed' || b.status === 'entered') &&
+                Date.parse(b.from_hour) <= now &&
+                Date.parse(b.to_hour) > now && <BarrierAction key={b.id} booking={b} tz={tz} onEntered={entered} />}
               {b.status === 'confirmed' && Date.parse(b.to_hour) > now && (
                 <BookingActions key={`${b.id}/${b.version}`} booking={b} onChanged={changed} onRefresh={load} />
               )}

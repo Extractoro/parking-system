@@ -78,6 +78,29 @@ export interface Booking {
   created_at: string
 }
 
+/** Long operation of lab 4 (open the barrier): GET Location until succeeded or failed. */
+export interface Operation {
+  id: string
+  kind: string
+  booking_id: string
+  state: 'pending' | 'running' | 'succeeded' | 'failed'
+  version: number
+  result: { opened_at: string; effect_id: string } | null
+  error: string | null
+}
+
+/** An answer of the operation routes with the poll hints of the server. */
+export interface OperationAnswer {
+  operation: Operation
+  location: string
+  retryAfter: number | null // seconds; absent once the operation is final
+}
+
+function retryAfterOf(headers: Headers): number | null {
+  const v = Number(headers.get('Retry-After'))
+  return Number.isFinite(v) && v > 0 ? v : null
+}
+
 export interface BookingPage {
   items: Booking[]
   next_cursor: string | null
@@ -222,6 +245,26 @@ export const api = {
       body: JSON.stringify(data),
       headers: { 'Idempotency-Key': idempotencyKey },
     }).then((r) => ({ booking: r.body, replayed: r.headers.get('Idempotent-Replayed') === 'true' })),
+
+  /** Open the barrier (202): one attempt; the caller keeps ONE key per click for all its retries,
+   *  so a retry after a lost answer gets the same operation, not a second opening. */
+  openBarrier: (bookingId: string, idempotencyKey: string) =>
+    request<Operation>(`${bookingPath(bookingId)}/entries`, {
+      method: 'POST',
+      headers: { 'Idempotency-Key': idempotencyKey },
+    }).then(
+      (r): OperationAnswer => ({
+        operation: r.body,
+        location: r.headers.get('Location') ?? `/v1/operations/${r.body.id}`,
+        retryAfter: retryAfterOf(r.headers),
+      }),
+    ),
+
+  /** The state of an operation by its Location; only the owner sees it (404 otherwise). */
+  operation: (location: string) =>
+    request<Operation>(location).then(
+      (r): OperationAnswer => ({ operation: r.body, location, retryAfter: retryAfterOf(r.headers) }),
+    ),
 
   /** Plate change with the version the user saw: another version -> 412. */
   updatePlate: (id: string, plate: string, version: number) =>
