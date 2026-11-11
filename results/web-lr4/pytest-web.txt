@@ -1,5 +1,5 @@
 ============================= test session starts =============================
-platform win32 -- Python 3.13.7, pytest-9.2.0, pluggy-1.7.0 -- C:\Users\VadymTytarenko\AppData\Local\uv\cache\builds-v0\.tmp4yJf0N\Scripts\python.exe
+platform win32 -- Python 3.13.7, pytest-9.2.0, pluggy-1.7.0 -- C:\Users\VadymTytarenko\AppData\Local\uv\cache\builds-v0\.tmpZjBjO1\Scripts\python.exe
 cachedir: .pytest_cache
 rootdir: C:\Users\VadymTytarenko\parking-system\web\server
 configfile: pyproject.toml
@@ -58,4 +58,4 @@ web\server\tests\test_rules.py::test_exact_start_of_hour_boundary PASSED [ 96%]
 web\server\tests\test_rules.py::test_entry_inside_the_interval PASSED    [ 98%]
 web\server\tests\test_rules.py::test_entry_outside_the_interval PASSED   [100%]
 
-================== 50 passed, 1 skipped in 62.82s (0:01:02) ===================
+======================= 50 passed, 1 skipped in 57.47s ========================
