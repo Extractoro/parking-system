@@ -23,3 +23,10 @@ def booking_start_error(from_hour: datetime, now: datetime) -> str | None:
     if from_hour < current_hour(now):
         return "must not be in the past: the earliest start is the current hour"
     return None
+
+
+def can_enter(from_hour: datetime, hours: int, now: datetime) -> bool:
+    """Entry is possible only inside the booked interval [from_hour, from_hour + hours) (card C09).
+
+    The end is open: at the first instant of the next hour the booking is over."""
+    return from_hour <= now < from_hour + hours * HOUR

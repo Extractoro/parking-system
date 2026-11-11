@@ -20,7 +20,7 @@ from fastapi.responses import JSONResponse
 from psycopg import AsyncConnection
 from pydantic import AwareDatetime, BaseModel, ConfigDict, Field, field_validator
 
-from . import config, cursor, db, idempotency, rules
+from . import config, cursor, db, events, idempotency, rules
 from .idempotency import Outcome
 from .problems import MEDIA_TYPE, Problem
 from .timefmt import local_iso
@@ -77,9 +77,18 @@ class BookingPatch(BaseModel):
 
 _BOOKING_SELECT = """
     SELECT b.id, b.user_id, b.level_id, l.garage_id, g.tz, b.plate, b.from_hour, b.hours,
-           b.tariff_minor_per_hour, b.price_minor, b.currency, b.status, b.version, b.created_at, b.expires_at
+           b.tariff_minor_per_hour, b.price_minor, b.currency, b.status, b.version, b.created_at, b.expires_at,
+           e.event_time AS entered_at
     FROM booking b JOIN level l ON l.id = b.level_id JOIN garage g ON g.id = l.garage_id
+    LEFT JOIN entry e ON e.booking_id = b.id AND e.direction = 'in'
 """
+# entered (decision B3): an accepted entry of DPC by this booking, read from its table `entry`, never
+# written by Web. entry has at most one 'in' row per booking (unique index), so the LEFT JOIN does not
+# multiply rows and the list order and cursor stay the same.
+
+
+def _status(row: dict[str, Any]) -> str:
+    return "entered" if row["status"] == "confirmed" and row["entered_at"] is not None else row["status"]
 
 
 def _to_json(row: dict[str, Any]) -> dict[str, Any]:
@@ -95,7 +104,7 @@ def _to_json(row: dict[str, Any]) -> dict[str, Any]:
         "tariff_minor_per_hour": row["tariff_minor_per_hour"],
         "price_minor": row["price_minor"],
         "currency": row["currency"],
-        "status": row["status"],
+        "status": _status(row),
         "version": row["version"],
         "created_at": local_iso(row["created_at"], tz),
         "expires_at": local_iso(row["expires_at"], tz),
@@ -247,6 +256,13 @@ async def _create(conn: AsyncConnection, body: BookingCreate, user_id: str) -> O
         (booking_id, user_id, body.level_id, body.plate, start, body.hours, tariff,
          tariff * body.hours, level["currency"], end),
     )
+    # the event in the same transaction (transactional outbox); the publisher sends it to domain-events
+    await events.add_event(conn, events.BOOKING_CREATED, booking_id, 1, {
+        "user_id": user_id,
+        "level_id": body.level_id,
+        "from_hour": events.utc_ms(start),
+        "hours": body.hours,
+    })
     cur = await conn.execute(_BOOKING_SELECT + " WHERE b.id = %s", (booking_id,))
     row = await cur.fetchone()
     # 201 leaves the server only after the COMMIT in idempotency.execute

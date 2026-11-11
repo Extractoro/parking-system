@@ -12,6 +12,7 @@ How one request with a key runs (`execute`), all in ONE transaction:
      404/409) is written as the row with state 'completed'; COMMIT stores the key and the
      domain change together. Validation errors (400/422) and crashes are not stored: the
      savepoint and the whole transaction roll back, and the same key may be sent again.
+     202 of a long operation (lab 4) is stored too: a retry gets the same operation.
 After COMMIT and before the answer leaves the process: fault("after_commit_before_response").
 """
 
@@ -30,7 +31,7 @@ from .problems import Problem
 
 MAX_KEY = 200
 # final answers that are stored and replayed; other errors are not results of the operation
-STORED = {200, 201, 404, 409}
+STORED = {200, 201, 202, 404, 409}
 
 
 @dataclass

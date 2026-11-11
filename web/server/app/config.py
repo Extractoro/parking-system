@@ -47,6 +47,17 @@ IDEMPOTENCY_CLEANUP_BATCH = _int("IDEMPOTENCY_CLEANUP_BATCH", 1000)
 SESSION_TTL_H = _float("SESSION_TTL_H", 8.0)
 LOGIN_CONCURRENCY = _int("LOGIN_CONCURRENCY", 4)
 
+# lab 4: the barrier simulator (worker) and the DPC api (relay)
+EXTERNAL_ROUTE = os.environ.get("EXTERNAL_ROUTE", "/open")
+EXTERNAL_TIMEOUT_S = _float("EXTERNAL_TIMEOUT_S", 10.0)
+RETRY_BASE_S = _float("RETRY_BASE_S", 1.0)  # pauses 1, 2, 4, 8, 8, ... s between attempts
+RETRY_CAP_S = _float("RETRY_CAP_S", 8.0)
+OUTBOX_BATCH = _int("OUTBOX_BATCH", 100)
+OUTBOX_IDLE_S = _float("OUTBOX_IDLE_S", 0.2)
+DPC_URL = os.environ.get("DPC_URL", "http://localhost:8000")
+DPC_TOKEN = os.environ.get("DPC_TOKEN", "dev-token")
+DPC_TIMEOUT_S = _float("DPC_TIMEOUT_S", 10.0)
+
 PROBLEM_BASE = os.environ.get("PROBLEM_BASE", "https://example.edu/problems/")
 
 FAULTS = os.environ.get("FAULTS", "off") == "on"
