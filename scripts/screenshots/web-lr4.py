@@ -79,7 +79,7 @@ def kafka_shot(page: Page, booking_id: str) -> None:
     body = page.locator("table tbody tr")
     last = body.nth(n - 1).bounding_box()  # the expanded row and the next event of the booking
     page.screenshot(path=OUT / "web-lr4-kafka.png", clip={
-        "x": head["x"], "y": head["y"], "width": head["width"],
+        "x": head["x"], "y": head["y"], "width": head["width"] * 0.61,  # key column and the expanded envelope
         "height": last["y"] + last["height"] - head["y"] + 2})
 
 
