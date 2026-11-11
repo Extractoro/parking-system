@@ -296,13 +296,29 @@ async def list_bookings(
     }
 
 
+# the short id shown to people: the first group of the uuid, 8 hex digits (0411a5b7 of 0411a5b7-e29d-...)
+_SHORT_ID = re.compile(r"^#?([0-9a-fA-F]{8})$")
+
+
 @router.get("/{booking_id}")
 async def get_booking(booking_id: str, user: CurrentUser) -> JSONResponse:
     """Someone else's booking and a missing one give the same 404: the owner is part of the query.
-    ETag is the version: PATCH sends it back in If-Match."""
+    The id may also be the short id (the first 8 hex digits of the uuid, as the client shows it):
+    it is looked up among the OWN bookings only, and two own bookings with the same short id (a chance
+    of about 1 in 4 billion) give 404 too rather than a guess. ETag is the version: PATCH sends it back
+    in If-Match."""
+    short = _SHORT_ID.match(booking_id)
     async with db.connection() as conn, conn.transaction():
-        cur = await conn.execute(_BOOKING_SELECT + " WHERE b.id = %s AND b.user_id = %s", (booking_id, user.id))
-        row = await cur.fetchone()
+        if short:
+            cur = await conn.execute(
+                _BOOKING_SELECT + " WHERE b.id LIKE %s AND b.user_id = %s LIMIT 2",
+                (short.group(1).lower() + "-%", user.id),
+            )
+            rows = await cur.fetchall()
+            row = rows[0] if len(rows) == 1 else None
+        else:
+            cur = await conn.execute(_BOOKING_SELECT + " WHERE b.id = %s AND b.user_id = %s", (booking_id, user.id))
+            row = await cur.fetchone()
     if row is None:
         raise _not_found()
     return _with_etag(row)

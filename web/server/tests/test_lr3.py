@@ -130,6 +130,24 @@ def test_7_foreign_booking_is_404_like_a_missing_one(api, day, users):
     assert mine["plate"] == "AA1234BB" and mine["status"] == "confirmed" and mine["version"] == 1
 
 
+def test_7b_short_id_reads_only_own_booking(api, day, users):
+    """The short id of the card (first 8 hex digits of the uuid, any case, optional '#') reads the OWN
+    booking; for another user it is the same 404 as a missing one."""
+    owner, other = users
+    off = local_offset(api, "mall-2", day)
+    r = book(api, "mall-2", iso(day, 8, off), 1, owner)
+    assert r.status_code == 201, r.text
+    full = r.json()["id"]
+    short = full.split("-")[0]
+    for ref in (short, short.upper(), "%23" + short.upper()):
+        got = api.get(f"/v1/bookings/{ref}", headers=auth(owner))
+        assert got.status_code == 200 and got.json()["id"] == full, ref
+    foreign = api.get(f"/v1/bookings/{short}", headers=auth(other))
+    absent = api.get("/v1/bookings/00000000", headers=auth(other))
+    assert foreign.status_code == absent.status_code == 404
+    assert foreign.json()["detail"] == absent.json()["detail"]
+
+
 def test_8_idempotency_key_of_another_user_gives_no_foreign_answer(api, day, users):
     off = local_offset(api, "mall-1", day)
     body = {"level_id": "mall-1", "from_hour": iso(day, 6, off), "hours": 1, "plate": "IK0001AA"}
