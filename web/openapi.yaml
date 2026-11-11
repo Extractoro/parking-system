@@ -688,6 +688,141 @@ paths:
             application/problem+json:
               schema:
                 $ref: "#/components/schemas/Problem"
+  /v1/bookings/{id}/entries:
+    parameters:
+      - $ref: "#/components/parameters/Id"
+    post:
+      tags:
+        - operations
+      operationId: openBarrier
+      summary: Відкрити шлагбаум за бронюванням (довга операція, 202)
+      description: |
+        Запит лише фіксує намір: в одній транзакції рядок бронювання `FOR UPDATE`, перевірки, операція
+        `pending` у таблиці `operation` і подія `entry.requested` у таблиці `outbox`; 202 після фіксації.
+        Публікатор надсилає подію в Kafka (`domain-events`), обробник викликає симулятор шлагбаума з
+        `Idempotency-Key` = id операції й фіксує результат, relay передає відкриття в DPC як в'їзд
+        (`POST /v1/entries` частини DPC); після цього бронювання має стан `entered`.
+
+        Перевірки: своє бронювання (інакше 404, як і відсутнє); стан `confirmed` (інакше 409
+        `booking-not-active`); в'їзду ще не було (409 `already-entered`); немає операції в'їзду, що
+        виконується (409 `entry-in-progress` з `Location` цієї операції); зараз у межах
+        `[from_hour, from_hour + hours)` (409 `outside-interval`).
+        `Idempotency-Key` обов'язковий; повтор із тим самим ключем повертає ту саму операцію (збережена
+        відповідь 202 з `Idempotent-Replayed: true`).
+      x-course: long-operation
+      parameters:
+        - $ref: "#/components/parameters/IdempotencyKey"
+      requestBody:
+        required: false
+        content:
+          application/json:
+            schema:
+              type: object
+            examples:
+              normal:
+                value: {}
+      responses:
+        "202":
+          description: Операцію прийнято
+          headers:
+            Location:
+              schema:
+                type: string
+              description: "/v1/operations/{op}"
+            Retry-After:
+              $ref: "#/components/headers/RetryAfter"
+            Idempotent-Replayed:
+              $ref: "#/components/headers/IdempotentReplayed"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Operation"
+              examples:
+                pending:
+                  value:
+                    id: 4f0c3c9e-8a51-4a52-9d55-2f0f5d1c6a10
+                    kind: entry
+                    booking_id: 9fdea44f-e38c-4b74-94c6-4885894dd722
+                    state: pending
+                    status: pending
+                    version: 1
+                    result: null
+                    error: null
+                    created_at: "2026-11-11T09:57:39.750Z"
+                    updated_at: "2026-11-11T09:57:39.750Z"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "409":
+          description: |
+            `booking-not-active`, `already-entered`, `entry-in-progress`, `outside-interval`,
+            `idempotency-in-progress` (з `Retry-After`)
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/Problem"
+        "422":
+          $ref: "#/components/responses/Unprocessable"
+  /v1/operations/{op}:
+    get:
+      tags:
+        - operations
+      operationId: getOperation
+      summary: Стан довгої операції, доступний лише власнику
+      description: |
+        Чужа й відсутня операція дають той самий 404 `operation-not-found`. Поки операція не завершена
+        (`pending`, `running`), відповідь має `Retry-After: 2`. `succeeded`: `result` = `{opened_at, effect_id}`;
+        `failed`: `error` містить причину відмови шлагбаума.
+      parameters:
+        - name: op
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Стан операції
+          headers:
+            Retry-After:
+              $ref: "#/components/headers/RetryAfter"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Operation"
+              examples:
+                succeeded:
+                  value:
+                    id: 4f0c3c9e-8a51-4a52-9d55-2f0f5d1c6a10
+                    kind: entry
+                    booking_id: 9fdea44f-e38c-4b74-94c6-4885894dd722
+                    state: succeeded
+                    status: succeeded
+                    version: 3
+                    result:
+                      opened_at: "2026-11-11T09:57:41.878Z"
+                      effect_id: bar-258594598e
+                    error: null
+                    created_at: "2026-11-11T09:57:39.750Z"
+                    updated_at: "2026-11-11T09:57:41.969Z"
+                failed:
+                  value:
+                    id: 7a1d2b3c-0000-4a52-9d55-2f0f5d1c6a11
+                    kind: entry
+                    booking_id: 9fdea44f-e38c-4b74-94c6-4885894dd722
+                    state: failed
+                    status: failed
+                    version: 3
+                    result: null
+                    error: шлагбаум несправний
+                    created_at: "2026-11-11T10:05:00.000Z"
+                    updated_at: "2026-11-11T10:05:02.100Z"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "404":
+          $ref: "#/components/responses/NotFound"
   /v1/ws-tickets:
     post:
       tags:
@@ -1068,7 +1203,8 @@ components:
           type: string
           description: |
             `held` у реалізації не використовується (бронювання одразу `confirmed`); `entered`
-            обчислюється з в'їздів частини DPC (ЛР4), `expired` — після кінця інтервалу без в'їзду (ЛР4).
+            обчислюється під час читання: у таблиці `entry` частини DPC є прийнятий в'їзд за цим
+            бронюванням (у базі бронювання лишається `confirmed`); `expired` у ЛР4 не реалізовано.
           enum:
             - held
             - confirmed
@@ -1107,13 +1243,32 @@ components:
             - UAH
     Operation:
       type: object
+      description: Довга операція (ЛР4). `status` дорівнює `state` (назва поля в контракті комплекту).
       required:
         - id
+        - kind
+        - booking_id
+        - state
         - status
         - version
+        - created_at
+        - updated_at
       properties:
         id:
           type: string
+        kind:
+          type: string
+          enum:
+            - entry
+        booking_id:
+          type: string
+        state:
+          type: string
+          enum:
+            - pending
+            - running
+            - succeeded
+            - failed
         status:
           type: string
           enum:
@@ -1123,10 +1278,30 @@ components:
             - failed
         version:
           type: integer
+          description: Зростає з кожною зміною стану (pending 1, running 2, підсумок 3)
         result:
           type:
             - object
             - "null"
+          properties:
+            opened_at:
+              type: string
+              format: date-time
+              description: Момент відкриття шлагбаума, UTC з мілісекундами
+            effect_id:
+              type: string
+              description: Ідентифікатор ефекту симулятора
+        error:
+          type:
+            - string
+            - "null"
+          description: Причина відмови (`failed`)
+        created_at:
+          type: string
+          format: date-time
+        updated_at:
+          type: string
+          format: date-time
     Notification:
       type: object
       required:

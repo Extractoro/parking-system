@@ -1,0 +1,198 @@
+# AsyncAPI 3.0 description of the events of C09 «Паркінги» (Web part, lab 4), from asyncapi.example.yaml.
+# Events are CloudEvents 1.0 in the structured mode (D4.1). Check: npx @asyncapi/cli validate web/asyncapi.yaml
+asyncapi: 3.0.0
+info:
+  title: C09 Паркінги - події Web
+  version: 1.0.0
+  description: |
+    Події пише лише таблиця вихідних подій (`outbox`) у транзакції, що змінює предметний стан;
+    публікатор надсилає збережений конверт без змін, тож повторна публікація зберігає `id`.
+    Сутність усіх подій - бронювання: ключ повідомлення й `subject` - id бронювання, тому події
+    одного бронювання читаються по порядку з однієї партиції.
+defaultContentType: application/cloudevents+json
+
+servers:
+  local:
+    host: localhost:9094
+    protocol: kafka
+    description: Kafka з compose.yaml (усередині мережі Compose - broker:9092)
+
+channels:
+  domainEvents:
+    address: domain-events
+    description: Зафіксовані зміни предметного стану Web (3 партиції)
+    messages:
+      bookingCreated:
+        $ref: "#/components/messages/BookingCreated"
+      entryRequested:
+        $ref: "#/components/messages/EntryRequested"
+      entryOpened:
+        $ref: "#/components/messages/EntryOpened"
+
+operations:
+  publishDomainEvents:
+    action: send
+    channel:
+      $ref: "#/channels/domainEvents"
+    summary: Публікатор (сервіс publisher) надсилає порції з outbox, acks=all, позначає опублікованими після підтвердження
+  handleEntryRequested:
+    action: receive
+    channel:
+      $ref: "#/channels/domainEvents"
+    messages:
+      - $ref: "#/channels/domainEvents/messages/entryRequested"
+    summary: Обробник (група worker) викликає симулятор шлагбаума з ключем = id операції й фіксує результат
+  relayEntryOpened:
+    action: receive
+    channel:
+      $ref: "#/channels/domainEvents"
+    messages:
+      - $ref: "#/channels/domainEvents/messages/entryOpened"
+    summary: Relay (група relay) передає відкриття в DPC як POST /v1/entries з event_id = id операції
+
+components:
+  messages:
+    BookingCreated:
+      name: booking.created
+      headers:
+        $ref: "#/components/schemas/KafkaHeaders"
+      payload:
+        allOf:
+          - $ref: "#/components/schemas/CloudEvent"
+          - type: object
+            properties:
+              type:
+                const: booking.created
+              data:
+                type: object
+                required: [entity_id, entity_version, user_id, level_id, from_hour, hours]
+                properties:
+                  entity_id:
+                    type: string
+                    description: id бронювання
+                  entity_version:
+                    type: integer
+                  user_id:
+                    type: string
+                  level_id:
+                    type: string
+                  from_hour:
+                    type: string
+                    format: date-time
+                  hours:
+                    type: integer
+      examples:
+        - payload:
+            specversion: "1.0"
+            id: f3f2a931-5872-4b78-95aa-1d97f68d4710
+            source: parking-web
+            type: booking.created
+            subject: 5810351a-3a56-4269-8ce7-e233a3728bb5
+            time: "2026-11-11T09:57:39.745Z"
+            datacontenttype: application/json
+            data:
+              entity_id: 5810351a-3a56-4269-8ce7-e233a3728bb5
+              entity_version: 1
+              user_id: user1
+              level_id: center-1
+              from_hour: "2026-11-11T09:00:00.000Z"
+              hours: 2
+    EntryRequested:
+      name: entry.requested
+      headers:
+        $ref: "#/components/schemas/KafkaHeaders"
+      payload:
+        allOf:
+          - $ref: "#/components/schemas/CloudEvent"
+          - type: object
+            properties:
+              type:
+                const: entry.requested
+              data:
+                type: object
+                required: [entity_id, entity_version, operation_id, user_id, garage_id, plate]
+                properties:
+                  entity_id:
+                    type: string
+                    description: id бронювання
+                  entity_version:
+                    type: integer
+                  operation_id:
+                    type: string
+                    description: id операції - ключ ідемпотентності симулятора
+                  user_id:
+                    type: string
+                  garage_id:
+                    type: string
+                  plate:
+                    type: string
+    EntryOpened:
+      name: entry.opened
+      headers:
+        $ref: "#/components/schemas/KafkaHeaders"
+      payload:
+        allOf:
+          - $ref: "#/components/schemas/CloudEvent"
+          - type: object
+            properties:
+              type:
+                const: entry.opened
+              data:
+                type: object
+                required: [entity_id, entity_version, operation_id, user_id, garage_id, plate, opened_at, effect_id]
+                properties:
+                  entity_id:
+                    type: string
+                    description: id бронювання (booking_id для DPC)
+                  entity_version:
+                    type: integer
+                  operation_id:
+                    type: string
+                    description: event_id запиту в DPC
+                  user_id:
+                    type: string
+                  garage_id:
+                    type: string
+                  plate:
+                    type: string
+                  opened_at:
+                    type: string
+                    format: date-time
+                    description: UTC з мілісекундами й Z (event_time запиту в DPC)
+                  effect_id:
+                    type: string
+
+  schemas:
+    CloudEvent:
+      type: object
+      required: [specversion, id, source, type, subject, time, datacontenttype, data]
+      properties:
+        specversion:
+          const: "1.0"
+        id:
+          type: string
+          description: Стабільний ідентифікатор події (uuid). Повтор публікації зберігає його
+        source:
+          const: parking-web
+        type:
+          type: string
+        subject:
+          type: string
+          description: id бронювання (він же ключ повідомлення Kafka)
+        time:
+          type: string
+          format: date-time
+        datacontenttype:
+          const: application/json
+        data:
+          type: object
+          required: [entity_id, entity_version]
+    KafkaHeaders:
+      type: object
+      properties:
+        content-type:
+          const: application/cloudevents+json
+        ce_type:
+          type: string
+        ce_id:
+          type: string

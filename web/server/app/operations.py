@@ -2,6 +2,7 @@
 
 POST /v1/bookings/{id}/entries  (Idempotency-Key)  -> 202, Location: /v1/operations/{op}, Retry-After: 2
 GET  /v1/operations/{op}                           -> {id, kind, booking_id, state, version, result, error}
+                                                      (+ status = state, the field name of the kit contract)
 
 The request only records the intent: ONE transaction inserts the operation (pending) and the event
 entry.requested into the outbox, and 202 leaves after COMMIT. The publisher sends the event to Kafka,
@@ -41,6 +42,7 @@ def view(row: dict[str, Any]) -> dict[str, Any]:
         "kind": row["kind"],
         "booking_id": row["booking_id"],
         "state": row["state"],
+        "status": row["state"],  # the same value under the name of the kit contract (PC-13)
         "version": row["version"],
         "result": row["result"],
         "error": row["error"],
