@@ -8,7 +8,8 @@ computed in exact rational arithmetic.
 Scheme (O2.1): the n subintervals [0, n) are split into `workers` contiguous index ranges without gaps
 or overlaps (`split`). Each process computes the weighted sum of its nodes in numpy blocks; node i of
 the trapezoid / Simpson rule belongs to the range that contains i, the last node n to the last range,
-so the end weights are counted exactly once. The sequential part: the split, the start of the pool,
+so the end weights are counted exactly once. Every part starts after a barrier of `workers` parties,
+so each part runs in its own process (PC-12). The sequential part: the split, the start of the pool,
 pickling of one small Task per part and the sum of `workers` numbers in the main process.
 
 The modes of the sum (O2.4): `local` - each part returns its own sum; `none` - every part adds the sum
@@ -118,20 +119,31 @@ def end_terms(task: Task) -> float:
     return extra
 
 
-# the shared double of the none / lock modes; set in each pool process by _init (inherited, not pickled)
+# the shared double of the none / lock modes and the start barrier of the parts; set in each pool
+# process by _init (inherited, not pickled)
 _total: Any = None
+_barrier: Any = None
+BARRIER_TIMEOUT_S = 120.0  # a lost process must not hang the parts forever: BrokenBarrierError fails the job
 
 
-def _init(total: Any, nice: int) -> None:
-    global _total
+def _init(total: Any, nice: int, barrier: Any = None) -> None:
+    global _total, _barrier
     _total = total
+    _barrier = barrier
     if nice:
         os.nice(nice)  # the event loop of api keeps priority over the computation (/health stays fast)
 
 
 def part_sum(task: Task) -> tuple[float, float, float, int]:
     """Body of one part: (local sum or 0.0, start, end, pid). Times are time.monotonic(), comparable
-    between processes of one Linux host."""
+    between processes of one Linux host.
+
+    PC-12: a part first waits on the barrier of `workers` parties. A process that holds a part blocks
+    there until every other part has been taken, so it cannot take a second part: each of the `workers`
+    parts runs in its own process (processes == workers). The wait is before `started`, so compute_s
+    and parts_s do not include it."""
+    if _barrier is not None:
+        _barrier.wait(BARRIER_TIMEOUT_S)
     started = time.monotonic()
     starts = list(range(task.lo, task.hi, task.block))
     if task.order == "reverse":
@@ -206,7 +218,8 @@ def run(
     ranges = split(n, workers)
     tasks = [Task(a, b, n, method, lo, hi, block, order, mode, k == workers - 1) for k, (lo, hi) in enumerate(ranges)]
 
-    pool = ctx.Pool(workers, initializer=_init, initargs=(total, nice))
+    barrier = ctx.Barrier(workers) if workers > 1 else None  # PC-12: one part per process
+    pool = ctx.Pool(workers, initializer=_init, initargs=(total, nice, barrier))
     t_pool = time.monotonic()
     if on_pool:
         on_pool(pool)
