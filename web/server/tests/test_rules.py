@@ -7,7 +7,7 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))  # web/server, for `app.rules`
 
-from app.rules import booking_start_error, current_hour  # noqa: E402
+from app.rules import booking_start_error, can_enter, current_hour  # noqa: E402
 
 KYIV_SUMMER = timezone(timedelta(hours=3))
 NOW = datetime(2027, 6, 15, 18, 40, 15, tzinfo=KYIV_SUMMER)  # 18:40:15 local = 15:40:15 UTC
@@ -43,3 +43,19 @@ def test_exact_start_of_hour_boundary():
     at_start = datetime(2027, 6, 15, 18, 0, tzinfo=KYIV_SUMMER)
     assert booking_start_error(at_start, at_start) is None
     assert booking_start_error(at_start - timedelta(hours=1), at_start)
+
+
+# entry (lab 4): only inside [from_hour, from_hour + hours)
+START = datetime(2027, 6, 15, 18, 0, tzinfo=KYIV_SUMMER)
+
+
+def test_entry_inside_the_interval():
+    assert can_enter(START, 2, START)  # the first instant of the interval
+    assert can_enter(START, 2, NOW)
+    assert can_enter(START, 2, START + timedelta(hours=2) - timedelta(microseconds=1))
+
+
+def test_entry_outside_the_interval():
+    assert not can_enter(START, 2, START - timedelta(microseconds=1))  # before the start
+    assert not can_enter(START, 2, START + timedelta(hours=2))  # the end is open
+    assert not can_enter(START, 1, NOW.astimezone(UTC) + timedelta(hours=1))  # another zone, same instant rule
