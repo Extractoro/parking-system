@@ -36,8 +36,31 @@ stateDiagram-v2
 `held` з картки не використовується: окремого підтвердження немає. `entered` у базі не зберігається -
 Web обчислює його з в'їздів DPC. Схема даних - `migrations/`, рішення - [docs/decisions.md](docs/decisions.md).
 
-Демодані: паркінги `mall` (рівні `mall-1`, `mall-2` по 40 місць) і `center` (`center-1`, 20 місць), тариф
-3000 і 4000 коп./год. Облікові записи: `user1` / `user1-pass`, `user2` / `user2-pass` (user), `staff1` / `staff1-pass` (staff).
+**Сутності (Web).**
+
+| Сутність | Таблиця | Що зберігає |
+|---|---|---|
+| Паркінг | `garage(id, name, tz)` | назва й часова зона IANA |
+| Рівень | `level(id, garage_id, name, spots, closed)` | кількість місць; закритий рівень не приймає нових бронювань |
+| Тариф | `tariff(garage_id, minor_per_hour, currency)` | копійок за годину; **власник - DPC** (ЛР6), Web лише читає |
+| Година рівня | `level_hour(level_id, hour, free)` | вільні місця в кожну годину |
+| Бронювання | `booking(id, user_id, level_id, plate, from_hour, hours, tariff_minor_per_hour, price_minor, currency, status, version, created_at, expires_at)` | головна сутність |
+| Користувач | `app_user(id, login, role, password_hash)` | роль `user` / `staff`, хеш пароля argon2id (ЛР3) |
+| Сесія входу | `session(token_hash, user_id, created_at, expires_at)` | sha256 токена, строк 8 годин (ЛР3) |
+
+
+**Числові параметри (навчальні припущення).**
+
+| Параметр | Значення |
+|---|---|
+| Паркінги | `mall` «South Mall», `center` «City Centre», зона `Europe/Kyiv` (назви англійською, як в інтерфейсі клієнта) |
+| Рівні | `mall-1` 40 місць, `mall-2` 40, `mall-one` 1 (для досліду гонки), `center-1` 20 |
+| Тариф | `mall` 3000 коп./год, `center` 4000 коп./год, UAH |
+| Тривалість бронювання | 1-24 години |
+| Номер авто | текст 2-12 символів |
+| Сторінка списку | `limit` 1-50, типово 20 |
+| Користувачі (вхід ЛР3) | `u-1` user1 / `user1-pass`, `u-2` user2 / `user2-pass` (user), `s-1` staff1 / `staff1-pass` (staff) |
+| Сесія входу | 8 годин (`SESSION_TTL_H`) |
 
 ## 3. Архітектура
 
@@ -164,6 +187,45 @@ uv run --no-project --python 3.13 --with pytest --with httpx --with "psycopg[bin
 
 ### Web ЛР4. Довгі операції, події й зовнішня система
 
+Шлях операції «відкрити шлагбаум»:
+
+```mermaid
+sequenceDiagram
+    participant C as Клієнт
+    participant A as app-a / app-b
+    participant DB as PostgreSQL
+    participant P as publisher
+    participant K as Kafka domain-events
+    participant W as worker
+    participant S as external-sim /open
+    participant R as relay
+    participant D as DPC api
+    C->>A: POST /v1/bookings/{id}/entries (Idempotency-Key)
+    A->>DB: BEGIN; booking FOR UPDATE; operation pending; outbox entry.requested; COMMIT
+    A-->>C: 202, Location /v1/operations/{op}, Retry-After 2
+    P->>DB: SELECT ... FOR UPDATE SKIP LOCKED
+    P->>K: send (acks=all, key = booking id)
+    P->>DB: published_at = now(); COMMIT
+    K->>W: entry.requested (група worker)
+    W->>DB: operation running
+    W->>S: POST /open, Idempotency-Key = op id, тайм-аут 10 с
+    S-->>W: accepted / rejected (503 - повтор)
+    W->>DB: BEGIN; processed_message; operation succeeded|failed; notification; outbox entry.opened; COMMIT
+    W->>K: commit offset
+    P->>K: entry.opened
+    K->>R: entry.opened (група relay)
+    R->>D: POST /v1/entries, event_id = op id, booking_id
+    D-->>R: 202 (повтор - той самий запит)
+    C->>A: GET /v1/operations/{op} ... succeeded
+    C->>A: GET /v1/bookings/{id} -> status entered (LEFT JOIN entry DPC)
+```
+
+| Тип | Де записується | `data` |
+|---|---|---|
+| `booking.created` | транзакція `POST /v1/bookings` | `user_id`, `level_id`, `from_hour`, `hours` |
+| `entry.requested` | транзакція `POST …/entries` | `operation_id`, `user_id`, `garage_id`, `plate` |
+| `entry.opened` | транзакція результату обробника | `operation_id`, `user_id`, `garage_id`, `plate`, `opened_at`, `effect_id` |
+
 | Пункт | Де реалізовано | Перевірка та свідчення |
 |---|---|---|
 | О4.1 Асинхронна операція | `web/server/app/operations.py`, `migrations/007` | 202 + `Location` + `Retry-After`; повтор ключа - та сама операція |
@@ -184,6 +246,17 @@ _Заповнюється в ЛР5-ЛР6._
 
 Ресурс - зайнятість паркінгу `garage_state(spots, occupied)`, ефект - рядок `entry`.
 
+```mermaid
+flowchart LR
+    B[шлагбаум / клієнт Barrier] -- "POST /v1/entries" --> A[Admission: черга повна? 429]
+    A --> R[маршрут: INSERT entry_request queued, put_nowait] -- 202 + Location --> B
+    R --> Q[(asyncio.Queue, QUEUE_CAPACITY)]
+    Q --> W1[обробник 1] & W2[обробник ...] & W4[обробник WORKERS]
+    W1 --> S[розпізнавання 100-500 мс, поза секцією]
+    S --> T["транзакція: SELECT garage_state FOR UPDATE, правило, INSERT entry, UPDATE occupied, done/rejected"]
+    T --> P[(PostgreSQL)]
+```
+
 | Пункт | Де реалізовано | Перевірка та свідчення |
 |---|---|---|
 | О1.1 Приймання | `dpc/api/app/entries.py`, `migrations/005` | 202 + `Location` до оброблення |
@@ -198,6 +271,16 @@ _Заповнюється в ЛР5-ЛР6._
 ### DPC ЛР2. Паралельний чисельний розрахунок
 
 Інтеграл заповненості паркінгу `O(t)` за день (машино-години); еталон - точна первісна.
+
+```mermaid
+flowchart LR
+    C[клієнт Compute / сценарій] -- "POST /v1/compute" --> R["маршрут (цикл подій): перевірка, Job, 202"]
+    R -- run_in_executor --> T["потік: split [0, n) на p діапазонів, Pool(p) forkserver"]
+    T -- "Task(a, b, n, lo, hi, ...)" --> P1["процес 1: [0, n/p)"] & P2["процес ..."] & Pp["процес p: [.., n)"]
+    P1 & P2 & Pp -- "блоки numpy по block вузлів" --> S1[локальна сума] & S2[...] & Sp[локальна сума]
+    S1 & S2 & Sp -- "p чисел" --> J["головний процес: Σ, × C·h (h/3), похибка"]
+    J --> G["GET /v1/compute/{id}"]
+```
 
 | Пункт | Де реалізовано | Перевірка та свідчення |
 |---|---|---|
