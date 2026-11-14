@@ -5,8 +5,10 @@ Where each lab plugs in (item numbers of the guide):
                     queue, the worker pool, the garage lock, the time marks and the SIGTERM drain
   DONE (O2.1-O2.4)  app/compute.py, app/integrate.py: POST/GET /v1/compute, the process pool, the shared
                     sum modes none | lock | local (D2.5, D2.6 not chosen)
-  TODO (O3.1-O3.4, D3.3, D3.4)  Ray tasks (this image also runs ray-head and ray-worker), the effect
-                    table and fault("after_effect_before_ack")
+  DONE (O3.1-O3.4)  app/raytasks.py: the Ray task (this image also runs ray-head and ray-worker);
+                    app/entries.py: the dispatcher (EXECUTION=ray, IN_FLIGHT_LIMIT), the receiver
+                    POST /internal/effects with the effect table, fault("after_effect_before_ack")
+                    in the task (D3.3, D3.4 not chosen)
   TODO (O4.2)       POST /v1/reports/main/refresh calls the given Spark runner (RUNNER_URL)
   TODO (O5.x)       GET /v1/panel, /v1/panel/batch: the windows written by your stream job
   TODO (O6.x)       GET /v1/coordinator, /v1/history; coordinators are separate processes
@@ -54,4 +56,5 @@ app.add_middleware(entries.Admission)
 problems.install(app)
 app.include_router(service.router)
 app.include_router(entries.router)
+app.include_router(entries.internal_router)  # the effect receiver of lab 3; nginx does not publish the api
 app.include_router(compute.router)

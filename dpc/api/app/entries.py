@@ -1,14 +1,24 @@
-"""Barrier entries of C09 (DPC lab 1): bounded queue, worker pool, protected garage occupancy.
+"""Barrier entries of C09 (DPC labs 1 and 3): bounded queue, workers, Ray tasks, the effect receiver.
 
-POST /v1/entries      -> 202 + Location; full queue -> 429 Retry-After: 1 (not stored); draining -> 503
-GET  /v1/entries/{id} -> state, reason, time marks of the request (O1.5)
-GET  /v1/entries      -> the last requests (the Barrier page of the client)
-GET  /v1/garage/{id}  -> spots, occupied, inside, invariant_ok (O1.4)
+POST /v1/entries        -> 202 + Location; full queue -> 429 Retry-After: 1 (not stored); draining -> 503
+GET  /v1/entries/{id}   -> state, reason, time marks of the request (O1.5)
+GET  /v1/entries        -> the last requests (the Barrier page of the client)
+GET  /v1/garage/{id}    -> spots, occupied, inside, invariant_ok (O1.4), execution mode
+POST /internal/effects  -> the effect receiver of lab 3 (O3.3), called by the Ray tasks only
 
 The queue is asyncio.Queue(maxsize=QUEUE_CAPACITY): a worker waits in `await queue.get()` on a
 future of the event loop (Condition-like wait), so an idle worker takes no CPU. Exactly WORKERS
-workers run. Each request: processing -> slow plate recognition (outside the critical section) ->
-critical section = one PostgreSQL transaction holding `SELECT ... FOR UPDATE` of the garage row.
+workers run. The admission rule and the change of the garage are one function, `admit`, called inside
+one PostgreSQL transaction that holds `SELECT ... FOR UPDATE` of the garage row, in both modes:
+
+EXECUTION=local (lab 1): a worker takes a request, waits for the plate recognition (outside the
+  critical section) and runs the transaction itself.
+EXECUTION=ray (lab 3): a worker takes a free slot of the dispatcher (at most IN_FLIGHT_LIMIT unfinished
+  Ray tasks), then a request, and submits the Ray task `raytasks.process_entry`; the task recognizes the
+  plate and POSTs the result to /internal/effects. The RECEIVER runs the transaction: the key event_id
+  in `effect` (ON CONFLICT DO NOTHING) + `admit` + the stored decision. A repeated delivery returns the
+  stored decision. Results are taken as they become ready (one awaiting coroutine per task), not in
+  the order of submission. While all slots are busy the requests wait in the queue, which answers 429.
 """
 
 import asyncio
@@ -27,7 +37,7 @@ from fastapi import APIRouter, Depends, Query, Response
 from psycopg import AsyncConnection
 from pydantic import BaseModel, ConfigDict, Field, field_validator
 
-from . import auth, config, db, metrics
+from . import auth, config, db, metrics, raytasks
 from .jsonlog import log
 from .problems import Problem
 
@@ -82,6 +92,24 @@ class Job:
     body: EntryCreate
 
 
+class EffectIn(BaseModel):
+    """The result of a Ray task: what to admit, under the key of the effect (= event_id of the request)."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    effect_key: str = Field(min_length=1, max_length=100)
+    request_id: str = Field(min_length=1, max_length=64)
+    garage_id: str = Field(min_length=1, max_length=64)
+    plate: str = Field(min_length=2, max_length=16)
+    direction: Literal["in", "out"]
+    event_time: str = Field(pattern=EVENT_TIME_RE)
+    booking_id: str | None = Field(default=None, min_length=1, max_length=64)
+
+    def entry(self) -> EntryCreate:
+        return EntryCreate(event_id=self.effect_key, garage_id=self.garage_id, plate=self.plate,
+                           direction=self.direction, event_time=self.event_time, booking_id=self.booking_id)
+
+
 @dataclass
 class Marks:
     """Monotonic marks of one request (time.monotonic_ns, this process only)."""
@@ -105,6 +133,14 @@ class State:
     marks: OrderedDict[str, Marks] = field(default_factory=OrderedDict)
     workers: list[asyncio.Task[None]] = field(default_factory=list)
     rng: random.Random = field(default_factory=lambda: random.Random(config.SEED))
+    # EXECUTION=ray: free slots of the dispatcher, unfinished Ray tasks, the coroutines awaiting them
+    slots: asyncio.Semaphore = field(default_factory=lambda: asyncio.Semaphore(config.IN_FLIGHT_LIMIT))
+    ray_in_flight: int = 0
+    ray_in_flight_max: int = 0
+    ray_ready: asyncio.Event = field(default_factory=asyncio.Event)
+    awaiting: set[asyncio.Task[None]] = field(default_factory=set)
+    effects_accepted: int = 0  # first deliveries to the receiver
+    effects_repeated: int = 0  # repeated deliveries answered with the stored decision
 
 
 state: State | None = None
@@ -157,11 +193,21 @@ def _view(row: dict[str, Any]) -> dict[str, Any]:
 # ------------------------------------------------------------------ lifecycle (lifespan of main.py)
 
 
+def ray_mode() -> bool:
+    return config.EXECUTION == "ray"
+
+
 async def start() -> None:
     global state
     state = State()
     metrics.gauge("queue_length", lambda: _state().queue.qsize())
-    metrics.gauge("in_flight", lambda: _state().busy)
+    # local: requests inside workers; ray: unfinished Ray tasks (O3.2), at most IN_FLIGHT_LIMIT
+    metrics.gauge("in_flight", lambda: _state().ray_in_flight if ray_mode() else _state().busy)
+    metrics.gauge("in_flight_max", lambda: _state().ray_in_flight_max)
+    metrics.gauge("in_flight_limit", lambda: config.IN_FLIGHT_LIMIT)
+    metrics.gauge("execution", lambda: config.EXECUTION)  # JSON only; /metrics/prom keeps the numbers
+    metrics.gauge("effects_accepted", lambda: _state().effects_accepted)
+    metrics.gauge("effects_repeated", lambda: _state().effects_repeated)
     metrics.gauge("rejected", lambda: _state().rejected_overload)
     metrics.gauge("rejected_rule", lambda: _state().rejected_rule)
     metrics.gauge("rejected_draining", lambda: _state().rejected_draining)
@@ -171,16 +217,20 @@ async def start() -> None:
         metrics.gauge(f"finished_{s}", lambda s=s: _state().finished[s])
 
     await _close_lost_requests()
-    state.workers = [asyncio.create_task(_worker(n), name=f"worker-{n}") for n in range(config.WORKERS)]
+    worker = _ray_worker if ray_mode() else _worker
+    state.workers = [asyncio.create_task(worker(n), name=f"worker-{n}") for n in range(config.WORKERS)]
+    if ray_mode():
+        state.workers.append(asyncio.create_task(_connect_ray(), name="ray-connect"))
     _install_sigterm()
-    log("entries.started", workers=config.WORKERS, queue_capacity=config.QUEUE_CAPACITY, mode=config.RESOURCE_MODE)
+    log("entries.started", workers=config.WORKERS, queue_capacity=config.QUEUE_CAPACITY, mode=config.RESOURCE_MODE,
+        execution=config.EXECUTION, in_flight_limit=config.IN_FLIGHT_LIMIT if ray_mode() else None)
 
 
 async def stop() -> None:
     st = _state()
-    for t in st.workers:
+    for t in [*st.workers, *st.awaiting]:
         t.cancel()
-    await asyncio.gather(*st.workers, return_exceptions=True)
+    await asyncio.gather(*st.workers, *st.awaiting, return_exceptions=True)
 
 
 async def _close_lost_requests() -> None:
@@ -246,13 +296,7 @@ async def _worker(n: int) -> None:
 
 async def _process(job: Job) -> None:
     st = _state()
-    m = st.marks.get(job.id)
-    if m is not None:
-        m.started = time.monotonic_ns()
-    async with db.connection() as conn, conn.transaction():
-        await conn.execute(
-            "UPDATE entry_request SET state = 'processing', started_at = now() WHERE id = %s", (job.id,)
-        )
+    await _mark_processing(job)
 
     # the slow call of the card, OUTSIDE the critical section: other workers go on meanwhile
     await asyncio.sleep(st.rng.uniform(config.RECOGNITION_MIN_MS, config.RECOGNITION_MAX_MS) / 1000)
@@ -266,14 +310,31 @@ async def _process(job: Job) -> None:
         final, reason, detail = "failed", "error", type(exc).__name__
         async with db.connection() as conn, conn.transaction():
             await _finish(conn, job.id, final, reason, detail)
+    _record(job, final, reason)
 
+
+def _record(job: Job, final: str, reason: str | None) -> None:
+    """The end of a request in this process: the finish mark, the counters, one log line."""
+    st = _state()
+    m = st.marks.get(job.id)
     if m is not None:
         m.finished = time.monotonic_ns()
     st.finished[final] += 1
     if final == "rejected":
         st.rejected_rule += 1
     log("entry.finished", id=job.id, garage_id=job.body.garage_id, direction=job.body.direction,
-        state=final, reason=reason, total_ms=_ms(m.received, m.finished) if m else None)
+        state=final, reason=reason, execution=config.EXECUTION,
+        total_ms=_ms(m.received, m.finished) if m else None)
+
+
+async def _mark_processing(job: Job) -> None:
+    m = _state().marks.get(job.id)
+    if m is not None:
+        m.started = time.monotonic_ns()
+    async with db.connection() as conn, conn.transaction():
+        await conn.execute(
+            "UPDATE entry_request SET state = 'processing', started_at = now() WHERE id = %s", (job.id,)
+        )
 
 
 async def _finish(conn: AsyncConnection, request_id: str, final: str, reason: str | None, detail: str | None) -> None:
@@ -283,30 +344,36 @@ async def _finish(conn: AsyncConnection, request_id: str, final: str, reason: st
     )
 
 
-async def _apply_locked(job: Job) -> tuple[str, str | None, str | None]:
-    """Critical section: lock the garage row, check the rule, write the entry and the occupancy."""
-    b = job.body
-    async with db.connection() as conn, conn.transaction():
-        cur = await conn.execute(
-            "SELECT spots, occupied FROM garage_state WHERE garage_id = %s FOR UPDATE", (b.garage_id,)
-        )
-        g = await cur.fetchone()
-        if g is None:
-            await _finish(conn, job.id, "rejected", "unknown-garage", None)
-            return "rejected", "unknown-garage", None
+async def admit(conn: AsyncConnection, request_id: str, b: EntryCreate) -> tuple[str, str | None, str | None]:
+    """The critical section of BOTH modes, inside the caller's transaction: lock the garage row, check
+    the rule, write the entry and the occupancy, put the request into its final state.
+    Returns (done | rejected, reason, detail)."""
+    cur = await conn.execute(
+        "SELECT spots, occupied FROM garage_state WHERE garage_id = %s FOR UPDATE", (b.garage_id,)
+    )
+    g = await cur.fetchone()
+    if g is None:
+        await _finish(conn, request_id, "rejected", "unknown-garage", None)
+        return "rejected", "unknown-garage", None
 
-        verdict = await _check_rule(conn, b, g["spots"], g["occupied"])
-        if verdict is not None:
-            await _finish(conn, job.id, "rejected", *verdict)
-            return "rejected", *verdict
+    verdict = await _check_rule(conn, b, g["spots"], g["occupied"])
+    if verdict is not None:
+        await _finish(conn, request_id, "rejected", *verdict)
+        return "rejected", *verdict
 
-        await _write_effect(conn, job)
-        delta = 1 if b.direction == "in" else -1
-        await conn.execute(
-            "UPDATE garage_state SET occupied = occupied + %s WHERE garage_id = %s", (delta, b.garage_id)
-        )
-        await _finish(conn, job.id, "done", None, None)
+    await _write_effect(conn, request_id, b)
+    delta = 1 if b.direction == "in" else -1
+    await conn.execute(
+        "UPDATE garage_state SET occupied = occupied + %s WHERE garage_id = %s", (delta, b.garage_id)
+    )
+    await _finish(conn, request_id, "done", None, None)
     return "done", None, None
+
+
+async def _apply_locked(job: Job) -> tuple[str, str | None, str | None]:
+    """EXECUTION=local: the worker runs the critical section itself, one transaction."""
+    async with db.connection() as conn, conn.transaction():
+        return await admit(conn, job.id, job.body)
 
 
 async def _apply_unsafe(job: Job) -> tuple[str, str | None, str | None]:
@@ -326,20 +393,159 @@ async def _apply_unsafe(job: Job) -> tuple[str, str | None, str | None]:
         await asyncio.sleep(config.UNSAFE_GAP_MS / 1000)  # the gap between the check and the write
         new = g["occupied"] + (1 if b.direction == "in" else -1)
         async with conn.transaction():
-            await _write_effect(conn, job)
+            await _write_effect(conn, job.id, b)
             await conn.execute("UPDATE garage_state SET occupied = %s WHERE garage_id = %s", (new, b.garage_id))
             await _finish(conn, job.id, "done", None, None)
     return "done", None, None
 
 
-async def _write_effect(conn: AsyncConnection, job: Job) -> None:
-    b = job.body
+async def _write_effect(conn: AsyncConnection, request_id: str, b: EntryCreate) -> None:
     await conn.execute(
         """INSERT INTO entry (event_id, request_id, garage_id, plate, direction, booking_id, event_time)
            VALUES (%s, %s, %s, %s, %s, %s, %s)""",
-        (b.event_id, job.id, b.garage_id, b.plate, b.direction, b.booking_id if b.direction == "in" else None,
+        (b.event_id, request_id, b.garage_id, b.plate, b.direction, b.booking_id if b.direction == "in" else None,
          b.moment()),
     )
+
+
+# ------------------------------------------------------------------ Ray dispatcher (EXECUTION=ray, lab 3)
+
+
+async def _connect_ray() -> None:
+    """ray.init(address=RAY_ADDRESS) in a thread, repeated until the cluster answers: the api starts
+    and answers /health even while ray-head is still starting; the workers wait for ray_ready."""
+    import ray
+
+    st = _state()
+    while True:
+        try:
+            await asyncio.to_thread(ray.init, address=config.RAY_ADDRESS, log_to_driver=False, namespace="dpc")
+            st.ray_ready.set()
+            log("ray.connected", address=config.RAY_ADDRESS, in_flight_limit=config.IN_FLIGHT_LIMIT)
+            return
+        except Exception as exc:  # noqa: BLE001 - the cluster may still be starting
+            log("ray.connect_failed", address=config.RAY_ADDRESS, error=type(exc).__name__)
+            try:
+                await asyncio.to_thread(ray.shutdown)
+            except Exception as down:  # noqa: BLE001 - nothing to shut down after a failed connect
+                log("ray.shutdown_failed", error=type(down).__name__)
+            await asyncio.sleep(2)
+
+
+async def _ray_worker(n: int) -> None:
+    """A worker of the queue in EXECUTION=ray: first a free slot of the dispatcher, then a request. While
+    IN_FLIGHT_LIMIT tasks are unfinished no worker takes a request, so they stay in the bounded queue
+    (and the queue answers 429 when it is full): a slow execution does not submit tasks without limit."""
+    st = _state()
+    await st.ray_ready.wait()
+    while True:
+        await st.slots.acquire()
+        try:
+            job = await st.queue.get()
+        except BaseException:
+            st.slots.release()
+            raise
+        try:
+            await _submit(job)
+        except Exception as exc:  # noqa: BLE001 - the task was not submitted: the request ends as failed
+            st.slots.release()
+            log("entry.submit_error", id=job.id, error=type(exc).__name__)
+            async with db.connection() as conn, conn.transaction():
+                await _finish(conn, job.id, "failed", "submit-failed", type(exc).__name__)
+            _record(job, "failed", "submit-failed")
+            st.queue.task_done()
+
+
+async def _submit(job: Job) -> None:
+    st = _state()
+    await _mark_processing(job)
+    b = job.body
+    request = {"request_id": job.id, "event_id": b.event_id, "garage_id": b.garage_id, "plate": b.plate,
+               "direction": b.direction, "booking_id": b.booking_id, "event_time": b.event_time}
+    ref = await asyncio.to_thread(raytasks.process_entry.remote, request)
+    st.ray_in_flight += 1
+    st.ray_in_flight_max = max(st.ray_in_flight_max, st.ray_in_flight)
+    t = asyncio.create_task(_await_result(job, ref), name=f"ray-{job.id}")
+    st.awaiting.add(t)
+    t.add_done_callback(st.awaiting.discard)
+
+
+async def _await_result(job: Job, ref: Any) -> None:
+    """One coroutine per submitted task, so each result is handled as soon as IT is ready, whatever
+    the order of submission. The receiver has already stored the request state; here only the slot
+    is freed and the end is recorded."""
+    st = _state()
+    try:
+        try:
+            result = await asyncio.wrap_future(ref.future())
+            final = "done" if result["decision"] == "accepted" else "rejected"
+            reason = result["reason"]
+        except Exception as exc:  # noqa: BLE001 - the task failed after all its retries
+            final, reason = await _settle_failed(job, exc)
+    finally:
+        st.ray_in_flight -= 1
+        st.slots.release()
+    _record(job, final, reason)
+    st.queue.task_done()
+
+
+async def _settle_failed(job: Job, exc: BaseException) -> tuple[str, str | None]:
+    """The task failed for good. If the receiver accepted the effect before the failure, the stored
+    decision stands; otherwise the request ends as failed (no effect, nothing to undo)."""
+    log("entry.task_failed", id=job.id, error=type(exc).__name__, detail=str(exc)[:300])
+    async with db.connection() as conn, conn.transaction():
+        cur = await conn.execute("SELECT decision, reason FROM effect WHERE effect_key = %s", (job.body.event_id,))
+        e = await cur.fetchone()
+        if e is not None:
+            return ("done" if e["decision"] == "accepted" else "rejected"), e["reason"]
+        await _finish(conn, job.id, "failed", "task-failed", type(exc).__name__)
+    return "failed", "task-failed"
+
+
+# ------------------------------------------------------------------ the effect receiver (O3.3)
+
+internal_router = APIRouter(prefix="/internal", dependencies=[Depends(auth.require_token)])
+
+
+@internal_router.post("/effects")
+async def receive_effect(body: EffectIn) -> dict[str, Any]:
+    """One transaction: protection from the repeat (the key), the change of the garage (`admit`) and the
+    decision. A repeated delivery of the same key returns the stored decision and changes nothing."""
+    st = _state()
+    if config.RECEIVER_DELAY_MS:
+        await asyncio.sleep(config.RECEIVER_DELAY_MS / 1000)  # O3.2 experiment: a slow receiver
+    entry = body.entry()
+    async with db.connection() as conn, conn.transaction():
+        cur = await conn.execute("SELECT event_id FROM entry_request WHERE id = %s", (body.request_id,))
+        req = await cur.fetchone()
+        if req is None:
+            raise Problem(404, "entry-not-found", "Entry request not found")
+        if req["event_id"] != body.effect_key:
+            raise Problem(409, "effect-key-mismatch", "effect_key is not the event_id of the request")
+
+        cur = await conn.execute(
+            """INSERT INTO effect (effect_key, request_id, decision) VALUES (%s, %s, 'accepted')
+               ON CONFLICT (effect_key) DO NOTHING RETURNING effect_key""",
+            (body.effect_key, body.request_id),
+        )
+        if await cur.fetchone() is None:  # a repeat (or a concurrent twin that committed first)
+            cur = await conn.execute("SELECT decision, reason FROM effect WHERE effect_key = %s", (body.effect_key,))
+            e = await cur.fetchone()
+            st.effects_repeated += 1
+            log("effect.repeated", effect_key=body.effect_key, request_id=body.request_id, decision=e["decision"])
+            return {"effect_key": body.effect_key, "request_id": body.request_id, "decision": e["decision"],
+                    "reason": e["reason"], "repeated": True}
+
+        final, reason, _ = await admit(conn, body.request_id, entry)
+        if final == "rejected":
+            await conn.execute(
+                "UPDATE effect SET decision = 'rejected', reason = %s WHERE effect_key = %s", (reason, body.effect_key)
+            )
+    st.effects_accepted += 1
+    decision = "accepted" if final == "done" else "rejected"
+    log("effect.accepted", effect_key=body.effect_key, request_id=body.request_id, decision=decision, reason=reason)
+    return {"effect_key": body.effect_key, "request_id": body.request_id, "decision": decision,
+            "reason": reason, "repeated": False}
 
 
 async def _inside(conn: AsyncConnection, garage_id: str, plate: str) -> int:
@@ -576,5 +782,6 @@ async def get_garage(garage_id: str) -> dict[str, Any]:
         "free_walk_in": max(0, g["spots"] - g["occupied"] - held),
         "invariant_ok": ok,
         "mode": "unsafe" if config.RESOURCE_MODE in ("unsafe", "unprotected") and garage_id == config.UNSAFE_GARAGE
-        else "locked",
+        and not ray_mode() else "locked",
+        "execution": config.EXECUTION,
     }

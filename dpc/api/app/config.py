@@ -42,9 +42,12 @@ SEED = _int("SEED", 1)
 # test levels of Web that are not part of the garage capacity (decision P1)
 EXCLUDED_LEVELS = tuple(x for x in os.environ.get("EXCLUDED_LEVELS", "race-test").split(",") if x)
 DRAIN_RETRY_AFTER_S = _int("DRAIN_RETRY_AFTER_S", 5)
-EXECUTION = os.environ.get("EXECUTION", "local")  # local | ray (lab 3)
-IN_FLIGHT_LIMIT = _int("IN_FLIGHT_LIMIT", 8)  # O3.2
-RECEIVER_DELAY_MS = _int("RECEIVER_DELAY_MS", 0)  # D3.4
+# lab 3: local = the worker pool of lab 1 applies the effect itself; ray = Ray tasks, the receiver applies it
+EXECUTION = os.environ.get("EXECUTION", "ray")
+IN_FLIGHT_LIMIT = _int("IN_FLIGHT_LIMIT", 8)  # O3.2: unfinished Ray tasks at most
+RECEIVER_DELAY_MS = _int("RECEIVER_DELAY_MS", 0)  # O3.2 experiment: a slow receiver
+# where a Ray task delivers its effect (POST /internal/effects of the api, not published by nginx)
+RECEIVER_URL = os.environ.get("RECEIVER_URL", "http://api:8000")
 FENCING = os.environ.get("FENCING", "on") == "on"  # O6.3
 # lab 2: one computation at a time; relative tolerance of the result (O2.2); niceness of the pool processes
 COMPUTE_TOLERANCE = _float("COMPUTE_TOLERANCE", 1e-9)
