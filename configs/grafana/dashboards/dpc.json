@@ -44,7 +44,7 @@
     {
       "id": 2,
       "type": "timeseries",
-      "title": "Requests in processing",
+      "title": "In flight: requests in workers (local), unfinished Ray tasks (ray)",
       "datasource": {
         "type": "prometheus",
         "uid": "prom"
@@ -66,6 +66,15 @@
           "refId": "A",
           "expr": "in_flight",
           "legendFormat": "in flight",
+          "datasource": {
+            "type": "prometheus",
+            "uid": "prom"
+          }
+        },
+        {
+          "refId": "B",
+          "expr": "in_flight_limit",
+          "legendFormat": "IN_FLIGHT_LIMIT",
           "datasource": {
             "type": "prometheus",
             "uid": "prom"

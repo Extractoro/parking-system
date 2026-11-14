@@ -78,6 +78,9 @@ def db() -> psycopg.Connection:
 def reset_race_garage() -> None:
     """The test garage dpc-race only: forget its requests and entries, occupied = 0."""
     with db() as conn:
+        # lab 3: the decisions of the receiver reference the requests
+        conn.execute("DELETE FROM effect WHERE request_id IN (SELECT id FROM entry_request WHERE garage_id = %s)",
+                     (RACE_GARAGE,))
         conn.execute("DELETE FROM entry WHERE garage_id = %s", (RACE_GARAGE,))
         conn.execute("DELETE FROM entry_request WHERE garage_id = %s", (RACE_GARAGE,))
         conn.execute("UPDATE garage_state SET occupied = 0 WHERE garage_id = %s", (RACE_GARAGE,))
