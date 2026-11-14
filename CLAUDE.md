@@ -58,6 +58,8 @@
 ## Корисне
 
 - Git Bash на Windows переписує шляхи в `docker compose exec ... /opt/...`: використовуйте `MSYS_NO_PATHCONV=1`.
+- Код задач Ray виконують `ray-head`/`ray-worker` з образу `api`: після будь-якої зміни `dpc/api/app` —
+  `docker compose up -d --build api ray-head ray-worker` (інакше вузли Ray виконують старий код).
 - Збирання: `docker compose build app-a api coordinator-a spark-master external-sim` (по одному сервісу
   на образ; паралельне `build` усіх сервісів падає з `image ... already exists`).
 - Пам'ять: повний набір ≈3.9 ГіБ без навантаження; для задачі однієї частини піднімати лише її

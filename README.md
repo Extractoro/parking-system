@@ -75,7 +75,9 @@ flowchart LR
     W -->|результат, outbox| PG
     K -->|група relay| R["relay"] -->|POST /v1/entries| D["DPC api :8000"]
     C -->|Barrier, Compute| D
-    D -->|черга, критична секція, процеси| PG
+    D -->|задачі process_entry| RAY["Ray: ray-head, ray-worker ×2"]
+    RAY -->|POST /internal/effects| D
+    D -->|черга, приймач ефектів, процеси| PG
 ```
 
 ### Спільний проєкт
@@ -85,7 +87,7 @@ flowchart LR
 | Що | Хто змінює | Хто читає |
 |---|---|---|
 | каталог, `booking`, `level_hour`, користувачі, операції, outbox | Web | DPC читає `booking`, `level` у правилі в'їзду |
-| зайнятість `garage_state`, `entry_request`, `entry` | DPC | Web обчислює `entered` з `entry` |
+| зайнятість `garage_state`, `entry_request`, `entry`, `effect` (ЛР3) | DPC | Web обчислює `entered` з `entry` |
 | `tariff` | DPC (ЛР6) | Web копіює в бронювання |
 
 - **Web → DPC:** `relay` читає `entry.opened` з `domain-events` і надсилає `POST /v1/entries`
@@ -128,6 +130,10 @@ docker compose up -d
 | Web ЛР1-ЛР3 | `docker compose up -d nginx publisher` |
 | Web ЛР4 | `docker compose up -d nginx publisher worker relay external-sim api` |
 | DPC ЛР1-ЛР2 | `docker compose up -d api` |
+| DPC ЛР3 | `docker compose up -d api ray-head ray-worker` |
+
+Код задач Ray виконують `ray-head` і `ray-worker` з образу `api`: після зміни `dpc/api/app` -
+`docker compose up -d --build api ray-head ray-worker`.
 
 Тести (проти запущеного стенда):
 
@@ -137,7 +143,7 @@ uv run --no-project --python 3.13 --with pytest --with httpx --with "psycopg[bin
 
 Клієнт: `cd web/client && cp .env.example .env.local && npm install && npm run dev` → http://localhost:5173.
 
-Адреси: Web API http://localhost:8080 (app-a :8001, app-b :8002), DPC api http://localhost:8000,
+Адреси: Web API http://localhost:8080 (app-a :8001, app-b :8002), DPC api http://localhost:8000, Ray Dashboard :8265,
 симулятор :8090, PostgreSQL :5432 (`app`/`app`), Kafka з хоста :9094, Kafka UI :8085 (профіль `observability`).
 У Git Bash перед `docker compose exec` задайте `MSYS_NO_PATHCONV=1`.
 
@@ -291,9 +297,39 @@ flowchart LR
 
 Клієнт - сторінки «Barrier» і «Compute» (`web/client/src/`). Докладно: [results/dpc-lr2/README.md](results/dpc-lr2/README.md).
 
-### DPC ЛР3-ЛР6
+### DPC ЛР3. Розподілена обробка в Ray і відновлення
 
-_Заповнюється в ЛР3-ЛР6._
+Оброблення в'їзду - задача Ray; ресурс змінює лише приймач ефектів api. `EXECUTION=ray` (типово) або `local` (пул ЛР1
+для порівняння); правило допуску в обох режимах - одна функція `entries.admit`.
+
+```mermaid
+flowchart LR
+    Q[(черга ЛР1, 50; повна - 429)] --> W["обробник: місце диспетчера (≤ IN_FLIGHT_LIMIT 8), потім запит"]
+    W -- process_entry.remote --> T["задача Ray: розпізнавання 100-500 мс"]
+    T -- "POST /internal/effects, ключ event_id" --> R["приймач: effect ON CONFLICT → FOR UPDATE → правило → entry, occupied, рішення"]
+    T -- "fault(after_effect_before_ack), return" --> W
+```
+
+Приймач `POST /internal/effects` (той самий Bearer-токен; лише для задач Ray, в `openapi.yaml` не описаний) приймає
+`effect_key` (= `event_id`), `request_id` і поля в'їзду. Перша доставка - транзакція зі зміною ресурсу й рішенням
+`accepted`/`rejected`; повтор - збережене рішення з `repeated: true` без змін. Ресурс змінює приймач, а не задача:
+лише він може в одній транзакції з ключем перевірити, що ефект ще не прийнято. Повтор задачі після смерті процесу -
+`max_retries=3`, ключ той самий. Обробники черги не беруть запит, поки 8 задач не завершено, тож сповільнення не
+подає нових задач без меж: надлишок чекає в черзі ЛР1 і отримує 429.
+
+| Пункт | Де реалізовано | Перевірка та свідчення |
+|---|---|---|
+| О3.1 Задачі Ray | `dpc/api/app/raytasks.py`, диспетчер у `entries.py` | результати за готовністю; 42 тести в режимі ray, 19 у local |
+| О3.2 Обмеження задач | `IN_FLIGHT_LIMIT`, `/metrics` `in_flight` | приймач +500 мс: max `in_flight` 8, задач у Ray ≤ 8, черга 50, 99.4 % 429 |
+| О3.3 Приймання ефекту | `POST /internal/effects`, `migrations/008` | повтор і 8 одночасних доставок - один ефект; відмова зберігається |
+| О3.4 Відмова після ефекту | `fault("after_effect_before_ack")` у задачі | `fault.hit`, спроба 0 FAILED, 1 FINISHED; `effect` 1, `entry` 1, `invariant_ok` true |
+
+Регрес: О1.4 у режимі ray - `invariant_ok` true; наскрізний шлях Web ЛР4 - `entered`, в'їзд 1.
+Докладно: [results/dpc-lr3/README.md](results/dpc-lr3/README.md).
+
+### DPC ЛР4-ЛР6
+
+_Заповнюється в ЛР4-ЛР6._
 
 ## 7. Досліди
 
@@ -308,6 +344,7 @@ _Заповнюється в ЛР3-ЛР6._
 | Довга операція й відмови (Web ЛР4) | `web_lr4.py e2e\|publisher\|worker\|rejected\|simdown\|dpcdown` | `results/web-lr4/` |
 | Черга, гонка, час, зупинка (DPC ЛР1) | `dpc_lr1_overload.py`, `_race`, `_timing`, `_drain` | `results/dpc-lr1/` |
 | Точність, режими, прискорення (DPC ЛР2) | `dpc_lr2_compute.py accuracy\|modes\|bench\|health` | `results/dpc-lr2/` |
+| Відмова після ефекту, local проти ray, обмеження задач (DPC ЛР3) | `dpc_lr3.py fault\|compare\|inflight`; режими `EXECUTION=local\|ray`, `RECEIVER_DELAY_MS` | `results/dpc-lr3/` |
 
 Умови, прогноз, вимірювання й висновки кожного досліду - у `results/<ЛР>/README.md`.
 
@@ -321,6 +358,7 @@ _Заповнюється в ЛР3-ЛР6._
 | `publisher_before_send` (Web ЛР4) | `docker compose exec publisher touch /faults/publisher_before_send` |
 | `after_external_before_commit` (Web ЛР4) | `docker compose exec worker touch /faults/after_external_before_commit` |
 | SIGTERM з повною чергою (DPC Д1.4) | `docker compose stop api`, потім `docker compose start api` |
+| `after_effect_before_ack` (DPC ЛР3; у задачі Ray після відповіді приймача) | `docker compose exec api touch /faults/after_effect_before_ack`; журнал - `docker compose logs ray-head ray-worker`; Ray сам повторює задачу |
 
 Перевірка - `fault.hit` у `docker compose logs <сервіс>`; повне скидання - `docker compose down -v`.
 
@@ -329,6 +367,7 @@ _Заповнюється в ЛР3-ЛР6._
 - Перехоплений токен діє до виходу або 8 год; кількість спроб входу не обмежена.
 - Поки симулятор недоступний, обробник чекає на одній події без межі спроб.
 - Черга DPC у пам'яті: аварія процесу (не SIGTERM) втрачає `queued`-запити (`lost-on-restart`).
+- DPC ЛР3: один ефект на ключ перевірено для відмови процесу-виконавця Ray; відмову самого api і втрату вузла Ray не досліджували.
 - Прискорення DPC виміряно у ВМ з 4 логічними CPU (2 ядра × 2 потоки).
 
 Повний перелік - у `results/<ЛР>/README.md`.
@@ -338,7 +377,7 @@ _Заповнюється в ЛР3-ЛР6._
 | Учасник | Реалізовані пункти й досліди |
 |---|---|
 | Дарина | Web ЛР1, ЛР3; DPC ЛР1, ЛР2; екрани клієнта |
-| Вадим | Web ЛР2, ЛР4; інфраструктура, зв'язок Web↔DPC |
+| Вадим | Web ЛР2, ЛР4; DPC ЛР3; інфраструктура, зв'язок Web↔DPC |
 
 ### Використані бібліотеки
 

@@ -38,14 +38,14 @@
 
 | Lab | ID | Ядро/О/Д | Описание | Компонент | Файлы | Тесты | Evidence | Status |
 |---|---|---|---|---|---|---|---|---|
-| ЛР3 | О3.1 | Ядро | Виконання задач у Ray. | — | — | — | — | not_started |
-| ЛР3 | О3.2 | О | Обмеження кількості незавершених задач. | — | — | — | — | not_started |
-| ЛР3 | О3.3 | Ядро | Атомарне приймання ефекту. | — | — | — | — | not_started |
-| ЛР3 | О3.4 | Ядро | Відмова після запису ефекту. | — | — | — | — | not_started |
-| ЛР3 | Д3.1 | Д | Порівняння акторів і задач Ray на тому самому сценарії. | — | — | — | — | not_started |
-| ЛР3 | Д3.2 | Д | Розрахунок ЛР2 через Ray на кількох вузлах. | — | — | — | — | not_started |
-| ЛР3 | Д3.3 | Д | Ідемпотентність API. | — | — | — | — | not_started |
-| ЛР3 | Д3.4 | Д | Повільний приймач і зворотний тиск. | — | — | — | — | not_started |
+| ЛР3 | О3.1 | Ядро | Виконання задач у Ray. | api, ray-head, ray-worker | `dpc/api/app/raytasks.py`, `entries.py` (`_ray_worker`, `_submit`, `_await_result`), `compose.yaml` (`EXECUTION=ray`) | `test_request_through_the_stand_and_repeat`; `test_lr1.py` у режимі ray | `max_retries=3`, ключ `event_id` в усіх спробах, результати за готовністю; 42 passed (ray), 19 passed (local); local проти ray 200 запитів: p95 1814/2067 мс, інваріант в обох (`results/dpc-lr3/pytest*.txt`, `compare.txt`) | done |
+| ЛР3 | О3.2 | О | Обмеження кількості незавершених задач. | api | `entries.py` (семафор `IN_FLIGHT_LIMIT`, `in_flight`), `experiments/dpc_lr3.py inflight` | `test_metrics` | 60 клієнтів × 30 с: приймач 0/500 мс - max `in_flight` 8/8, задач у Ray ≤ 8, черга 50, 429 98.6/99.4 %, 18.65/8.80 запиту/с (`results/dpc-lr3/inflight.txt`) | done |
+| ЛР3 | О3.3 | Ядро | Атомарне приймання ефекту. | api | `migrations/008_dpc_effects.sql`, `entries.py` (`receive_effect`, `admit`) | `test_repeat_returns_stored_decision`, `test_rejected_decision_is_stored`, `test_concurrent_deliveries_one_effect`, `test_receiver_applies_the_rule_of_lab_1`, `test_receiver_checks_key_and_token` | повтор і 8 одночасних доставок - один ефект; `rejected` зберігається (`results/dpc-lr3/pytest.txt`) | done |
+| ЛР3 | О3.4 | Ядро | Відмова після запису ефекту. | ray-worker | `raytasks.py` (`fault("after_effect_before_ack")`), `experiments/dpc_lr3.py fault` | - | `fault.hit` на ray-head, спроба 0 FAILED WORKER_DIED, 1 FINISHED; `effect` 1, `entry` 1, `occupied` 0 → 1, `invariant_ok` true; відхилений: `rejected` 1, `occupied` 5 → 5 (`results/dpc-lr3/fault.txt`) | done |
+| ЛР3 | Д3.1 | Д | Порівняння акторів і задач Ray на тому самому сценарії. | — | — | — | — | skipped |
+| ЛР3 | Д3.2 | Д | Розрахунок ЛР2 через Ray на кількох вузлах. | — | — | — | — | skipped |
+| ЛР3 | Д3.3 | Д | Ідемпотентність API. | — | — | — | — | skipped |
+| ЛР3 | Д3.4 | Д | Повільний приймач і зворотний тиск. | — | — | — | — | skipped |
 
 ## ЛР4
 

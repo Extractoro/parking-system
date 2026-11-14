@@ -14,7 +14,7 @@ web:
 dpc:
   openapi: dpc/openapi.yaml
   base: http://localhost:8000
-  items: [О1.5, Д1.4, О2.2]
+  items: [О1.5, Д1.4, О2.2, О3.2]
   resource: {path: /v1/garage/center, ok_field: invariant_ok}
   metrics: [queue_length, in_flight, rejected]
   # lab 2: relative tolerance (O2.2: rounding <= 1e-13 at bench_n, method error < 1e-13 for n >= 1e4),

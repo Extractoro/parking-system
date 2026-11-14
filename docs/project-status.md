@@ -1,5 +1,29 @@
 # Стан проєкту C09 «Паркінги»
 
+## Етап 7 - DPC ЛР3: **виконано** (2026-11-14, відповідальний Вадим)
+
+Пункти: О3.1, О3.3, О3.4 (ядро), О3.2. `checks.yaml` → `dpc.items += О3.2`. Стенд: `docker compose up -d api ray-head
+ray-worker` (`EXECUTION=ray` типово; `+ --profile observability up -d prometheus grafana` для панелі). Після зміни
+`dpc/api/app` - `docker compose up -d --build api ray-head ray-worker`. Нова міграція 008 (`effect`).
+
+| Перевірка | Результат |
+|---|---|
+| Міграція 008 на наявній базі | applied |
+| `pytest dpc/api/tests`, `EXECUTION=ray` | 42 passed, 2 skipped (13 ЛР1 + 23 ЛР2 + 6 ЛР3) |
+| `pytest test_lr1.py test_lr3.py`, `EXECUTION=local` | 19 passed |
+| `pytest web/server/tests` (регрес) | 52 passed |
+| `npx @redocly/cli lint dpc/openapi.yaml` | valid, 0 помилок, 5 давніх попереджень |
+| `tsc -b`, `eslint`, `npm run build`; `docker compose config --quiet` | без помилок; CONFIG_OK |
+| О3.4 (`dpc_lr3.py fault`) | `fault.hit` на ray-head, спроба 0 FAILED WORKER_DIED → 1 FINISHED; прийнятий: `effect` 1, `entry` 1, `occupied` 0 → 1; відхилений: `rejected` 1, `entry` 0, `occupied` 5 → 5; `invariant_ok` true |
+| local проти ray (`compare`, 200 запитів, WORKERS=8) | 8.7 / 9.4 с; повне виконання p95 1814.2 / 2066.7 мс; `invariant_ok` true в обох (регрес О1.4 у ray) |
+| О3.2 (`inflight`, 60 клієнтів × 30 с) | приймач 0 / 500 мс: 18.65 / 8.80 запиту/с, p95 3393 / 6805 мс, 429 98.6 / 99.4 %, max `in_flight` 8 / 8, задач у Ray ≤ 8, `/health` p95 46.7 / 35.6 мс |
+| Наскрізний шлях Web ЛР4 у режимі ray | `entered`, в'їзд 1, повтор `event_id` - той самий запит |
+| Клієнт | рядок Execution у картці стану паркінгу; знімки `docs/reports/img/dpc-lr3-*.png` |
+
+Plan Change: PC-20 (корутина на задачу замість `ray.wait`, семафор до запиту, позначка `finished` на коміті приймача,
+один `httpx.Client`), PC-21 (холодний старт виконавців Ray, розігрів у дослідах). Нові рішення P21-P26.
+Не зроблено: Д3.1-Д3.4 (не вибрані); відмову самого api і втрату вузла Ray не досліджували.
+
 ## Етап 6 - Web ЛР4: **виконано** (2026-11-11, відповідальний Вадим)
 
 Пункти: О4.1, О4.2, О4.3 (ядро), О4.4, О4.5, Д4.1. `checks.yaml` → `web.items += О4.4, О4.5, Д4.1`; `web/asyncapi.yaml`
