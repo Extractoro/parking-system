@@ -36,8 +36,10 @@ def union(*boxes: dict) -> dict:
 
 
 def grafana(page: Page, minutes: int) -> None:
-    page.set_viewport_size({"width": 1300, "height": 800})
-    page.goto(f"{GRAFANA}/d/dpc-project/dpc-project?orgId=1&from=now-{minutes}m&to=now&kiosk&theme=light")
+    # GRAFANA_RANGE="from=<ms>&to=<ms>" takes a fixed interval (a later retake of the same run)
+    span = os.environ.get("GRAFANA_RANGE", f"from=now-{minutes}m&to=now")
+    page.set_viewport_size({"width": 900, "height": 800})  # narrow: the text of the panels stays readable in print
+    page.goto(f"{GRAFANA}/d/dpc-project/dpc-project?orgId=1&{span}&kiosk&theme=light")
     boxes = []
     for title in ("Queue length", "In flight: requests in workers (local), unfinished Ray tasks (ray)"):
         el = page.get_by_text(title, exact=True).first
