@@ -317,7 +317,7 @@ def _record(job: Job, final: str, reason: str | None) -> None:
     """The end of a request in this process: the finish mark, the counters, one log line."""
     st = _state()
     m = st.marks.get(job.id)
-    if m is not None:
+    if m is not None and m.finished is None:  # ray: already set when the receiver committed the effect
         m.finished = time.monotonic_ns()
     st.finished[final] += 1
     if final == "rejected":
@@ -542,6 +542,11 @@ async def receive_effect(body: EffectIn) -> dict[str, Any]:
                 "UPDATE effect SET decision = 'rejected', reason = %s WHERE effect_key = %s", (reason, body.effect_key)
             )
     st.effects_accepted += 1
+    m = st.marks.get(body.request_id)
+    if m is not None and m.finished is None:
+        # the request is final from this commit on (GET sees it); the full execution ends here, not when the
+        # task is acknowledged (a retried task acknowledges later, the result is the same)
+        m.finished = time.monotonic_ns()
     decision = "accepted" if final == "done" else "rejected"
     log("effect.accepted", effect_key=body.effect_key, request_id=body.request_id, decision=decision, reason=reason)
     return {"effect_key": body.effect_key, "request_id": body.request_id, "decision": decision,

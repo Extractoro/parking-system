@@ -23,6 +23,17 @@ from .faults import fault
 from .jsonlog import log
 
 RECEIVER_ATTEMPTS = 20  # a short outage of the api (restart) is waited for inside one attempt of the task
+_client: httpx.Client | None = None  # one keep-alive client per Ray worker process
+
+
+def _receiver() -> httpx.Client:
+    """httpx.post() builds a new client (and its SSL context) on every call, ~80 ms; a worker process of Ray
+    runs many tasks one after another, so it keeps one client with a kept-alive connection."""
+    global _client
+    if _client is None:
+        _client = httpx.Client(base_url=config.RECEIVER_URL, timeout=30,
+                               headers={"Authorization": f"Bearer {config.API_TOKEN}"})
+    return _client
 
 
 def _recognize(request: dict) -> str:
@@ -36,11 +47,10 @@ def _recognize(request: dict) -> str:
 def _deliver(effect: dict) -> dict:
     """POST to the receiver until it answers. Connection errors and 5xx are repeated with the SAME key:
     a repeat of an accepted effect gets the stored decision. Any other answer is final."""
-    headers = {"Authorization": f"Bearer {config.API_TOKEN}"}
     delay = 0.2
     for attempt in range(1, RECEIVER_ATTEMPTS + 1):
         try:
-            r = httpx.post(f"{config.RECEIVER_URL}/internal/effects", json=effect, headers=headers, timeout=30)
+            r = _receiver().post("/internal/effects", json=effect)
             if r.status_code < 500:
                 r.raise_for_status()
                 return r.json()
