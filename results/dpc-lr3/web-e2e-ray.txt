@@ -1,0 +1,20 @@
+== web lab 4: e2e, 2026-11-14T17:38:52+00:00
+booking 8ea79e04-09fe-44c6-a9d1-1bd210dda72b plate LR3031EX 2026-11-14T19:00:00+02:00 .. 2026-11-14T21:00:00+02:00 status confirmed
+POST /v1/bookings/8ea79e04../entries -> 202 Location=/v1/operations/81216e3f-ac47-4edc-a253-eb66edb4b1fe Retry-After=2 replayed=None
+  t=19:38:52 state=pending version=1 result=None error=None
+  t=19:38:53 state=running version=2 result=None error=None
+  t=19:38:55 state=succeeded version=3 result={'effect_id': 'bar-8381283946', 'opened_at': '2026-11-14T17:38:54.707Z'} error=None
+booking status: entered
+DPC GET /v1/entries/{id}: done
+GET :8090/effects?key=81216e3f.. -> effects=1 result=accepted ids=['bar-8381283946']
+notifications of the operation: 1
+processed_message (worker) of entry.requested: 1
+outbox of the booking: [('booking.created', True), ('entry.requested', True), ('entry.opened', True)]
+DPC entry_request with event_id = operation: [('done', None)]
+DPC entry rows of the booking: 1
+== the same event_id sent to DPC again (as the relay does after a lost answer)
+  repeat 1: 202 Location=/v1/entries/af57b604-4119-4014-917c-877df917580a Repeated-Request=true state=done
+  repeat 2: 202 Location=/v1/entries/af57b604-4119-4014-917c-877df917580a Repeated-Request=true state=done
+DPC entry_request with this event_id: 1 entry rows: 1
+   {"time": "2026-11-14T17:38:54.967+00:00", "instance": "relay", "event": "relay.sent", "event_id": "1f9539ea-b58e-4d5a-b88d-7179275b1f59", "operation_id": "81216e3f-ac47-4edc-a253-eb66edb4b1fe", "booking_id": "8ea79e04-09fe-44c6-a9d1-1bd210dda72b", "location": 
+cleanup: LR3031EX leaves the garage (DPC exit) -> 202

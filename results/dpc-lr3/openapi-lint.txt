@@ -1,0 +1,4 @@
+
+Woohoo! Your API description is valid. 🎉
+You have 5 warnings.
+

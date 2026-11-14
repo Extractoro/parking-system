@@ -1,0 +1,104 @@
+[
+  {
+    "case": "accepted entry (dpc-race empty)",
+    "event_id": "28917024-9b3e-4f57-8a6e-553a45ff4950",
+    "request_state": "done",
+    "reason": null,
+    "total_ms": 1045.08,
+    "flag_taken": true,
+    "occupied_before": 0,
+    "occupied_after": 1,
+    "effect_rows": [
+      {
+        "effect_key": "28917024-9b3e-4f57-8a6e-553a45ff4950",
+        "decision": "accepted",
+        "reason": null
+      }
+    ],
+    "entry_rows": 1,
+    "garage": {
+      "occupied": 1,
+      "inside": 1,
+      "spots": 5,
+      "invariant_ok": true,
+      "execution": "ray"
+    },
+    "log": [
+      "api-1  | {\"time\": \"2026-11-14T17:31:18.312+00:00\", \"instance\": \"api\", \"event\": \"effect.accepted\", \"effect_key\": \"28917024-9b3e-4f57-8a6e-553a45ff4950\", \"request_id\": \"80e95f98-7e2b-4acb-928f-1b98bd3cd69d\", \"decision\": \"accepted\", \"reason\": null}",
+      "api-1  | {\"time\": \"2026-11-14T17:31:19.703+00:00\", \"instance\": \"api\", \"event\": \"effect.repeated\", \"effect_key\": \"28917024-9b3e-4f57-8a6e-553a45ff4950\", \"request_id\": \"80e95f98-7e2b-4acb-928f-1b98bd3cd69d\", \"decision\": \"accepted\"}",
+      "ray-head-1  | {\"time\": \"2026-11-14T17:31:18.313+00:00\", \"instance\": \"ray-head\", \"event\": \"fault.hit\", \"place\": \"after_effect_before_ack\"}",
+      "ray-head-1  | {\"time\": \"2026-11-14T17:31:19.705+00:00\", \"instance\": \"ray-head\", \"event\": \"task.done\", \"event_id\": \"28917024-9b3e-4f57-8a6e-553a45ff4950\", \"request_id\": \"80e95f98-7e2b-4acb-928f-1b98bd3cd69d\", \"decision\": \"accepted\", \"repeated\": true, \"ms\": 433}"
+    ],
+    "ray_attempts": [
+      {
+        "task_id": "e32c991c663ae046",
+        "attempt": 0,
+        "state": "FAILED",
+        "error_type": "WORKER_DIED",
+        "node": "3f692c84",
+        "pid": null,
+        "start_ms": 1794677477428.0
+      },
+      {
+        "task_id": "e32c991c663ae046",
+        "attempt": 1,
+        "state": "FINISHED",
+        "error_type": null,
+        "node": "3f692c84",
+        "pid": 2474,
+        "start_ms": 1794677479175.0
+      }
+    ]
+  },
+  {
+    "case": "rejected entry (dpc-race full)",
+    "event_id": "2c6f198e-a6d9-42da-b887-19b6668819a6",
+    "request_state": "rejected",
+    "reason": "full",
+    "total_ms": 460.408,
+    "flag_taken": true,
+    "occupied_before": 5,
+    "occupied_after": 5,
+    "effect_rows": [
+      {
+        "effect_key": "2c6f198e-a6d9-42da-b887-19b6668819a6",
+        "decision": "rejected",
+        "reason": "full"
+      }
+    ],
+    "entry_rows": 0,
+    "garage": {
+      "occupied": 5,
+      "inside": 5,
+      "spots": 5,
+      "invariant_ok": true,
+      "execution": "ray"
+    },
+    "log": [
+      "api-1  | {\"time\": \"2026-11-14T17:31:27.703+00:00\", \"instance\": \"api\", \"event\": \"effect.accepted\", \"effect_key\": \"2c6f198e-a6d9-42da-b887-19b6668819a6\", \"request_id\": \"d889d196-4822-418a-b66a-59862cece202\", \"decision\": \"rejected\", \"reason\": \"full\"}",
+      "api-1  | {\"time\": \"2026-11-14T17:31:28.754+00:00\", \"instance\": \"api\", \"event\": \"effect.repeated\", \"effect_key\": \"2c6f198e-a6d9-42da-b887-19b6668819a6\", \"request_id\": \"d889d196-4822-418a-b66a-59862cece202\", \"decision\": \"rejected\"}",
+      "ray-head-1  | {\"time\": \"2026-11-14T17:31:27.704+00:00\", \"instance\": \"ray-head\", \"event\": \"fault.hit\", \"place\": \"after_effect_before_ack\"}",
+      "ray-head-1  | {\"time\": \"2026-11-14T17:31:28.756+00:00\", \"instance\": \"ray-head\", \"event\": \"task.done\", \"event_id\": \"2c6f198e-a6d9-42da-b887-19b6668819a6\", \"request_id\": \"d889d196-4822-418a-b66a-59862cece202\", \"decision\": \"rejected\", \"repeated\": true, \"ms\": 457}"
+    ],
+    "ray_attempts": [
+      {
+        "task_id": "0e52dcb409d464ca",
+        "attempt": 0,
+        "state": "FAILED",
+        "error_type": "WORKER_DIED",
+        "node": "3f692c84",
+        "pid": null,
+        "start_ms": 1794677487258.0
+      },
+      {
+        "task_id": "0e52dcb409d464ca",
+        "attempt": 1,
+        "state": "FINISHED",
+        "error_type": null,
+        "node": "3f692c84",
+        "pid": 2511,
+        "start_ms": 1794677488191.0
+      }
+    ]
+  }
+]

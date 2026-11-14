@@ -1,0 +1,26 @@
+== accepted entry (dpc-race empty): event_id 28917024-9b3e-4f57-8a6e-553a45ff4950
+request: done , total 1045.08 ms; flag file taken: True
+log:
+  api-1  | {"time": "2026-11-14T17:31:18.312+00:00", "instance": "api", "event": "effect.accepted", "effect_key": "28917024-9b3e-4f57-8a6e-553a45ff4950", "request_id": "80e95f98-7e2b-4acb-928f-1b98bd3cd69d", "decision": "accepted", "reason": null}
+  api-1  | {"time": "2026-11-14T17:31:19.703+00:00", "instance": "api", "event": "effect.repeated", "effect_key": "28917024-9b3e-4f57-8a6e-553a45ff4950", "request_id": "80e95f98-7e2b-4acb-928f-1b98bd3cd69d", "decision": "accepted"}
+  ray-head-1  | {"time": "2026-11-14T17:31:18.313+00:00", "instance": "ray-head", "event": "fault.hit", "place": "after_effect_before_ack"}
+  ray-head-1  | {"time": "2026-11-14T17:31:19.705+00:00", "instance": "ray-head", "event": "task.done", "event_id": "28917024-9b3e-4f57-8a6e-553a45ff4950", "request_id": "80e95f98-7e2b-4acb-928f-1b98bd3cd69d", "decision": "accepted", "repeated": true, "ms": 433}
+Ray State API, attempts of the retried task:
+  task e32c991c663ae046 attempt 0 FAILED    error WORKER_DIED node 3f692c84 pid None
+  task e32c991c663ae046 attempt 1 FINISHED  error None node 3f692c84 pid 2474
+SQL: effect rows [{'effect_key': '28917024-9b3e-4f57-8a6e-553a45ff4950', 'decision': 'accepted', 'reason': None}], entry rows 1, occupied 0 -> 1
+GET /v1/garage/dpc-race: {'occupied': 1, 'inside': 1, 'spots': 5, 'invariant_ok': True, 'execution': 'ray'}
+
+== rejected entry (dpc-race full): event_id 2c6f198e-a6d9-42da-b887-19b6668819a6
+request: rejected full, total 460.408 ms; flag file taken: True
+log:
+  api-1  | {"time": "2026-11-14T17:31:27.703+00:00", "instance": "api", "event": "effect.accepted", "effect_key": "2c6f198e-a6d9-42da-b887-19b6668819a6", "request_id": "d889d196-4822-418a-b66a-59862cece202", "decision": "rejected", "reason": "full"}
+  api-1  | {"time": "2026-11-14T17:31:28.754+00:00", "instance": "api", "event": "effect.repeated", "effect_key": "2c6f198e-a6d9-42da-b887-19b6668819a6", "request_id": "d889d196-4822-418a-b66a-59862cece202", "decision": "rejected"}
+  ray-head-1  | {"time": "2026-11-14T17:31:27.704+00:00", "instance": "ray-head", "event": "fault.hit", "place": "after_effect_before_ack"}
+  ray-head-1  | {"time": "2026-11-14T17:31:28.756+00:00", "instance": "ray-head", "event": "task.done", "event_id": "2c6f198e-a6d9-42da-b887-19b6668819a6", "request_id": "d889d196-4822-418a-b66a-59862cece202", "decision": "rejected", "repeated": true, "ms": 457}
+Ray State API, attempts of the retried task:
+  task 0e52dcb409d464ca attempt 0 FAILED    error WORKER_DIED node 3f692c84 pid None
+  task 0e52dcb409d464ca attempt 1 FINISHED  error None node 3f692c84 pid 2511
+SQL: effect rows [{'effect_key': '2c6f198e-a6d9-42da-b887-19b6668819a6', 'decision': 'rejected', 'reason': 'full'}], entry rows 0, occupied 5 -> 5
+GET /v1/garage/dpc-race: {'occupied': 5, 'inside': 5, 'spots': 5, 'invariant_ok': True, 'execution': 'ray'}
+

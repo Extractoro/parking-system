@@ -1,0 +1,80 @@
+[
+  {
+    "execution": "local",
+    "workers": 8,
+    "requests": 200,
+    "seconds": 8.7,
+    "states": {
+      "in:done": 25,
+      "in:rejected:full": 155,
+      "out:done": 20
+    },
+    "total_ms": {
+      "n": 200,
+      "p50": 1547.4,
+      "p95": 1814.2,
+      "p99": 1866.8,
+      "max": 2056.3
+    },
+    "processing_ms": {
+      "n": 200,
+      "p50": 330.4,
+      "p95": 504.7,
+      "p99": 530.9,
+      "max": 591.1
+    },
+    "queue_wait_ms": {
+      "n": 200,
+      "p50": 1241.8,
+      "p95": 1416.0,
+      "p99": 1483.7,
+      "max": 1522.3
+    },
+    "occupied": 5,
+    "inside": 5,
+    "invariant_ok": true,
+    "garage_execution": "local",
+    "effects": 0,
+    "in_flight_max": 0,
+    "effects_repeated": 0
+  },
+  {
+    "execution": "ray",
+    "workers": 8,
+    "requests": 200,
+    "seconds": 9.4,
+    "states": {
+      "in:done": 25,
+      "in:rejected:full": 155,
+      "out:done": 20
+    },
+    "total_ms": {
+      "n": 200,
+      "p50": 1743.8,
+      "p95": 2066.7,
+      "p99": 2134.4,
+      "max": 2387.5
+    },
+    "processing_ms": {
+      "n": 200,
+      "p50": 351.5,
+      "p95": 547.3,
+      "p99": 600.0,
+      "max": 727.0
+    },
+    "queue_wait_ms": {
+      "n": 200,
+      "p50": 1413.4,
+      "p95": 1616.9,
+      "p99": 1664.1,
+      "max": 1679.7
+    },
+    "occupied": 5,
+    "inside": 5,
+    "invariant_ok": true,
+    "garage_execution": "ray",
+    "effects": 200,
+    "in_flight_max": 8,
+    "effects_repeated": 0
+  }
+]
