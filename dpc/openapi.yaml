@@ -48,7 +48,10 @@ paths:
       summary: Перцентилі затримки HTTP, довжина черги, запити в обробці, відмови
       description: |
         `latency_ms` — час відповіді HTTP маршрутів `/v1` за останні 2000 запитів (без `/health` і `/metrics`).
-        `queue_length` — запити в черзі; `in_flight` — запити, які зараз обробляють обробники пулу;
+        `queue_length` — запити в черзі; `in_flight` — у режимі `local` запити, які зараз обробляють
+        обробники пулу, у режимі `ray` незавершені задачі Ray (не більше `in_flight_limit`, ЛР3);
+        `in_flight_max` — найбільше значення `in_flight` від запуску (режим `ray`); `execution` — `local` | `ray`;
+        `effects_accepted`, `effects_repeated` — перші й повторні доставки ефекту приймачу;
         `rejected` — відмови 429 через повну чергу; `rejected_rule` — відмови за предметним правилом
         (стан `rejected`); `rejected_draining` — відмови 503 під час завершення; `http_in_flight` —
         HTTP-запити, на які сервер саме відповідає.
@@ -77,6 +80,17 @@ paths:
                           - number
                           - "null"
                   in_flight:
+                    type: integer
+                  in_flight_max:
+                    type: integer
+                  in_flight_limit:
+                    type: integer
+                  execution:
+                    type: string
+                    enum: [local, ray]
+                  effects_accepted:
+                    type: integer
+                  effects_repeated:
                     type: integer
                   http_in_flight:
                     type: integer
@@ -455,7 +469,7 @@ components:
             - "null"
           description: |
             Для `rejected`: `full`, `booking-invalid`, `already-entered`, `already-inside`, `not-inside`,
-            `unknown-garage`. Для `failed`: `error` або `lost-on-restart`.
+            `unknown-garage`. Для `failed`: `error`, `lost-on-restart`, у режимі `ray` також `task-failed` (задача Ray не завершилась після всіх повторів і ефекту немає) або `submit-failed`.
         detail:
           type:
             - string
@@ -554,6 +568,14 @@ components:
           enum:
             - locked
             - unsafe
+        execution:
+          type: string
+          description: |
+            Хто змінює ресурс (ЛР3, змінна EXECUTION): `local` — обробник пулу ЛР1 сам виконує транзакцію;
+            `ray` — задача Ray розпізнає номер і передає результат приймачу ефектів api, транзакцію виконує приймач.
+          enum:
+            - local
+            - ray
     ComputeCreate:
       type: object
       additionalProperties: false
