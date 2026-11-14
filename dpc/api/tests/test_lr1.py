@@ -146,7 +146,8 @@ def test_metrics(api):
     for key in ("queue_length", "in_flight", "rejected", "rejected_rule", "workers"):
         assert isinstance(m[key], int)
     assert m["workers"] == 4
-    assert 0 <= m["in_flight"] <= m["workers"]
+    # local: requests inside the workers; ray: unfinished Ray tasks, at most IN_FLIGHT_LIMIT (lab 3)
+    assert 0 <= m["in_flight"] <= (m["in_flight_limit"] if m["execution"] == "ray" else m["workers"])
     prom = httpx.get(f"{BASE}/metrics/prom").text
     plain = [line.split(" ")[0] for line in prom.splitlines() if "{" not in line]
     assert len(plain) == len(set(plain))  # no duplicated series (in_flight of HTTP is http_in_flight)
