@@ -44,6 +44,7 @@ export interface GarageState {
   free_walk_in: number
   invariant_ok: boolean
   mode: 'locked' | 'unsafe'
+  execution?: 'local' | 'ray'
 }
 
 export interface EntryCreate {

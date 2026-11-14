@@ -104,6 +104,12 @@ function GarageCard({ garage, error }: { garage: GarageState | null; error: unkn
               <dt>Free for cars without a booking</dt>
               <dd className="mono">{garage.free_walk_in}</dd>
             </div>
+            {garage.execution && (
+              <div>
+                <dt>Execution</dt>
+                <dd>{garage.execution === 'ray' ? 'Ray tasks + effect receiver' : 'local worker pool'}</dd>
+              </div>
+            )}
             {garage.mode === 'unsafe' && (
               <div>
                 <dt>Mode</dt>
