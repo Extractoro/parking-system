@@ -1,0 +1,11 @@
+Downloading confluent-kafka (4.6MiB)
+ Downloading confluent-kafka
+Installed 11 packages in 1.63s
+main: 12001 lines of normal.jsonl -> barrier-events, --pace-ms 2
+  /v1/panel: 48 windows; /v1/panel/batch: 48 windows (events 12000, ticks 1, watermark 2026-11-16T08:05:00.000Z)
+  equal by keys and values: True; differences: 0
+  entries + exits: stream 12000, batch 12000
+    {'garage_id': 'airport', 'window_start': '2026-11-16T07:00:00.000Z', 'window_end': '2026-11-16T07:05:00.000Z', 'entries': 81, 'exits': 68, 'batch_id': '4', 'written_at': '2026-11-18T14:31:06.759Z'}
+    {'garage_id': 'center', 'window_start': '2026-11-16T07:00:00.000Z', 'window_end': '2026-11-16T07:05:00.000Z', 'entries': 101, 'exits': 99, 'batch_id': '4', 'written_at': '2026-11-18T14:31:06.759Z'}
+    {'garage_id': 'mall', 'window_start': '2026-11-16T07:00:00.000Z', 'window_end': '2026-11-16T07:05:00.000Z', 'entries': 232, 'exits': 234, 'batch_id': '4', 'written_at': '2026-11-18T14:31:06.759Z'}
+    {'garage_id': 'station', 'window_start': '2026-11-16T07:00:00.000Z', 'window_end': '2026-11-16T07:05:00.000Z', 'entries': 117, 'exits': 106, 'batch_id': '4', 'written_at': '2026-11-18T14:31:06.759Z'}

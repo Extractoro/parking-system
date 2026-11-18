@@ -1,0 +1,8 @@
+{
+  "events": 12000,
+  "delayed": 1221,
+  "expected_dropped": {
+    "2": 938,
+    "5": 209
+  }
+}

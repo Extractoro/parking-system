@@ -1,0 +1,23 @@
+# Spark 4.2, rate source, filter garage_id != 'tick' written AFTER withWatermark
+## A: withWatermark -> filter -> groupBy (no deduplication between)
+== Optimized Logical Plan ==
+~WriteToDataSourceV2 RelationV2[] MemorySink, MicroBatchWrite[epoch: 0, writer: org.apache.spark.sql.execution.streaming.sources.MemoryStreamingWrite@53e28771]
++- ~Aggregate [window#8-T300000ms, garage_id#2], [window#8-T300000ms, garage_id#2, count(1) AS count#3L]
+   +- ~Project [named_struct(start, knownnullable(precisetimestampconversion(((precisetimestampconversion(timestamp#0-T300000ms, TimestampType, LongType) - CASE WHEN (((p
+      +- ~Filter isnotnull(timestamp#0-T300000ms)
+         +- ~EventTimeWatermark a280dd10-b587-46bc-93f8-91dfa12bd28e, timestamp#0: timestamp, 5 minutes
+            +- ~Project [timestamp#0, CASE WHEN ((value#1L % 2) = 0) THEN tick ELSE mall END AS garage_id#2]
+               +- ~Filter NOT (((value#1L % 2) = 0) <=> true)
+                  +- ~StreamingDataSourceV2ScanRelation[timestamp#0, value#1L] RateStream(rowsPerSecond=1, rampUpTimeSeconds=0, numPartitions=1)
+
+## B: withWatermark -> dropDuplicatesWithinWatermark -> filter -> groupBy
+== Optimized Logical Plan ==
+~WriteToDataSourceV2 RelationV2[] MemorySink, MicroBatchWrite[epoch: 0, writer: org.apache.spark.sql.execution.streaming.sources.MemoryStreamingWrite@1e213727]
++- ~Aggregate [window#8-T300000ms, garage_id#2], [window#8-T300000ms, garage_id#2, count(1) AS count#3L]
+   +- ~Project [named_struct(start, knownnullable(precisetimestampconversion(((precisetimestampconversion(timestamp#0-T300000ms, TimestampType, LongType) - CASE WHEN (((p
+      +- ~Filter (NOT (garage_id#2 = tick) AND isnotnull(timestamp#0-T300000ms))
+         +- ~DeduplicateWithinWatermark [value#1L]
+            +- ~EventTimeWatermark f1519daf-b789-4158-bcc4-4c5a16599f1f, timestamp#0: timestamp, 5 minutes
+               +- ~Project [timestamp#0, value#1L, CASE WHEN ((value#1L % 2) = 0) THEN tick ELSE mall END AS garage_id#2]
+                  +- ~StreamingDataSourceV2ScanRelation[timestamp#0, value#1L] RateStream(rowsPerSecond=1, rampUpTimeSeconds=0, numPartitions=1)
+

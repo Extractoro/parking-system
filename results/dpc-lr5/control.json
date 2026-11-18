@@ -1,0 +1,71 @@
+{
+  "rows": [
+    {
+      "garage_id": "g1",
+      "window_start": "2026-10-12T08:00:00.000Z",
+      "window_end": "2026-10-12T08:15:00.000Z",
+      "entries": 1,
+      "exits": 1,
+      "batch_id": 2,
+      "written_at": "2026-11-18 15:05:35.278730+00:00"
+    },
+    {
+      "garage_id": "g2",
+      "window_start": "2026-10-12T08:00:00.000Z",
+      "window_end": "2026-10-12T08:15:00.000Z",
+      "entries": 1,
+      "exits": 0,
+      "batch_id": 2,
+      "written_at": "2026-11-18 15:05:35.278730+00:00"
+    },
+    {
+      "garage_id": "g1",
+      "window_start": "2026-10-12T08:15:00.000Z",
+      "window_end": "2026-10-12T08:30:00.000Z",
+      "entries": 1,
+      "exits": 0,
+      "batch_id": 2,
+      "written_at": "2026-11-18 15:05:35.278730+00:00"
+    },
+    {
+      "garage_id": "g2",
+      "window_start": "2026-10-12T08:15:00.000Z",
+      "window_end": "2026-10-12T08:30:00.000Z",
+      "entries": 1,
+      "exits": 1,
+      "batch_id": 2,
+      "written_at": "2026-11-18 15:05:35.278730+00:00"
+    }
+  ],
+  "expected": [
+    {
+      "window_start": "2026-10-12T08:00:00.000Z",
+      "window_end": "2026-10-12T08:15:00.000Z",
+      "gate_id": "g1",
+      "in": 1,
+      "out": 1
+    },
+    {
+      "window_start": "2026-10-12T08:00:00.000Z",
+      "window_end": "2026-10-12T08:15:00.000Z",
+      "gate_id": "g2",
+      "in": 1,
+      "out": 0
+    },
+    {
+      "window_start": "2026-10-12T08:15:00.000Z",
+      "window_end": "2026-10-12T08:30:00.000Z",
+      "gate_id": "g1",
+      "in": 1,
+      "out": 0
+    },
+    {
+      "window_start": "2026-10-12T08:15:00.000Z",
+      "window_end": "2026-10-12T08:30:00.000Z",
+      "gate_id": "g2",
+      "in": 1,
+      "out": 1
+    }
+  ],
+  "equal": true
+}

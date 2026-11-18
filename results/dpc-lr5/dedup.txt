@@ -1,0 +1,3 @@
+dedup-normal: 12001 lines of normal.jsonl (0 repeated event_id), sent in 30.2 s; 48 windows, entries + exits 12000; equal to the batch calculation: True
+dedup-dups: 12611 lines of duplicates.jsonl (610 repeated event_id), sent in 32.1 s; 48 windows, entries + exits 12000; equal to the batch calculation: True
+dedup-normal == dedup-dups by keys and values: True; differences: 0

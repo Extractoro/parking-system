@@ -1,0 +1,1579 @@
+{
+  "dedup-normal": {
+    "run": "dedup-normal",
+    "file": "normal",
+    "watermark_minutes": 5,
+    "pace_ms": 2,
+    "lines": 12001,
+    "send_s": 30.2,
+    "clock_offset_s": 0.0,
+    "batch": {
+      "watermark": "2026-11-16T08:05:00.000Z",
+      "events": 12000,
+      "duplicates": 0,
+      "ticks": 1,
+      "not_final": 0,
+      "windows": [
+        {
+          "garage_id": "airport",
+          "window_start": "2026-11-16T07:00:00.000Z",
+          "window_end": "2026-11-16T07:05:00.000Z",
+          "entries": 81,
+          "exits": 68
+        },
+        {
+          "garage_id": "center",
+          "window_start": "2026-11-16T07:00:00.000Z",
+          "window_end": "2026-11-16T07:05:00.000Z",
+          "entries": 101,
+          "exits": 99
+        },
+        {
+          "garage_id": "mall",
+          "window_start": "2026-11-16T07:00:00.000Z",
+          "window_end": "2026-11-16T07:05:00.000Z",
+          "entries": 232,
+          "exits": 234
+        },
+        {
+          "garage_id": "station",
+          "window_start": "2026-11-16T07:00:00.000Z",
+          "window_end": "2026-11-16T07:05:00.000Z",
+          "entries": 117,
+          "exits": 106
+        },
+        {
+          "garage_id": "airport",
+          "window_start": "2026-11-16T07:05:00.000Z",
+          "window_end": "2026-11-16T07:10:00.000Z",
+          "entries": 81,
+          "exits": 66
+        },
+        {
+          "garage_id": "center",
+          "window_start": "2026-11-16T07:05:00.000Z",
+          "window_end": "2026-11-16T07:10:00.000Z",
+          "entries": 117,
+          "exits": 110
+        },
+        {
+          "garage_id": "mall",
+          "window_start": "2026-11-16T07:05:00.000Z",
+          "window_end": "2026-11-16T07:10:00.000Z",
+          "entries": 212,
+          "exits": 235
+        },
+        {
+          "garage_id": "station",
+          "window_start": "2026-11-16T07:05:00.000Z",
+          "window_end": "2026-11-16T07:10:00.000Z",
+          "entries": 104,
+          "exits": 96
+        },
+        {
+          "garage_id": "airport",
+          "window_start": "2026-11-16T07:10:00.000Z",
+          "window_end": "2026-11-16T07:15:00.000Z",
+          "entries": 77,
+          "exits": 67
+        },
+        {
+          "garage_id": "center",
+          "window_start": "2026-11-16T07:10:00.000Z",
+          "window_end": "2026-11-16T07:15:00.000Z",
+          "entries": 103,
+          "exits": 102
+        },
+        {
+          "garage_id": "mall",
+          "window_start": "2026-11-16T07:10:00.000Z",
+          "window_end": "2026-11-16T07:15:00.000Z",
+          "entries": 223,
+          "exits": 227
+        },
+        {
+          "garage_id": "station",
+          "window_start": "2026-11-16T07:10:00.000Z",
+          "window_end": "2026-11-16T07:15:00.000Z",
+          "entries": 106,
+          "exits": 94
+        },
+        {
+          "garage_id": "airport",
+          "window_start": "2026-11-16T07:15:00.000Z",
+          "window_end": "2026-11-16T07:20:00.000Z",
+          "entries": 80,
+          "exits": 74
+        },
+        {
+          "garage_id": "center",
+          "window_start": "2026-11-16T07:15:00.000Z",
+          "window_end": "2026-11-16T07:20:00.000Z",
+          "entries": 102,
+          "exits": 92
+        },
+        {
+          "garage_id": "mall",
+          "window_start": "2026-11-16T07:15:00.000Z",
+          "window_end": "2026-11-16T07:20:00.000Z",
+          "entries": 226,
+          "exits": 221
+        },
+        {
+          "garage_id": "station",
+          "window_start": "2026-11-16T07:15:00.000Z",
+          "window_end": "2026-11-16T07:20:00.000Z",
+          "entries": 92,
+          "exits": 117
+        },
+        {
+          "garage_id": "airport",
+          "window_start": "2026-11-16T07:20:00.000Z",
+          "window_end": "2026-11-16T07:25:00.000Z",
+          "entries": 85,
+          "exits": 71
+        },
+        {
+          "garage_id": "center",
+          "window_start": "2026-11-16T07:20:00.000Z",
+          "window_end": "2026-11-16T07:25:00.000Z",
+          "entries": 105,
+          "exits": 90
+        },
+        {
+          "garage_id": "mall",
+          "window_start": "2026-11-16T07:20:00.000Z",
+          "window_end": "2026-11-16T07:25:00.000Z",
+          "entries": 228,
+          "exits": 244
+        },
+        {
+          "garage_id": "station",
+          "window_start": "2026-11-16T07:20:00.000Z",
+          "window_end": "2026-11-16T07:25:00.000Z",
+          "entries": 107,
+          "exits": 108
+        },
+        {
+          "garage_id": "airport",
+          "window_start": "2026-11-16T07:25:00.000Z",
+          "window_end": "2026-11-16T07:30:00.000Z",
+          "entries": 80,
+          "exits": 62
+        },
+        {
+          "garage_id": "center",
+          "window_start": "2026-11-16T07:25:00.000Z",
+          "window_end": "2026-11-16T07:30:00.000Z",
+          "entries": 110,
+          "exits": 97
+        },
+        {
+          "garage_id": "mall",
+          "window_start": "2026-11-16T07:25:00.000Z",
+          "window_end": "2026-11-16T07:30:00.000Z",
+          "entries": 244,
+          "exits": 240
+        },
+        {
+          "garage_id": "station",
+          "window_start": "2026-11-16T07:25:00.000Z",
+          "window_end": "2026-11-16T07:30:00.000Z",
+          "entries": 102,
+          "exits": 94
+        },
+        {
+          "garage_id": "airport",
+          "window_start": "2026-11-16T07:30:00.000Z",
+          "window_end": "2026-11-16T07:35:00.000Z",
+          "entries": 70,
+          "exits": 84
+        },
+        {
+          "garage_id": "center",
+          "window_start": "2026-11-16T07:30:00.000Z",
+          "window_end": "2026-11-16T07:35:00.000Z",
+          "entries": 103,
+          "exits": 87
+        },
+        {
+          "garage_id": "mall",
+          "window_start": "2026-11-16T07:30:00.000Z",
+          "window_end": "2026-11-16T07:35:00.000Z",
+          "entries": 235,
+          "exits": 204
+        },
+        {
+          "garage_id": "station",
+          "window_start": "2026-11-16T07:30:00.000Z",
+          "window_end": "2026-11-16T07:35:00.000Z",
+          "entries": 104,
+          "exits": 81
+        },
+        {
+          "garage_id": "airport",
+          "window_start": "2026-11-16T07:35:00.000Z",
+          "window_end": "2026-11-16T07:40:00.000Z",
+          "entries": 83,
+          "exits": 72
+        },
+        {
+          "garage_id": "center",
+          "window_start": "2026-11-16T07:35:00.000Z",
+          "window_end": "2026-11-16T07:40:00.000Z",
+          "entries": 102,
+          "exits": 80
+        },
+        {
+          "garage_id": "mall",
+          "window_start": "2026-11-16T07:35:00.000Z",
+          "window_end": "2026-11-16T07:40:00.000Z",
+          "entries": 214,
+          "exits": 231
+        },
+        {
+          "garage_id": "station",
+          "window_start": "2026-11-16T07:35:00.000Z",
+          "window_end": "2026-11-16T07:40:00.000Z",
+          "entries": 112,
+          "exits": 96
+        },
+        {
+          "garage_id": "airport",
+          "window_start": "2026-11-16T07:40:00.000Z",
+          "window_end": "2026-11-16T07:45:00.000Z",
+          "entries": 69,
+          "exits": 91
+        },
+        {
+          "garage_id": "center",
+          "window_start": "2026-11-16T07:40:00.000Z",
+          "window_end": "2026-11-16T07:45:00.000Z",
+          "entries": 108,
+          "exits": 79
+        },
+        {
+          "garage_id": "mall",
+          "window_start": "2026-11-16T07:40:00.000Z",
+          "window_end": "2026-11-16T07:45:00.000Z",
+          "entries": 198,
+          "exits": 206
+        },
+        {
+          "garage_id": "station",
+          "window_start": "2026-11-16T07:40:00.000Z",
+          "window_end": "2026-11-16T07:45:00.000Z",
+          "entries": 96,
+          "exits": 89
+        },
+        {
+          "garage_id": "airport",
+          "window_start": "2026-11-16T07:45:00.000Z",
+          "window_end": "2026-11-16T07:50:00.000Z",
+          "entries": 69,
+          "exits": 81
+        },
+        {
+          "garage_id": "center",
+          "window_start": "2026-11-16T07:45:00.000Z",
+          "window_end": "2026-11-16T07:50:00.000Z",
+          "entries": 92,
+          "exits": 100
+        },
+        {
+          "garage_id": "mall",
+          "window_start": "2026-11-16T07:45:00.000Z",
+          "window_end": "2026-11-16T07:50:00.000Z",
+          "entries": 242,
+          "exits": 215
+        },
+        {
+          "garage_id": "station",
+          "window_start": "2026-11-16T07:45:00.000Z",
+          "window_end": "2026-11-16T07:50:00.000Z",
+          "entries": 105,
+          "exits": 115
+        },
+        {
+          "garage_id": "airport",
+          "window_start": "2026-11-16T07:50:00.000Z",
+          "window_end": "2026-11-16T07:55:00.000Z",
+          "entries": 60,
+          "exits": 73
+        },
+        {
+          "garage_id": "center",
+          "window_start": "2026-11-16T07:50:00.000Z",
+          "window_end": "2026-11-16T07:55:00.000Z",
+          "entries": 94,
+          "exits": 95
+        },
+        {
+          "garage_id": "mall",
+          "window_start": "2026-11-16T07:50:00.000Z",
+          "window_end": "2026-11-16T07:55:00.000Z",
+          "entries": 212,
+          "exits": 230
+        },
+        {
+          "garage_id": "station",
+          "window_start": "2026-11-16T07:50:00.000Z",
+          "window_end": "2026-11-16T07:55:00.000Z",
+          "entries": 106,
+          "exits": 100
+        },
+        {
+          "garage_id": "airport",
+          "window_start": "2026-11-16T07:55:00.000Z",
+          "window_end": "2026-11-16T08:00:00.000Z",
+          "entries": 62,
+          "exits": 83
+        },
+        {
+          "garage_id": "center",
+          "window_start": "2026-11-16T07:55:00.000Z",
+          "window_end": "2026-11-16T08:00:00.000Z",
+          "entries": 98,
+          "exits": 115
+        },
+        {
+          "garage_id": "mall",
+          "window_start": "2026-11-16T07:55:00.000Z",
+          "window_end": "2026-11-16T08:00:00.000Z",
+          "entries": 226,
+          "exits": 219
+        },
+        {
+          "garage_id": "station",
+          "window_start": "2026-11-16T07:55:00.000Z",
+          "window_end": "2026-11-16T08:00:00.000Z",
+          "entries": 87,
+          "exits": 98
+        }
+      ]
+    },
+    "rows": [
+      {
+        "garage_id": "airport",
+        "window_start": "2026-11-16T07:00:00.000Z",
+        "window_end": "2026-11-16T07:05:00.000Z",
+        "entries": 81,
+        "exits": 68,
+        "batch_id": 4,
+        "written_at": "2026-11-18 14:32:52.543041+00:00"
+      },
+      {
+        "garage_id": "center",
+        "window_start": "2026-11-16T07:00:00.000Z",
+        "window_end": "2026-11-16T07:05:00.000Z",
+        "entries": 101,
+        "exits": 99,
+        "batch_id": 4,
+        "written_at": "2026-11-18 14:32:52.543041+00:00"
+      },
+      {
+        "garage_id": "mall",
+        "window_start": "2026-11-16T07:00:00.000Z",
+        "window_end": "2026-11-16T07:05:00.000Z",
+        "entries": 232,
+        "exits": 234,
+        "batch_id": 4,
+        "written_at": "2026-11-18 14:32:52.543041+00:00"
+      },
+      {
+        "garage_id": "station",
+        "window_start": "2026-11-16T07:00:00.000Z",
+        "window_end": "2026-11-16T07:05:00.000Z",
+        "entries": 117,
+        "exits": 106,
+        "batch_id": 4,
+        "written_at": "2026-11-18 14:32:52.543041+00:00"
+      },
+      {
+        "garage_id": "airport",
+        "window_start": "2026-11-16T07:05:00.000Z",
+        "window_end": "2026-11-16T07:10:00.000Z",
+        "entries": 81,
+        "exits": 66,
+        "batch_id": 5,
+        "written_at": "2026-11-18 14:32:54.105486+00:00"
+      },
+      {
+        "garage_id": "center",
+        "window_start": "2026-11-16T07:05:00.000Z",
+        "window_end": "2026-11-16T07:10:00.000Z",
+        "entries": 117,
+        "exits": 110,
+        "batch_id": 5,
+        "written_at": "2026-11-18 14:32:54.105486+00:00"
+      },
+      {
+        "garage_id": "mall",
+        "window_start": "2026-11-16T07:05:00.000Z",
+        "window_end": "2026-11-16T07:10:00.000Z",
+        "entries": 212,
+        "exits": 235,
+        "batch_id": 5,
+        "written_at": "2026-11-18 14:32:54.105486+00:00"
+      },
+      {
+        "garage_id": "station",
+        "window_start": "2026-11-16T07:05:00.000Z",
+        "window_end": "2026-11-16T07:10:00.000Z",
+        "entries": 104,
+        "exits": 96,
+        "batch_id": 5,
+        "written_at": "2026-11-18 14:32:54.105486+00:00"
+      },
+      {
+        "garage_id": "airport",
+        "window_start": "2026-11-16T07:10:00.000Z",
+        "window_end": "2026-11-16T07:15:00.000Z",
+        "entries": 77,
+        "exits": 67,
+        "batch_id": 7,
+        "written_at": "2026-11-18 14:32:56.619085+00:00"
+      },
+      {
+        "garage_id": "center",
+        "window_start": "2026-11-16T07:10:00.000Z",
+        "window_end": "2026-11-16T07:15:00.000Z",
+        "entries": 103,
+        "exits": 102,
+        "batch_id": 7,
+        "written_at": "2026-11-18 14:32:56.619085+00:00"
+      },
+      {
+        "garage_id": "mall",
+        "window_start": "2026-11-16T07:10:00.000Z",
+        "window_end": "2026-11-16T07:15:00.000Z",
+        "entries": 223,
+        "exits": 227,
+        "batch_id": 7,
+        "written_at": "2026-11-18 14:32:56.619085+00:00"
+      },
+      {
+        "garage_id": "station",
+        "window_start": "2026-11-16T07:10:00.000Z",
+        "window_end": "2026-11-16T07:15:00.000Z",
+        "entries": 106,
+        "exits": 94,
+        "batch_id": 7,
+        "written_at": "2026-11-18 14:32:56.619085+00:00"
+      },
+      {
+        "garage_id": "airport",
+        "window_start": "2026-11-16T07:15:00.000Z",
+        "window_end": "2026-11-16T07:20:00.000Z",
+        "entries": 80,
+        "exits": 74,
+        "batch_id": 8,
+        "written_at": "2026-11-18 14:32:57.655813+00:00"
+      },
+      {
+        "garage_id": "center",
+        "window_start": "2026-11-16T07:15:00.000Z",
+        "window_end": "2026-11-16T07:20:00.000Z",
+        "entries": 102,
+        "exits": 92,
+        "batch_id": 8,
+        "written_at": "2026-11-18 14:32:57.655813+00:00"
+      },
+      {
+        "garage_id": "mall",
+        "window_start": "2026-11-16T07:15:00.000Z",
+        "window_end": "2026-11-16T07:20:00.000Z",
+        "entries": 226,
+        "exits": 221,
+        "batch_id": 8,
+        "written_at": "2026-11-18 14:32:57.655813+00:00"
+      },
+      {
+        "garage_id": "station",
+        "window_start": "2026-11-16T07:15:00.000Z",
+        "window_end": "2026-11-16T07:20:00.000Z",
+        "entries": 92,
+        "exits": 117,
+        "batch_id": 8,
+        "written_at": "2026-11-18 14:32:57.655813+00:00"
+      },
+      {
+        "garage_id": "airport",
+        "window_start": "2026-11-16T07:20:00.000Z",
+        "window_end": "2026-11-16T07:25:00.000Z",
+        "entries": 85,
+        "exits": 71,
+        "batch_id": 11,
+        "written_at": "2026-11-18 14:33:01.747404+00:00"
+      },
+      {
+        "garage_id": "center",
+        "window_start": "2026-11-16T07:20:00.000Z",
+        "window_end": "2026-11-16T07:25:00.000Z",
+        "entries": 105,
+        "exits": 90,
+        "batch_id": 11,
+        "written_at": "2026-11-18 14:33:01.747404+00:00"
+      },
+      {
+        "garage_id": "mall",
+        "window_start": "2026-11-16T07:20:00.000Z",
+        "window_end": "2026-11-16T07:25:00.000Z",
+        "entries": 228,
+        "exits": 244,
+        "batch_id": 11,
+        "written_at": "2026-11-18 14:33:01.747404+00:00"
+      },
+      {
+        "garage_id": "station",
+        "window_start": "2026-11-16T07:20:00.000Z",
+        "window_end": "2026-11-16T07:25:00.000Z",
+        "entries": 107,
+        "exits": 108,
+        "batch_id": 11,
+        "written_at": "2026-11-18 14:33:01.747404+00:00"
+      },
+      {
+        "garage_id": "airport",
+        "window_start": "2026-11-16T07:25:00.000Z",
+        "window_end": "2026-11-16T07:30:00.000Z",
+        "entries": 80,
+        "exits": 62,
+        "batch_id": 12,
+        "written_at": "2026-11-18 14:33:02.743432+00:00"
+      },
+      {
+        "garage_id": "center",
+        "window_start": "2026-11-16T07:25:00.000Z",
+        "window_end": "2026-11-16T07:30:00.000Z",
+        "entries": 110,
+        "exits": 97,
+        "batch_id": 12,
+        "written_at": "2026-11-18 14:33:02.743432+00:00"
+      },
+      {
+        "garage_id": "mall",
+        "window_start": "2026-11-16T07:25:00.000Z",
+        "window_end": "2026-11-16T07:30:00.000Z",
+        "entries": 244,
+        "exits": 240,
+        "batch_id": 12,
+        "written_at": "2026-11-18 14:33:02.743432+00:00"
+      },
+      {
+        "garage_id": "station",
+        "window_start": "2026-11-16T07:25:00.000Z",
+        "window_end": "2026-11-16T07:30:00.000Z",
+        "entries": 102,
+        "exits": 94,
+        "batch_id": 12,
+        "written_at": "2026-11-18 14:33:02.743432+00:00"
+      },
+      {
+        "garage_id": "airport",
+        "window_start": "2026-11-16T07:30:00.000Z",
+        "window_end": "2026-11-16T07:35:00.000Z",
+        "entries": 70,
+        "exits": 84,
+        "batch_id": 15,
+        "written_at": "2026-11-18 14:33:05.823085+00:00"
+      },
+      {
+        "garage_id": "center",
+        "window_start": "2026-11-16T07:30:00.000Z",
+        "window_end": "2026-11-16T07:35:00.000Z",
+        "entries": 103,
+        "exits": 87,
+        "batch_id": 15,
+        "written_at": "2026-11-18 14:33:05.823085+00:00"
+      },
+      {
+        "garage_id": "mall",
+        "window_start": "2026-11-16T07:30:00.000Z",
+        "window_end": "2026-11-16T07:35:00.000Z",
+        "entries": 235,
+        "exits": 204,
+        "batch_id": 15,
+        "written_at": "2026-11-18 14:33:05.823085+00:00"
+      },
+      {
+        "garage_id": "station",
+        "window_start": "2026-11-16T07:30:00.000Z",
+        "window_end": "2026-11-16T07:35:00.000Z",
+        "entries": 104,
+        "exits": 81,
+        "batch_id": 15,
+        "written_at": "2026-11-18 14:33:05.823085+00:00"
+      },
+      {
+        "garage_id": "airport",
+        "window_start": "2026-11-16T07:35:00.000Z",
+        "window_end": "2026-11-16T07:40:00.000Z",
+        "entries": 83,
+        "exits": 72,
+        "batch_id": 17,
+        "written_at": "2026-11-18 14:33:08.285696+00:00"
+      },
+      {
+        "garage_id": "center",
+        "window_start": "2026-11-16T07:35:00.000Z",
+        "window_end": "2026-11-16T07:40:00.000Z",
+        "entries": 102,
+        "exits": 80,
+        "batch_id": 17,
+        "written_at": "2026-11-18 14:33:08.285696+00:00"
+      },
+      {
+        "garage_id": "mall",
+        "window_start": "2026-11-16T07:35:00.000Z",
+        "window_end": "2026-11-16T07:40:00.000Z",
+        "entries": 214,
+        "exits": 231,
+        "batch_id": 17,
+        "written_at": "2026-11-18 14:33:08.285696+00:00"
+      },
+      {
+        "garage_id": "station",
+        "window_start": "2026-11-16T07:35:00.000Z",
+        "window_end": "2026-11-16T07:40:00.000Z",
+        "entries": 112,
+        "exits": 96,
+        "batch_id": 17,
+        "written_at": "2026-11-18 14:33:08.285696+00:00"
+      },
+      {
+        "garage_id": "airport",
+        "window_start": "2026-11-16T07:40:00.000Z",
+        "window_end": "2026-11-16T07:45:00.000Z",
+        "entries": 69,
+        "exits": 91,
+        "batch_id": 19,
+        "written_at": "2026-11-18 14:33:10.465240+00:00"
+      },
+      {
+        "garage_id": "center",
+        "window_start": "2026-11-16T07:40:00.000Z",
+        "window_end": "2026-11-16T07:45:00.000Z",
+        "entries": 108,
+        "exits": 79,
+        "batch_id": 19,
+        "written_at": "2026-11-18 14:33:10.465240+00:00"
+      },
+      {
+        "garage_id": "mall",
+        "window_start": "2026-11-16T07:40:00.000Z",
+        "window_end": "2026-11-16T07:45:00.000Z",
+        "entries": 198,
+        "exits": 206,
+        "batch_id": 19,
+        "written_at": "2026-11-18 14:33:10.465240+00:00"
+      },
+      {
+        "garage_id": "station",
+        "window_start": "2026-11-16T07:40:00.000Z",
+        "window_end": "2026-11-16T07:45:00.000Z",
+        "entries": 96,
+        "exits": 89,
+        "batch_id": 19,
+        "written_at": "2026-11-18 14:33:10.465240+00:00"
+      },
+      {
+        "garage_id": "airport",
+        "window_start": "2026-11-16T07:45:00.000Z",
+        "window_end": "2026-11-16T07:50:00.000Z",
+        "entries": 69,
+        "exits": 81,
+        "batch_id": 21,
+        "written_at": "2026-11-18 14:33:12.736391+00:00"
+      },
+      {
+        "garage_id": "center",
+        "window_start": "2026-11-16T07:45:00.000Z",
+        "window_end": "2026-11-16T07:50:00.000Z",
+        "entries": 92,
+        "exits": 100,
+        "batch_id": 21,
+        "written_at": "2026-11-18 14:33:12.736391+00:00"
+      },
+      {
+        "garage_id": "mall",
+        "window_start": "2026-11-16T07:45:00.000Z",
+        "window_end": "2026-11-16T07:50:00.000Z",
+        "entries": 242,
+        "exits": 215,
+        "batch_id": 21,
+        "written_at": "2026-11-18 14:33:12.736391+00:00"
+      },
+      {
+        "garage_id": "station",
+        "window_start": "2026-11-16T07:45:00.000Z",
+        "window_end": "2026-11-16T07:50:00.000Z",
+        "entries": 105,
+        "exits": 115,
+        "batch_id": 21,
+        "written_at": "2026-11-18 14:33:12.736391+00:00"
+      },
+      {
+        "garage_id": "airport",
+        "window_start": "2026-11-16T07:50:00.000Z",
+        "window_end": "2026-11-16T07:55:00.000Z",
+        "entries": 60,
+        "exits": 73,
+        "batch_id": 24,
+        "written_at": "2026-11-18 14:33:16.247383+00:00"
+      },
+      {
+        "garage_id": "center",
+        "window_start": "2026-11-16T07:50:00.000Z",
+        "window_end": "2026-11-16T07:55:00.000Z",
+        "entries": 94,
+        "exits": 95,
+        "batch_id": 24,
+        "written_at": "2026-11-18 14:33:16.247383+00:00"
+      },
+      {
+        "garage_id": "mall",
+        "window_start": "2026-11-16T07:50:00.000Z",
+        "window_end": "2026-11-16T07:55:00.000Z",
+        "entries": 212,
+        "exits": 230,
+        "batch_id": 24,
+        "written_at": "2026-11-18 14:33:16.247383+00:00"
+      },
+      {
+        "garage_id": "station",
+        "window_start": "2026-11-16T07:50:00.000Z",
+        "window_end": "2026-11-16T07:55:00.000Z",
+        "entries": 106,
+        "exits": 100,
+        "batch_id": 24,
+        "written_at": "2026-11-18 14:33:16.247383+00:00"
+      },
+      {
+        "garage_id": "airport",
+        "window_start": "2026-11-16T07:55:00.000Z",
+        "window_end": "2026-11-16T08:00:00.000Z",
+        "entries": 62,
+        "exits": 83,
+        "batch_id": 24,
+        "written_at": "2026-11-18 14:33:16.247383+00:00"
+      },
+      {
+        "garage_id": "center",
+        "window_start": "2026-11-16T07:55:00.000Z",
+        "window_end": "2026-11-16T08:00:00.000Z",
+        "entries": 98,
+        "exits": 115,
+        "batch_id": 24,
+        "written_at": "2026-11-18 14:33:16.247383+00:00"
+      },
+      {
+        "garage_id": "mall",
+        "window_start": "2026-11-16T07:55:00.000Z",
+        "window_end": "2026-11-16T08:00:00.000Z",
+        "entries": 226,
+        "exits": 219,
+        "batch_id": 24,
+        "written_at": "2026-11-18 14:33:16.247383+00:00"
+      },
+      {
+        "garage_id": "station",
+        "window_start": "2026-11-16T07:55:00.000Z",
+        "window_end": "2026-11-16T08:00:00.000Z",
+        "entries": 87,
+        "exits": 98,
+        "batch_id": 24,
+        "written_at": "2026-11-18 14:33:16.247383+00:00"
+      }
+    ]
+  },
+  "dedup-dups": {
+    "run": "dedup-dups",
+    "file": "duplicates",
+    "watermark_minutes": 5,
+    "pace_ms": 2,
+    "lines": 12611,
+    "send_s": 32.1,
+    "clock_offset_s": -0.01,
+    "batch": {
+      "watermark": "2026-11-16T08:05:00.000Z",
+      "events": 12000,
+      "duplicates": 610,
+      "ticks": 1,
+      "not_final": 0,
+      "windows": [
+        {
+          "garage_id": "airport",
+          "window_start": "2026-11-16T07:00:00.000Z",
+          "window_end": "2026-11-16T07:05:00.000Z",
+          "entries": 81,
+          "exits": 68
+        },
+        {
+          "garage_id": "center",
+          "window_start": "2026-11-16T07:00:00.000Z",
+          "window_end": "2026-11-16T07:05:00.000Z",
+          "entries": 101,
+          "exits": 99
+        },
+        {
+          "garage_id": "mall",
+          "window_start": "2026-11-16T07:00:00.000Z",
+          "window_end": "2026-11-16T07:05:00.000Z",
+          "entries": 232,
+          "exits": 234
+        },
+        {
+          "garage_id": "station",
+          "window_start": "2026-11-16T07:00:00.000Z",
+          "window_end": "2026-11-16T07:05:00.000Z",
+          "entries": 117,
+          "exits": 106
+        },
+        {
+          "garage_id": "airport",
+          "window_start": "2026-11-16T07:05:00.000Z",
+          "window_end": "2026-11-16T07:10:00.000Z",
+          "entries": 81,
+          "exits": 66
+        },
+        {
+          "garage_id": "center",
+          "window_start": "2026-11-16T07:05:00.000Z",
+          "window_end": "2026-11-16T07:10:00.000Z",
+          "entries": 117,
+          "exits": 110
+        },
+        {
+          "garage_id": "mall",
+          "window_start": "2026-11-16T07:05:00.000Z",
+          "window_end": "2026-11-16T07:10:00.000Z",
+          "entries": 212,
+          "exits": 235
+        },
+        {
+          "garage_id": "station",
+          "window_start": "2026-11-16T07:05:00.000Z",
+          "window_end": "2026-11-16T07:10:00.000Z",
+          "entries": 104,
+          "exits": 96
+        },
+        {
+          "garage_id": "airport",
+          "window_start": "2026-11-16T07:10:00.000Z",
+          "window_end": "2026-11-16T07:15:00.000Z",
+          "entries": 77,
+          "exits": 67
+        },
+        {
+          "garage_id": "center",
+          "window_start": "2026-11-16T07:10:00.000Z",
+          "window_end": "2026-11-16T07:15:00.000Z",
+          "entries": 103,
+          "exits": 102
+        },
+        {
+          "garage_id": "mall",
+          "window_start": "2026-11-16T07:10:00.000Z",
+          "window_end": "2026-11-16T07:15:00.000Z",
+          "entries": 223,
+          "exits": 227
+        },
+        {
+          "garage_id": "station",
+          "window_start": "2026-11-16T07:10:00.000Z",
+          "window_end": "2026-11-16T07:15:00.000Z",
+          "entries": 106,
+          "exits": 94
+        },
+        {
+          "garage_id": "airport",
+          "window_start": "2026-11-16T07:15:00.000Z",
+          "window_end": "2026-11-16T07:20:00.000Z",
+          "entries": 80,
+          "exits": 74
+        },
+        {
+          "garage_id": "center",
+          "window_start": "2026-11-16T07:15:00.000Z",
+          "window_end": "2026-11-16T07:20:00.000Z",
+          "entries": 102,
+          "exits": 92
+        },
+        {
+          "garage_id": "mall",
+          "window_start": "2026-11-16T07:15:00.000Z",
+          "window_end": "2026-11-16T07:20:00.000Z",
+          "entries": 226,
+          "exits": 221
+        },
+        {
+          "garage_id": "station",
+          "window_start": "2026-11-16T07:15:00.000Z",
+          "window_end": "2026-11-16T07:20:00.000Z",
+          "entries": 92,
+          "exits": 117
+        },
+        {
+          "garage_id": "airport",
+          "window_start": "2026-11-16T07:20:00.000Z",
+          "window_end": "2026-11-16T07:25:00.000Z",
+          "entries": 85,
+          "exits": 71
+        },
+        {
+          "garage_id": "center",
+          "window_start": "2026-11-16T07:20:00.000Z",
+          "window_end": "2026-11-16T07:25:00.000Z",
+          "entries": 105,
+          "exits": 90
+        },
+        {
+          "garage_id": "mall",
+          "window_start": "2026-11-16T07:20:00.000Z",
+          "window_end": "2026-11-16T07:25:00.000Z",
+          "entries": 228,
+          "exits": 244
+        },
+        {
+          "garage_id": "station",
+          "window_start": "2026-11-16T07:20:00.000Z",
+          "window_end": "2026-11-16T07:25:00.000Z",
+          "entries": 107,
+          "exits": 108
+        },
+        {
+          "garage_id": "airport",
+          "window_start": "2026-11-16T07:25:00.000Z",
+          "window_end": "2026-11-16T07:30:00.000Z",
+          "entries": 80,
+          "exits": 62
+        },
+        {
+          "garage_id": "center",
+          "window_start": "2026-11-16T07:25:00.000Z",
+          "window_end": "2026-11-16T07:30:00.000Z",
+          "entries": 110,
+          "exits": 97
+        },
+        {
+          "garage_id": "mall",
+          "window_start": "2026-11-16T07:25:00.000Z",
+          "window_end": "2026-11-16T07:30:00.000Z",
+          "entries": 244,
+          "exits": 240
+        },
+        {
+          "garage_id": "station",
+          "window_start": "2026-11-16T07:25:00.000Z",
+          "window_end": "2026-11-16T07:30:00.000Z",
+          "entries": 102,
+          "exits": 94
+        },
+        {
+          "garage_id": "airport",
+          "window_start": "2026-11-16T07:30:00.000Z",
+          "window_end": "2026-11-16T07:35:00.000Z",
+          "entries": 70,
+          "exits": 84
+        },
+        {
+          "garage_id": "center",
+          "window_start": "2026-11-16T07:30:00.000Z",
+          "window_end": "2026-11-16T07:35:00.000Z",
+          "entries": 103,
+          "exits": 87
+        },
+        {
+          "garage_id": "mall",
+          "window_start": "2026-11-16T07:30:00.000Z",
+          "window_end": "2026-11-16T07:35:00.000Z",
+          "entries": 235,
+          "exits": 204
+        },
+        {
+          "garage_id": "station",
+          "window_start": "2026-11-16T07:30:00.000Z",
+          "window_end": "2026-11-16T07:35:00.000Z",
+          "entries": 104,
+          "exits": 81
+        },
+        {
+          "garage_id": "airport",
+          "window_start": "2026-11-16T07:35:00.000Z",
+          "window_end": "2026-11-16T07:40:00.000Z",
+          "entries": 83,
+          "exits": 72
+        },
+        {
+          "garage_id": "center",
+          "window_start": "2026-11-16T07:35:00.000Z",
+          "window_end": "2026-11-16T07:40:00.000Z",
+          "entries": 102,
+          "exits": 80
+        },
+        {
+          "garage_id": "mall",
+          "window_start": "2026-11-16T07:35:00.000Z",
+          "window_end": "2026-11-16T07:40:00.000Z",
+          "entries": 214,
+          "exits": 231
+        },
+        {
+          "garage_id": "station",
+          "window_start": "2026-11-16T07:35:00.000Z",
+          "window_end": "2026-11-16T07:40:00.000Z",
+          "entries": 112,
+          "exits": 96
+        },
+        {
+          "garage_id": "airport",
+          "window_start": "2026-11-16T07:40:00.000Z",
+          "window_end": "2026-11-16T07:45:00.000Z",
+          "entries": 69,
+          "exits": 91
+        },
+        {
+          "garage_id": "center",
+          "window_start": "2026-11-16T07:40:00.000Z",
+          "window_end": "2026-11-16T07:45:00.000Z",
+          "entries": 108,
+          "exits": 79
+        },
+        {
+          "garage_id": "mall",
+          "window_start": "2026-11-16T07:40:00.000Z",
+          "window_end": "2026-11-16T07:45:00.000Z",
+          "entries": 198,
+          "exits": 206
+        },
+        {
+          "garage_id": "station",
+          "window_start": "2026-11-16T07:40:00.000Z",
+          "window_end": "2026-11-16T07:45:00.000Z",
+          "entries": 96,
+          "exits": 89
+        },
+        {
+          "garage_id": "airport",
+          "window_start": "2026-11-16T07:45:00.000Z",
+          "window_end": "2026-11-16T07:50:00.000Z",
+          "entries": 69,
+          "exits": 81
+        },
+        {
+          "garage_id": "center",
+          "window_start": "2026-11-16T07:45:00.000Z",
+          "window_end": "2026-11-16T07:50:00.000Z",
+          "entries": 92,
+          "exits": 100
+        },
+        {
+          "garage_id": "mall",
+          "window_start": "2026-11-16T07:45:00.000Z",
+          "window_end": "2026-11-16T07:50:00.000Z",
+          "entries": 242,
+          "exits": 215
+        },
+        {
+          "garage_id": "station",
+          "window_start": "2026-11-16T07:45:00.000Z",
+          "window_end": "2026-11-16T07:50:00.000Z",
+          "entries": 105,
+          "exits": 115
+        },
+        {
+          "garage_id": "airport",
+          "window_start": "2026-11-16T07:50:00.000Z",
+          "window_end": "2026-11-16T07:55:00.000Z",
+          "entries": 60,
+          "exits": 73
+        },
+        {
+          "garage_id": "center",
+          "window_start": "2026-11-16T07:50:00.000Z",
+          "window_end": "2026-11-16T07:55:00.000Z",
+          "entries": 94,
+          "exits": 95
+        },
+        {
+          "garage_id": "mall",
+          "window_start": "2026-11-16T07:50:00.000Z",
+          "window_end": "2026-11-16T07:55:00.000Z",
+          "entries": 212,
+          "exits": 230
+        },
+        {
+          "garage_id": "station",
+          "window_start": "2026-11-16T07:50:00.000Z",
+          "window_end": "2026-11-16T07:55:00.000Z",
+          "entries": 106,
+          "exits": 100
+        },
+        {
+          "garage_id": "airport",
+          "window_start": "2026-11-16T07:55:00.000Z",
+          "window_end": "2026-11-16T08:00:00.000Z",
+          "entries": 62,
+          "exits": 83
+        },
+        {
+          "garage_id": "center",
+          "window_start": "2026-11-16T07:55:00.000Z",
+          "window_end": "2026-11-16T08:00:00.000Z",
+          "entries": 98,
+          "exits": 115
+        },
+        {
+          "garage_id": "mall",
+          "window_start": "2026-11-16T07:55:00.000Z",
+          "window_end": "2026-11-16T08:00:00.000Z",
+          "entries": 226,
+          "exits": 219
+        },
+        {
+          "garage_id": "station",
+          "window_start": "2026-11-16T07:55:00.000Z",
+          "window_end": "2026-11-16T08:00:00.000Z",
+          "entries": 87,
+          "exits": 98
+        }
+      ]
+    },
+    "rows": [
+      {
+        "garage_id": "airport",
+        "window_start": "2026-11-16T07:00:00.000Z",
+        "window_end": "2026-11-16T07:05:00.000Z",
+        "entries": 81,
+        "exits": 68,
+        "batch_id": 4,
+        "written_at": "2026-11-18 14:34:24.700175+00:00"
+      },
+      {
+        "garage_id": "center",
+        "window_start": "2026-11-16T07:00:00.000Z",
+        "window_end": "2026-11-16T07:05:00.000Z",
+        "entries": 101,
+        "exits": 99,
+        "batch_id": 4,
+        "written_at": "2026-11-18 14:34:24.700175+00:00"
+      },
+      {
+        "garage_id": "mall",
+        "window_start": "2026-11-16T07:00:00.000Z",
+        "window_end": "2026-11-16T07:05:00.000Z",
+        "entries": 232,
+        "exits": 234,
+        "batch_id": 4,
+        "written_at": "2026-11-18 14:34:24.700175+00:00"
+      },
+      {
+        "garage_id": "station",
+        "window_start": "2026-11-16T07:00:00.000Z",
+        "window_end": "2026-11-16T07:05:00.000Z",
+        "entries": 117,
+        "exits": 106,
+        "batch_id": 4,
+        "written_at": "2026-11-18 14:34:24.700175+00:00"
+      },
+      {
+        "garage_id": "airport",
+        "window_start": "2026-11-16T07:05:00.000Z",
+        "window_end": "2026-11-16T07:10:00.000Z",
+        "entries": 81,
+        "exits": 66,
+        "batch_id": 6,
+        "written_at": "2026-11-18 14:34:28.086745+00:00"
+      },
+      {
+        "garage_id": "center",
+        "window_start": "2026-11-16T07:05:00.000Z",
+        "window_end": "2026-11-16T07:10:00.000Z",
+        "entries": 117,
+        "exits": 110,
+        "batch_id": 6,
+        "written_at": "2026-11-18 14:34:28.086745+00:00"
+      },
+      {
+        "garage_id": "mall",
+        "window_start": "2026-11-16T07:05:00.000Z",
+        "window_end": "2026-11-16T07:10:00.000Z",
+        "entries": 212,
+        "exits": 235,
+        "batch_id": 6,
+        "written_at": "2026-11-18 14:34:28.086745+00:00"
+      },
+      {
+        "garage_id": "station",
+        "window_start": "2026-11-16T07:05:00.000Z",
+        "window_end": "2026-11-16T07:10:00.000Z",
+        "entries": 104,
+        "exits": 96,
+        "batch_id": 6,
+        "written_at": "2026-11-18 14:34:28.086745+00:00"
+      },
+      {
+        "garage_id": "airport",
+        "window_start": "2026-11-16T07:10:00.000Z",
+        "window_end": "2026-11-16T07:15:00.000Z",
+        "entries": 77,
+        "exits": 67,
+        "batch_id": 7,
+        "written_at": "2026-11-18 14:34:29.025336+00:00"
+      },
+      {
+        "garage_id": "center",
+        "window_start": "2026-11-16T07:10:00.000Z",
+        "window_end": "2026-11-16T07:15:00.000Z",
+        "entries": 103,
+        "exits": 102,
+        "batch_id": 7,
+        "written_at": "2026-11-18 14:34:29.025336+00:00"
+      },
+      {
+        "garage_id": "mall",
+        "window_start": "2026-11-16T07:10:00.000Z",
+        "window_end": "2026-11-16T07:15:00.000Z",
+        "entries": 223,
+        "exits": 227,
+        "batch_id": 7,
+        "written_at": "2026-11-18 14:34:29.025336+00:00"
+      },
+      {
+        "garage_id": "station",
+        "window_start": "2026-11-16T07:10:00.000Z",
+        "window_end": "2026-11-16T07:15:00.000Z",
+        "entries": 106,
+        "exits": 94,
+        "batch_id": 7,
+        "written_at": "2026-11-18 14:34:29.025336+00:00"
+      },
+      {
+        "garage_id": "airport",
+        "window_start": "2026-11-16T07:15:00.000Z",
+        "window_end": "2026-11-16T07:20:00.000Z",
+        "entries": 80,
+        "exits": 74,
+        "batch_id": 9,
+        "written_at": "2026-11-18 14:34:31.091808+00:00"
+      },
+      {
+        "garage_id": "center",
+        "window_start": "2026-11-16T07:15:00.000Z",
+        "window_end": "2026-11-16T07:20:00.000Z",
+        "entries": 102,
+        "exits": 92,
+        "batch_id": 9,
+        "written_at": "2026-11-18 14:34:31.091808+00:00"
+      },
+      {
+        "garage_id": "mall",
+        "window_start": "2026-11-16T07:15:00.000Z",
+        "window_end": "2026-11-16T07:20:00.000Z",
+        "entries": 226,
+        "exits": 221,
+        "batch_id": 9,
+        "written_at": "2026-11-18 14:34:31.091808+00:00"
+      },
+      {
+        "garage_id": "station",
+        "window_start": "2026-11-16T07:15:00.000Z",
+        "window_end": "2026-11-16T07:20:00.000Z",
+        "entries": 92,
+        "exits": 117,
+        "batch_id": 9,
+        "written_at": "2026-11-18 14:34:31.091808+00:00"
+      },
+      {
+        "garage_id": "airport",
+        "window_start": "2026-11-16T07:20:00.000Z",
+        "window_end": "2026-11-16T07:25:00.000Z",
+        "entries": 85,
+        "exits": 71,
+        "batch_id": 12,
+        "written_at": "2026-11-18 14:34:35.090316+00:00"
+      },
+      {
+        "garage_id": "center",
+        "window_start": "2026-11-16T07:20:00.000Z",
+        "window_end": "2026-11-16T07:25:00.000Z",
+        "entries": 105,
+        "exits": 90,
+        "batch_id": 12,
+        "written_at": "2026-11-18 14:34:35.090316+00:00"
+      },
+      {
+        "garage_id": "mall",
+        "window_start": "2026-11-16T07:20:00.000Z",
+        "window_end": "2026-11-16T07:25:00.000Z",
+        "entries": 228,
+        "exits": 244,
+        "batch_id": 12,
+        "written_at": "2026-11-18 14:34:35.090316+00:00"
+      },
+      {
+        "garage_id": "station",
+        "window_start": "2026-11-16T07:20:00.000Z",
+        "window_end": "2026-11-16T07:25:00.000Z",
+        "entries": 107,
+        "exits": 108,
+        "batch_id": 12,
+        "written_at": "2026-11-18 14:34:35.090316+00:00"
+      },
+      {
+        "garage_id": "airport",
+        "window_start": "2026-11-16T07:25:00.000Z",
+        "window_end": "2026-11-16T07:30:00.000Z",
+        "entries": 80,
+        "exits": 62,
+        "batch_id": 14,
+        "written_at": "2026-11-18 14:34:36.967103+00:00"
+      },
+      {
+        "garage_id": "center",
+        "window_start": "2026-11-16T07:25:00.000Z",
+        "window_end": "2026-11-16T07:30:00.000Z",
+        "entries": 110,
+        "exits": 97,
+        "batch_id": 14,
+        "written_at": "2026-11-18 14:34:36.967103+00:00"
+      },
+      {
+        "garage_id": "mall",
+        "window_start": "2026-11-16T07:25:00.000Z",
+        "window_end": "2026-11-16T07:30:00.000Z",
+        "entries": 244,
+        "exits": 240,
+        "batch_id": 14,
+        "written_at": "2026-11-18 14:34:36.967103+00:00"
+      },
+      {
+        "garage_id": "station",
+        "window_start": "2026-11-16T07:25:00.000Z",
+        "window_end": "2026-11-16T07:30:00.000Z",
+        "entries": 102,
+        "exits": 94,
+        "batch_id": 14,
+        "written_at": "2026-11-18 14:34:36.967103+00:00"
+      },
+      {
+        "garage_id": "airport",
+        "window_start": "2026-11-16T07:30:00.000Z",
+        "window_end": "2026-11-16T07:35:00.000Z",
+        "entries": 70,
+        "exits": 84,
+        "batch_id": 16,
+        "written_at": "2026-11-18 14:34:39.571743+00:00"
+      },
+      {
+        "garage_id": "center",
+        "window_start": "2026-11-16T07:30:00.000Z",
+        "window_end": "2026-11-16T07:35:00.000Z",
+        "entries": 103,
+        "exits": 87,
+        "batch_id": 16,
+        "written_at": "2026-11-18 14:34:39.571743+00:00"
+      },
+      {
+        "garage_id": "mall",
+        "window_start": "2026-11-16T07:30:00.000Z",
+        "window_end": "2026-11-16T07:35:00.000Z",
+        "entries": 235,
+        "exits": 204,
+        "batch_id": 16,
+        "written_at": "2026-11-18 14:34:39.571743+00:00"
+      },
+      {
+        "garage_id": "station",
+        "window_start": "2026-11-16T07:30:00.000Z",
+        "window_end": "2026-11-16T07:35:00.000Z",
+        "entries": 104,
+        "exits": 81,
+        "batch_id": 16,
+        "written_at": "2026-11-18 14:34:39.571743+00:00"
+      },
+      {
+        "garage_id": "airport",
+        "window_start": "2026-11-16T07:35:00.000Z",
+        "window_end": "2026-11-16T07:40:00.000Z",
+        "entries": 83,
+        "exits": 72,
+        "batch_id": 18,
+        "written_at": "2026-11-18 14:34:43.164554+00:00"
+      },
+      {
+        "garage_id": "center",
+        "window_start": "2026-11-16T07:35:00.000Z",
+        "window_end": "2026-11-16T07:40:00.000Z",
+        "entries": 102,
+        "exits": 80,
+        "batch_id": 18,
+        "written_at": "2026-11-18 14:34:43.164554+00:00"
+      },
+      {
+        "garage_id": "mall",
+        "window_start": "2026-11-16T07:35:00.000Z",
+        "window_end": "2026-11-16T07:40:00.000Z",
+        "entries": 214,
+        "exits": 231,
+        "batch_id": 18,
+        "written_at": "2026-11-18 14:34:43.164554+00:00"
+      },
+      {
+        "garage_id": "station",
+        "window_start": "2026-11-16T07:35:00.000Z",
+        "window_end": "2026-11-16T07:40:00.000Z",
+        "entries": 112,
+        "exits": 96,
+        "batch_id": 18,
+        "written_at": "2026-11-18 14:34:43.164554+00:00"
+      },
+      {
+        "garage_id": "airport",
+        "window_start": "2026-11-16T07:40:00.000Z",
+        "window_end": "2026-11-16T07:45:00.000Z",
+        "entries": 69,
+        "exits": 91,
+        "batch_id": 20,
+        "written_at": "2026-11-18 14:34:45.329064+00:00"
+      },
+      {
+        "garage_id": "center",
+        "window_start": "2026-11-16T07:40:00.000Z",
+        "window_end": "2026-11-16T07:45:00.000Z",
+        "entries": 108,
+        "exits": 79,
+        "batch_id": 20,
+        "written_at": "2026-11-18 14:34:45.329064+00:00"
+      },
+      {
+        "garage_id": "mall",
+        "window_start": "2026-11-16T07:40:00.000Z",
+        "window_end": "2026-11-16T07:45:00.000Z",
+        "entries": 198,
+        "exits": 206,
+        "batch_id": 20,
+        "written_at": "2026-11-18 14:34:45.329064+00:00"
+      },
+      {
+        "garage_id": "station",
+        "window_start": "2026-11-16T07:40:00.000Z",
+        "window_end": "2026-11-16T07:45:00.000Z",
+        "entries": 96,
+        "exits": 89,
+        "batch_id": 20,
+        "written_at": "2026-11-18 14:34:45.329064+00:00"
+      },
+      {
+        "garage_id": "airport",
+        "window_start": "2026-11-16T07:45:00.000Z",
+        "window_end": "2026-11-16T07:50:00.000Z",
+        "entries": 69,
+        "exits": 81,
+        "batch_id": 22,
+        "written_at": "2026-11-18 14:34:47.070855+00:00"
+      },
+      {
+        "garage_id": "center",
+        "window_start": "2026-11-16T07:45:00.000Z",
+        "window_end": "2026-11-16T07:50:00.000Z",
+        "entries": 92,
+        "exits": 100,
+        "batch_id": 22,
+        "written_at": "2026-11-18 14:34:47.070855+00:00"
+      },
+      {
+        "garage_id": "mall",
+        "window_start": "2026-11-16T07:45:00.000Z",
+        "window_end": "2026-11-16T07:50:00.000Z",
+        "entries": 242,
+        "exits": 215,
+        "batch_id": 22,
+        "written_at": "2026-11-18 14:34:47.070855+00:00"
+      },
+      {
+        "garage_id": "station",
+        "window_start": "2026-11-16T07:45:00.000Z",
+        "window_end": "2026-11-16T07:50:00.000Z",
+        "entries": 105,
+        "exits": 115,
+        "batch_id": 22,
+        "written_at": "2026-11-18 14:34:47.070855+00:00"
+      },
+      {
+        "garage_id": "airport",
+        "window_start": "2026-11-16T07:50:00.000Z",
+        "window_end": "2026-11-16T07:55:00.000Z",
+        "entries": 60,
+        "exits": 73,
+        "batch_id": 25,
+        "written_at": "2026-11-18 14:34:51.467829+00:00"
+      },
+      {
+        "garage_id": "center",
+        "window_start": "2026-11-16T07:50:00.000Z",
+        "window_end": "2026-11-16T07:55:00.000Z",
+        "entries": 94,
+        "exits": 95,
+        "batch_id": 25,
+        "written_at": "2026-11-18 14:34:51.467829+00:00"
+      },
+      {
+        "garage_id": "mall",
+        "window_start": "2026-11-16T07:50:00.000Z",
+        "window_end": "2026-11-16T07:55:00.000Z",
+        "entries": 212,
+        "exits": 230,
+        "batch_id": 25,
+        "written_at": "2026-11-18 14:34:51.467829+00:00"
+      },
+      {
+        "garage_id": "station",
+        "window_start": "2026-11-16T07:50:00.000Z",
+        "window_end": "2026-11-16T07:55:00.000Z",
+        "entries": 106,
+        "exits": 100,
+        "batch_id": 25,
+        "written_at": "2026-11-18 14:34:51.467829+00:00"
+      },
+      {
+        "garage_id": "airport",
+        "window_start": "2026-11-16T07:55:00.000Z",
+        "window_end": "2026-11-16T08:00:00.000Z",
+        "entries": 62,
+        "exits": 83,
+        "batch_id": 25,
+        "written_at": "2026-11-18 14:34:51.467829+00:00"
+      },
+      {
+        "garage_id": "center",
+        "window_start": "2026-11-16T07:55:00.000Z",
+        "window_end": "2026-11-16T08:00:00.000Z",
+        "entries": 98,
+        "exits": 115,
+        "batch_id": 25,
+        "written_at": "2026-11-18 14:34:51.467829+00:00"
+      },
+      {
+        "garage_id": "mall",
+        "window_start": "2026-11-16T07:55:00.000Z",
+        "window_end": "2026-11-16T08:00:00.000Z",
+        "entries": 226,
+        "exits": 219,
+        "batch_id": 25,
+        "written_at": "2026-11-18 14:34:51.467829+00:00"
+      },
+      {
+        "garage_id": "station",
+        "window_start": "2026-11-16T07:55:00.000Z",
+        "window_end": "2026-11-16T08:00:00.000Z",
+        "entries": 87,
+        "exits": 98,
+        "batch_id": 25,
+        "written_at": "2026-11-18 14:34:51.467829+00:00"
+      }
+    ]
+  },
+  "equal": true
+}

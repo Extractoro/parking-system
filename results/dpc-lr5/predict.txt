@@ -1,0 +1,10 @@
+late.jsonl: 12001 lines, 12000 events; 1221 arrive behind the newest event time
+  lateness (0; 1] min: 22
+  lateness (1; 2] min: 261
+  lateness (2; 3] min: 254
+  lateness (3; 4] min: 232
+  lateness (4; 5] min: 243
+  lateness (5; 6] min: 209
+  lateness (6; 99] min: 0
+expected with watermark 2 min: about 938 dropped (7.82%), the ones more than 2 min behind; a few of them may still be counted (the watermark of the previous micro-batch applies), events less than 2 min behind are all counted
+expected with watermark 5 min: about 209 dropped (1.74%), the ones more than 5 min behind; a few of them may still be counted (the watermark of the previous micro-batch applies), events less than 5 min behind are all counted

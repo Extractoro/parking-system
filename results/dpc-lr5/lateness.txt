@@ -1,0 +1,18 @@
+late-wm2: sent 12001 lines in 317.3 s (--pace-ms 20); counted 11363 (ids 11363), dropped 637 of 12000 (5.31%); lateness of the dropped {'min': 2.158, 'max': 5.993}; counted although later than 2 min: 301; delay of a window median 16.51 s (min 4.52, max 35.87); windows below the batch calculation: 48
+    dropped e00000027 airport 2026-11-16T07:00:06.688Z late 5.529 min
+    dropped e00000225 station 2026-11-16T07:01:04.611Z late 4.609 min
+    dropped e00000215 station 2026-11-16T07:01:02.334Z late 4.92 min
+    dropped e00000560 station 2026-11-16T07:02:44.712Z late 3.601 min
+    dropped e00000678 station 2026-11-16T07:03:19.422Z late 3.043 min
+    dropped e00000423 station 2026-11-16T07:02:05.388Z late 4.287 min
+    dropped e00000479 airport 2026-11-16T07:02:19.806Z late 4.177 min
+    dropped e00000464 mall 2026-11-16T07:02:15.409Z late 4.251 min
+late-wm5: sent 12001 lines in 359.3 s (--pace-ms 20); counted 11935 (ids 11935), dropped 65 of 12000 (0.54%); lateness of the dropped {'min': 5.206, 'max': 5.981}; counted although later than 5 min: 144; delay of a window median 37.65 s (min 3.53, max 65.87); windows below the batch calculation: 29
+    dropped e00000364 center 2026-11-16T07:01:49.201Z late 5.866 min
+    dropped e00000571 mall 2026-11-16T07:02:49.295Z late 5.629 min
+    dropped e00000645 center 2026-11-16T07:03:09.711Z late 5.903 min
+    dropped e00000726 mall 2026-11-16T07:03:33.698Z late 5.723 min
+    dropped e00000812 center 2026-11-16T07:03:57.322Z late 5.874 min
+    dropped e00000904 center 2026-11-16T07:04:19.391Z late 5.854 min
+    dropped e00001030 mall 2026-11-16T07:04:59.025Z late 5.666 min
+    dropped e00001889 center 2026-11-16T07:09:04.324Z late 5.754 min

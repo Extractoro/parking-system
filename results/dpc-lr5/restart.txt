@@ -1,0 +1,8 @@
+restart-ref (no failure): 48 windows, sent in 66.7 s
+restart-kill: sent 6000 of 12001 lines; 16 windows written; docker compose kill stream at 2026-11-18T14:38:40Z
+  checkpoint after the kill: offsets: 0 1 2 3 4 5 6 7 8 9 10 11 12 13 14 15 16 17 18 19 20 21 22 23 24 25 26 27
+commits: 0 1 2 3 4 5 6 7 8 9 10 11 12 13 14 15 16 17 18 19 20 21 22 23 24 25 26
+  last lines of the stream before the kill: ['26/11/18 14:38:39 INFO StateStoreCoordinator: Started tracking commits for batch 26 with 8 expected stores', 'batch 26: no finalized windows', '26/11/18 14:38:40 INFO BatchCommitTracker: All 8 StateStores successfully committed for batch 26']
+  first lines after the restart: ['stream run=restart-kill topic=barrier-events-restart-kill window=5m watermark=5m checkpoint=/data/checkpoints/restart-kill track_events=False', '26/11/18 14:39:05 INFO OffsetSeqLog: Getting latest batch 27', '26/11/18 14:39:05 INFO CommitLog: Getting latest batch 26', '26/11/18 14:39:05 INFO OffsetSeqLog: Getting latest batch 27']
+  48 windows; equal to restart-ref: True; equal to the batch calculation: True; differences to restart-ref: 0
+  windows written before the kill: 16, of them unchanged after the restart: 16
