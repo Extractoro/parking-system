@@ -41,7 +41,7 @@ def report(page: Page) -> None:
 
 def stages(page: Page) -> None:
     data = json.loads((RESULTS / "skew.json").read_text(encoding="utf-8"))
-    page.set_viewport_size({"width": 1300, "height": 1200})
+    page.set_viewport_size({"width": 760, "height": 1200})  # narrow: the table text stays readable in print
     for variant in ("aqe-off", "aqe-skew"):
         run = next(r for r in data["runs"] if r["variant"] == variant)
         app = run["app"]
@@ -51,8 +51,9 @@ def stages(page: Page) -> None:
         page.wait_for_timeout(800)
         title = page.get_by_text("Summary Metrics for", exact=False).first
         box_t, box = title.bounding_box(), table.bounding_box()
+        x0 = min(box["x"], box_t["x"]) - 4
         page.screenshot(path=OUT / f"dpc-lr4-stage-{variant}.png", clip={
-            "x": box["x"] - 4, "y": box_t["y"] - 4, "width": box["width"] + 8,
+            "x": x0, "y": box_t["y"] - 4, "width": box["x"] + box["width"] - x0 + 4,
             "height": box["y"] + box["height"] - box_t["y"] + 8})
 
 
