@@ -5,7 +5,7 @@
 #
 # Checks first: the working tree is clean, the tag <course>-lrN exists and is pushed to origin,
 # its page on GitHub answers, and the PDF report has exactly this tag link under "Код програми".
-# Writes submit/<course>-lrN/: parking-system-<course>-lrN.zip, Звіт_<Курс>_ЛРN.pdf, link.txt.
+# Writes submit/<course>-lrN/: parking-system-<course>-lrN.zip, "<Курс> ІТІНФ-23-2 ЛРN Титаренко Будник.pdf", link.txt.
 # Needs: git, curl, uv (reads the PDF text with pymupdf). submit/ is in .gitignore.
 set -euo pipefail
 
@@ -15,7 +15,7 @@ die() { echo "submit: $*" >&2; exit 1; }
 COURSE=$1; N=$2
 case "$COURSE" in
   web) TITLE=Web ;;
-  dpc) TITLE=DPC ;;
+  dpc) TITLE=ТРСтПО ;;
   *) die "course must be web or dpc, not '$COURSE'" ;;
 esac
 [[ "$N" =~ ^[1-6]$ ]] || die "lab number must be 1..6, not '$N'"
@@ -23,7 +23,7 @@ esac
 cd "$(dirname "$0")/.."
 TAG="$COURSE-lr$N"
 OUT="submit/$TAG"
-PDF="docs/reports/out/Звіт_${TITLE}_ЛР${N}.pdf"
+PDF="docs/reports/out/$TITLE ІТІНФ-23-2 ЛР$N Титаренко Будник.pdf"
 
 # 1. clean tree, tag exists locally and on origin
 [ -z "$(git status --porcelain)" ] || die "the working tree is not clean (git status)"

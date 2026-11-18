@@ -160,7 +160,7 @@ invariant_ok`, `metrics [queue_length, in_flight, rejected]`. Стенд: `docke
 | Д1.4: 80 POST, `docker compose stop api` | 35×503 `Retry-After=5`; `api.draining queued=46 processing=4` → `api.drained count=50 seconds=4.0` → `api.stopped`; 61 прийнятий запит у кінцевому стані до й після `start` |
 | Правила на демоданих (бронювання через Web API) | в'їзд за бронюванням done; другий - `already-entered`; виїзд без в'їзду - `not-inside`; повтор `event_id` - той самий `Location`, 1 запит; інший номер - `booking-invalid` |
 | Клієнт «Barrier» у браузері | відмова `not-inside` з причиною, список запитів і картка стану оновлюються щосекунди; CORS DPC працює |
-| Звіт `docs/reports/dpc-lr1.md` | лінтер ok; `Звіт_DPC_ЛР1.docx` і `.pdf`, 14 сторінок; переглянуто титулку, сторінку з таблицею й рисунком, лістинг |
+| Звіт `docs/reports/dpc-lr1.md` | лінтер ok; `ТРСтПО ІТІНФ-23-2 ЛР1 Титаренко Будник.docx` і `.pdf`, 14 сторінок; переглянуто титулку, сторінку з таблицею й рисунком, лістинг |
 
 Plan Change: PC-4 (в'їзд за бронюванням обмежений фізичними місцями), PC-5 (генератори aiohttp і власні
 сценарії; `httpx.AsyncClient` був вузьким місцем), PC-6 (відмова 429 до маршрутизації FastAPI), PC-7
@@ -194,7 +194,7 @@ Plan Change: PC-2 (дослід без захисту на нових годин
 
 | Перевірка | Результат |
 |---|---|
-| `uv run scripts/build_report.py docs/reports/web-lr1.md --pdf` | `docs/reports/out/Звіт_Web_ЛР1.docx`, 13 сторінок PDF (через Word) |
+| `uv run scripts/build_report.py docs/reports/web-lr1.md --pdf` | `docs/reports/out/Web ІТІНФ-23-2 ЛР1 Титаренко Будник.docx`, 13 сторінок PDF (через Word) |
 | Перегляд сторінок | титулка (опечатку «робіти» виправлено), розділи 1.1–1.3 і «Висновки» на місцях, таблиці, рисунки 1–4, лістинги 1–5 з git |
 | `pytest scripts/tests` | 9 passed (розділи, рисунок, лістинг, помилки джерела) |
 

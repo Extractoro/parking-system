@@ -4,7 +4,7 @@
 # ///
 """Build a lab report (.docx) from docs/reports/<course>-lrN.md on the department template.
 
-    uv run scripts/build_report.py docs/reports/web-lr1.md            # -> docs/reports/out/Звіт_Web_ЛР1.docx
+    uv run scripts/build_report.py docs/reports/web-lr1.md            # -> docs/reports/out/Web ІТІНФ-23-2 ЛР1 Титаренко Будник.docx
     uv run scripts/build_report.py docs/reports/web-lr1.md --pdf      # + PDF and page PNGs to check by eye
 
     uv run scripts/build_report.py docs/reports/web-lr1.md --lint-only # only the style check
@@ -44,8 +44,15 @@ OUT_DIR = ROOT / "docs" / "reports" / "out"
 
 DISCIPLINES = {
     "web": ("Web", "Обмін даними у Web-застосунках"),
-    "dpc": ("DPC", "Розподілені та паралельні обчислення"),
+    "dpc": ("ТРСтПО", "Розподілені та паралельні обчислення"),
 }
+GROUP = "ІТІНФ-23-2"
+AUTHORS = "Титаренко Будник"
+
+
+def report_name(course: str, lab: int) -> str:
+    """File name of the report without extension (docs/reports/SUBMISSION.md, section 0)."""
+    return f"{DISCIPLINES[course][0]} {GROUP} ЛР{lab} {AUTHORS}"
 SECTIONS = ["Мета роботи", "Хід роботи", "Код програми", "Висновки"]
 ANCHORS = {"Мета роботи": "1.1", "Хід роботи": "1.2", "Код програми": "1.3", "Висновки": "Висновки"}
 
@@ -472,7 +479,7 @@ def build(src_path: Path, out_dir: Path = OUT_DIR) -> Path:
     src = read_source(src_path)
     commit = str(src.meta["commit"])
     git("cat-file", "-e", f"{commit}^{{commit}}")  # the commit must exist
-    code, discipline = DISCIPLINES[src.meta["course"]]
+    discipline = DISCIPLINES[src.meta["course"]][1]
     lab = int(src.meta["lab"])
 
     doc = Document(str(TEMPLATE))
@@ -503,7 +510,7 @@ def build(src_path: Path, out_dir: Path = OUT_DIR) -> Path:
             w.cursor.addnext(OxmlElement("w:p"))
 
     out_dir.mkdir(parents=True, exist_ok=True)
-    out = out_dir / f"Звіт_{code}_ЛР{lab}.docx"
+    out = out_dir / f"{report_name(src.meta['course'], lab)}.docx"
     try:
         doc.save(str(out))
     except PermissionError:

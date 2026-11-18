@@ -57,7 +57,7 @@ def all_text(doc) -> str:
 # ---------------------------------------------------------------------------------------------
 def test_builds_title_sections_table_figure_listing(tmp_path):
     out = build_report.build(source(tmp_path), out_dir=tmp_path / "out")
-    assert out.name == "Звіт_Web_ЛР9.docx"
+    assert out.name == "Web ІТІНФ-23-2 ЛР9 Титаренко Будник.docx"
     doc = Document(str(out))
     text = all_text(doc)
     assert "з лабораторної роботи № 9" in text and "робіти" not in text  # the template typo is fixed
