@@ -13,3 +13,8 @@ def zone(name: str) -> ZoneInfo:
 def local_iso(moment: datetime, tz: str) -> str:
     """2026-11-20T16:00:00Z in Europe/Kyiv -> '2026-11-20T18:00:00+02:00'."""
     return moment.astimezone(zone(tz)).isoformat()
+
+
+def local_short(moment: datetime, tz: str) -> str:
+    """For texts of notifications: 2026-11-20T16:00:00Z in Europe/Kyiv -> '20.11 18:00'."""
+    return moment.astimezone(zone(tz)).strftime("%d.%m %H:%M")

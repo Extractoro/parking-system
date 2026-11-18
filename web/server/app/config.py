@@ -58,6 +58,12 @@ DPC_URL = os.environ.get("DPC_URL", "http://localhost:8000")
 DPC_TOKEN = os.environ.get("DPC_TOKEN", "dev-token")
 DPC_TIMEOUT_S = _float("DPC_TIMEOUT_S", 10.0)
 
+# lab 5: WebSocket tickets, the gateway, the "booking ends in 15 minutes" check of the worker
+TICKET_TTL_S = _int("TICKET_TTL_S", 30)
+WS_SEND_TIMEOUT_S = _float("WS_SEND_TIMEOUT_S", 5.0)
+ENDING_CHECK_S = _float("ENDING_CHECK_S", 60.0)
+ENDING_WINDOW_MIN = _int("ENDING_WINDOW_MIN", 15)
+
 PROBLEM_BASE = os.environ.get("PROBLEM_BASE", "https://example.edu/problems/")
 
 FAULTS = os.environ.get("FAULTS", "off") == "on"

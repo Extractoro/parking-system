@@ -14,19 +14,27 @@ For one event:
   5. ONE transaction: processed_message (worker, event id), the operation succeeded (result: opened_at,
      effect_id) or failed (error: the reason), the notification of the user, and for an opened barrier
      the event entry.opened in the outbox. COMMIT, then the offset is committed (broker.consume).
+
+Lab 5: once per ENDING_CHECK_S (60 s) the same process looks for confirmed bookings that end within
+ENDING_WINDOW_MIN (15) minutes and adds «Бронювання закінчується за 15 хвилин» to each, one transaction per
+booking, source event = booking id + ':ending' (so the next rounds and a second worker add nothing).
+`python -m app.worker --ending-once [minutes]` runs one round and exits (used by the tests).
 """
 
 import asyncio
+import sys
 from datetime import datetime
 from typing import Any
 
 import httpx
+import psycopg
 from psycopg.types.json import Jsonb
 
 from . import background, config, db, events, notifications
 from .faults import fault
 from .jsonlog import log
 from .retrying import Stopping, consume_until_stopped, decode, pause_s, sleep_or_stop
+from .timefmt import local_short
 
 CONSUMER = "worker"
 
@@ -141,16 +149,72 @@ def handler(client: httpx.AsyncClient, stop: asyncio.Event):
     return handle
 
 
+async def ending_round(window_min: int) -> int:
+    """«Бронювання закінчується за 15 хвилин» for every confirmed booking that ends within window_min minutes
+    and has no such notification yet; returns how many were added."""
+    async with db.connection() as conn:
+        cur = await conn.execute(
+            """SELECT b.id, b.user_id, b.plate, b.expires_at, g.tz, g.name AS garage_name, l.name AS level_name
+               FROM booking b JOIN level l ON l.id = b.level_id JOIN garage g ON g.id = l.garage_id
+               WHERE b.status = 'confirmed' AND b.expires_at > now()
+                 AND b.expires_at <= now() + %s * interval '1 minute'
+                 AND NOT EXISTS (SELECT 1 FROM notification n
+                                 WHERE n.user_id = b.user_id AND n.source_event_id = b.id || ':ending')
+               ORDER BY b.expires_at LIMIT 500""",
+            (window_min,),
+        )
+        rows = await cur.fetchall()
+    added = 0
+    for b in rows:
+        async with db.connection() as conn, conn.transaction():
+            position = await notifications.add_notification(conn, b["user_id"], notifications.BOOKING_ENDING, {
+                "text": f"Booking ends at {local_short(b['expires_at'], b['tz'])}: {b['garage_name']}, "
+                        f"{b['level_name']}, {b['plate']}",
+                "booking_id": b["id"],
+            }, b["id"] + ":ending")
+        if position is not None:
+            added += 1
+            log("notification.ending", booking_id=b["id"], user_id=b["user_id"], position=position)
+    return added
+
+
+async def ending_loop(stop: asyncio.Event) -> None:
+    while not stop.is_set():
+        try:
+            await ending_round(config.ENDING_WINDOW_MIN)
+        except (psycopg.Error, OSError) as exc:  # database down: the next round tries again
+            log("notification.ending_failed", error=type(exc).__name__)
+        try:
+            await asyncio.wait_for(stop.wait(), timeout=config.ENDING_CHECK_S)
+        except TimeoutError:
+            pass
+
+
 async def main(stop: asyncio.Event) -> None:
-    await db.open_pool(size=2)
+    await db.open_pool(size=3)
+    ending = asyncio.create_task(ending_loop(stop))
     try:
         async with httpx.AsyncClient(timeout=config.EXTERNAL_TIMEOUT_S) as client:
             await consume_until_stopped(events.DOMAIN_TOPIC, config.GROUP_ID, handler(client, stop), stop)
     except Stopping:
         pass
     finally:
+        stop.set()
+        await ending
+        await db.close_pool()
+
+
+async def ending_once(window_min: int) -> None:
+    await db.open_pool(size=1)
+    try:
+        log("notification.ending_round", added=await ending_round(window_min), window_min=window_min)
+    finally:
         await db.close_pool()
 
 
 if __name__ == "__main__":
-    background.run(main)
+    if "--ending-once" in sys.argv:
+        rest = sys.argv[sys.argv.index("--ending-once") + 1:]
+        asyncio.run(ending_once(int(rest[0]) if rest else config.ENDING_WINDOW_MIN))
+    else:
+        background.run(main)

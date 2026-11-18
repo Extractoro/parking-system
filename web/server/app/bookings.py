@@ -20,10 +20,10 @@ from fastapi.responses import JSONResponse
 from psycopg import AsyncConnection
 from pydantic import AwareDatetime, BaseModel, ConfigDict, Field, field_validator
 
-from . import config, cursor, db, events, idempotency, rules
+from . import config, cursor, db, events, idempotency, notifications, rules
 from .idempotency import Outcome
 from .problems import MEDIA_TYPE, Problem
-from .timefmt import local_iso
+from .timefmt import local_iso, local_short
 from .users import CurrentUser
 
 router = APIRouter(prefix="/v1/bookings")
@@ -232,7 +232,7 @@ async def _create(conn: AsyncConnection, body: BookingCreate, user_id: str) -> O
 
     cur = await conn.execute(
         """
-        SELECT l.id, l.closed, t.minor_per_hour, t.currency, g.tz
+        SELECT l.id, l.closed, t.minor_per_hour, t.currency, g.tz, g.name AS garage_name, l.name AS level_name
         FROM level l JOIN garage g ON g.id = l.garage_id JOIN tariff t ON t.garage_id = l.garage_id
         WHERE l.id = %s
         """,
@@ -263,6 +263,13 @@ async def _create(conn: AsyncConnection, body: BookingCreate, user_id: str) -> O
         "from_hour": events.utc_ms(start),
         "hours": body.hours,
     })
+    # lab 5: «Місце підтверджено» in the same transaction (source event = the booking, so a replay of the
+    # idempotency key, which does not run this function again, gives no second notification either)
+    await notifications.add_notification(conn, user_id, notifications.BOOKING_CONFIRMED, {
+        "text": f"Spot confirmed: {level['garage_name']}, {level['level_name']}, {local_short(start, level['tz'])}, "
+                f"{body.hours} h, {body.plate}",
+        "booking_id": booking_id,
+    }, booking_id)
     cur = await conn.execute(_BOOKING_SELECT + " WHERE b.id = %s", (booking_id,))
     row = await cur.fetchone()
     # 201 leaves the server only after the COMMIT in idempotency.execute
