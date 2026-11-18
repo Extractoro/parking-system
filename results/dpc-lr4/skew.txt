@@ -1,0 +1,13 @@
+aqe-off   #1 20261118-114346-33f637: collect 53.0 s; join stage 4: 200 tasks (10 non-empty), max 23999 ms, median non-empty 3435 ms, shuffle read max 23.0 MB / median 3.2 MB
+aqe-skew  #1 20261118-114545-bf773a: collect 27.8 s; join stage 6: 13 tasks (13 non-empty), max 5672 ms, median non-empty 1947 ms, shuffle read max 6.0 MB / median 3.2 MB
+aqe-off   #2 20261118-114657-eb69c7: collect 37.5 s; join stage 4: 200 tasks (10 non-empty), max 13504 ms, median non-empty 2646 ms, shuffle read max 23.0 MB / median 3.2 MB
+aqe-skew  #2 20261118-114812-87f01b: collect 25.1 s; join stage 6: 13 tasks (13 non-empty), max 5034 ms, median non-empty 1475 ms, shuffle read max 6.0 MB / median 3.2 MB
+aqe-off   #3 20261118-114912-8595ac: collect 31.5 s; join stage 4: 200 tasks (10 non-empty), max 9333 ms, median non-empty 2268 ms, shuffle read max 23.0 MB / median 3.2 MB
+aqe-skew  #3 20261118-115048-ee53b1: collect 27.2 s; join stage 6: 13 tasks (13 non-empty), max 2831 ms, median non-empty 1607 ms, shuffle read max 6.0 MB / median 3.2 MB
+auto      #1 20261118-115218-672053: collect 24.5 s (broadcast join, plan only); published = this run
+
+reference of /data/c09/big/history: 6.8 s without Spark
+
+variant   collect s join max ms join med ms max/med join stage s tasks shuffle max MB  = ref   (medians of 3 runs)
+aqe-off        37.5       13504        2646     5.1         17.9   200           23.0    yes
+aqe-skew       27.2        5034        1607     3.1          8.3    13            6.0    yes

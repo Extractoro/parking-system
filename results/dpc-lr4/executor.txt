@@ -1,0 +1,15 @@
+POST /v1/reports/main/refresh {dataset: big, join: shuffle} -> 202 {"job":{"run":"20261118-115737-d5124a","state":"running","facts":"/data/c09/big/history","join":"shuffle","seconds":null,"exit_code":null}}
+t+38.3 s: application app-20261118115746-0019, executors with tasks: 1@172.20.0.21:46597 (1 tasks), 0@172.20.0.3:39011 (1 tasks)
+t+41.3 s: $ docker compose kill spark-worker-1
+killed
+t+72.7 s: job 20261118-115737-d5124a state=done seconds=71.8; published 20261118-115737-d5124a
+
+event log eventlog_v2_app-20261118115746-0019:
+  executor added   1 on 172.20.0.21
+  executor added   0 on 172.20.0.3
+  executor removed 0: worker lost: 172.20.0.3:37549 got disassociated
+  failed tasks: 2 x stage 3.0 ExecutorLostFailure on executor 0
+
+reference of /data/c09/big/history: 0 differences -> MATCH
+$ docker compose up -d spark-worker-1
+started

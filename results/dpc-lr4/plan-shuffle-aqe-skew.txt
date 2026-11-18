@@ -1,0 +1,203 @@
+== Physical Plan ==
+AdaptiveSparkPlan (35)
++- == Final Plan ==
+   ResultQueryStage (23)
+   +- * Project (22)
+      +- * HashAggregate (21)
+         +- AQEShuffleRead (20), coalesced
+            +- ShuffleQueryStage (19), Statistics(sizeInBytes=1056.0 B, rowCount=13)
+               +- Exchange (18)
+                  +- * HashAggregate (17)
+                     +- * Project (16)
+                        +- * SortMergeJoin(skew=true) Inner (15)
+                           :- * Sort (7)
+                           :  +- AQEShuffleRead (6), coalesced and skewed
+                           :     +- ShuffleQueryStage (5), Statistics(sizeInBytes=400.1 MiB, rowCount=1.00E+7)
+                           :        +- Exchange (4)
+                           :           +- * Filter (3)
+                           :              +- * ColumnarToRow (2)
+                           :                 +- Scan parquet  (1)
+                           +- * Sort (14)
+                              +- AQEShuffleRead (13), coalesced
+                                 +- ShuffleQueryStage (12), Statistics(sizeInBytes=576.0 B, rowCount=10)
+                                    +- Exchange (11)
+                                       +- * Filter (10)
+                                          +- * ColumnarToRow (9)
+                                             +- Scan parquet  (8)
++- == Initial Plan ==
+   Project (34)
+   +- HashAggregate (33)
+      +- HashAggregate (32)
+         +- Project (31)
+            +- SortMergeJoin Inner (30)
+               :- Sort (26)
+               :  +- Exchange (25)
+               :     +- Filter (24)
+               :        +- Scan parquet  (1)
+               +- Sort (29)
+                  +- Exchange (28)
+                     +- Filter (27)
+                        +- Scan parquet  (8)
+
+
+(1) Scan parquet 
+Output [3]: [garage_id#1, minutes#4L, amount_minor#5L]
+Batched: true
+Location: InMemoryFileIndex [file:/data/c09/big/history]
+PushedFilters: [IsNotNull(garage_id)]
+ReadSchema: struct<garage_id:string,minutes:bigint,amount_minor:bigint>
+
+(2) ColumnarToRow [codegen id : 1]
+Input [3]: [garage_id#1, minutes#4L, amount_minor#5L]
+
+(3) Filter [codegen id : 1]
+Input [3]: [garage_id#1, minutes#4L, amount_minor#5L]
+Condition : isnotnull(garage_id#1)
+
+(4) Exchange
+Input [3]: [garage_id#1, minutes#4L, amount_minor#5L]
+Arguments: hashpartitioning(garage_id#1, 200), ENSURE_REQUIREMENTS, [plan_id=62]
+
+(5) ShuffleQueryStage
+Output [3]: [garage_id#1, minutes#4L, amount_minor#5L]
+Arguments: 0
+
+(6) AQEShuffleRead
+Input [3]: [garage_id#1, minutes#4L, amount_minor#5L]
+Arguments: coalesced and skewed
+
+(7) Sort [codegen id : 3]
+Input [3]: [garage_id#1, minutes#4L, amount_minor#5L]
+Arguments: [garage_id#1 ASC NULLS FIRST], false, 0
+
+(8) Scan parquet 
+Output [2]: [garage_id#6, name#7]
+Batched: true
+Location: InMemoryFileIndex [file:/data/c09/big/garages]
+PushedFilters: [IsNotNull(garage_id)]
+ReadSchema: struct<garage_id:string,name:string>
+
+(9) ColumnarToRow [codegen id : 2]
+Input [2]: [garage_id#6, name#7]
+
+(10) Filter [codegen id : 2]
+Input [2]: [garage_id#6, name#7]
+Condition : isnotnull(garage_id#6)
+
+(11) Exchange
+Input [2]: [garage_id#6, name#7]
+Arguments: hashpartitioning(garage_id#6, 200), ENSURE_REQUIREMENTS, [plan_id=84]
+
+(12) ShuffleQueryStage
+Output [2]: [garage_id#6, name#7]
+Arguments: 1
+
+(13) AQEShuffleRead
+Input [2]: [garage_id#6, name#7]
+Arguments: coalesced
+
+(14) Sort [codegen id : 4]
+Input [2]: [garage_id#6, name#7]
+Arguments: [garage_id#6 ASC NULLS FIRST], false, 0
+
+(15) SortMergeJoin(skew=true) [codegen id : 5]
+Left keys [1]: [garage_id#1]
+Right keys [1]: [garage_id#6]
+Join type: Inner
+Join condition: None
+
+(16) Project [codegen id : 5]
+Output [4]: [garage_id#1, minutes#4L, amount_minor#5L, name#7]
+Input [5]: [garage_id#1, minutes#4L, amount_minor#5L, garage_id#6, name#7]
+
+(17) HashAggregate [codegen id : 5]
+Input [4]: [garage_id#1, minutes#4L, amount_minor#5L, name#7]
+Keys [2]: [garage_id#1, name#7]
+Functions [3]: [partial_count(1), partial_sum(minutes#4L), partial_sum(amount_minor#5L)]
+Aggregate Attributes [3]: [count#23L, sum#24L, sum#25L]
+Results [5]: [garage_id#1, name#7, count#26L, sum#27L, sum#28L]
+
+(18) Exchange
+Input [5]: [garage_id#1, name#7, count#26L, sum#27L, sum#28L]
+Arguments: hashpartitioning(garage_id#1, name#7, 200), ENSURE_REQUIREMENTS, [plan_id=206]
+
+(19) ShuffleQueryStage
+Output [5]: [garage_id#1, name#7, count#26L, sum#27L, sum#28L]
+Arguments: 2
+
+(20) AQEShuffleRead
+Input [5]: [garage_id#1, name#7, count#26L, sum#27L, sum#28L]
+Arguments: coalesced
+
+(21) HashAggregate [codegen id : 6]
+Input [5]: [garage_id#1, name#7, count#26L, sum#27L, sum#28L]
+Keys [2]: [garage_id#1, name#7]
+Functions [3]: [count(1), sum(minutes#4L), sum(amount_minor#5L)]
+Aggregate Attributes [3]: [count(1)#19L, sum(minutes#4L)#20L, sum(amount_minor#5L)#21L]
+Results [5]: [garage_id#1, name#7, count(1)#19L AS sessions#12L, sum(minutes#4L)#20L AS total_minutes#13L, sum(amount_minor#5L)#21L AS revenue_minor#14L]
+
+(22) Project [codegen id : 6]
+Output [6]: [garage_id#1, name#7, sessions#12L, total_minutes#13L, (cast(total_minutes#13L as double) / cast(sessions#12L as double)) AS avg_minutes#22, revenue_minor#14L]
+Input [5]: [garage_id#1, name#7, sessions#12L, total_minutes#13L, revenue_minor#14L]
+
+(23) ResultQueryStage
+Output [6]: [garage_id#1, name#7, sessions#12L, total_minutes#13L, avg_minutes#22, revenue_minor#14L]
+Arguments: 3
+
+(24) Filter
+Input [3]: [garage_id#1, minutes#4L, amount_minor#5L]
+Condition : isnotnull(garage_id#1)
+
+(25) Exchange
+Input [3]: [garage_id#1, minutes#4L, amount_minor#5L]
+Arguments: hashpartitioning(garage_id#1, 200), ENSURE_REQUIREMENTS, [plan_id=41]
+
+(26) Sort
+Input [3]: [garage_id#1, minutes#4L, amount_minor#5L]
+Arguments: [garage_id#1 ASC NULLS FIRST], false, 0
+
+(27) Filter
+Input [2]: [garage_id#6, name#7]
+Condition : isnotnull(garage_id#6)
+
+(28) Exchange
+Input [2]: [garage_id#6, name#7]
+Arguments: hashpartitioning(garage_id#6, 200), ENSURE_REQUIREMENTS, [plan_id=42]
+
+(29) Sort
+Input [2]: [garage_id#6, name#7]
+Arguments: [garage_id#6 ASC NULLS FIRST], false, 0
+
+(30) SortMergeJoin
+Left keys [1]: [garage_id#1]
+Right keys [1]: [garage_id#6]
+Join type: Inner
+Join condition: None
+
+(31) Project
+Output [4]: [garage_id#1, minutes#4L, amount_minor#5L, name#7]
+Input [5]: [garage_id#1, minutes#4L, amount_minor#5L, garage_id#6, name#7]
+
+(32) HashAggregate
+Input [4]: [garage_id#1, minutes#4L, amount_minor#5L, name#7]
+Keys [2]: [garage_id#1, name#7]
+Functions [3]: [partial_count(1), partial_sum(minutes#4L), partial_sum(amount_minor#5L)]
+Aggregate Attributes [3]: [count#23L, sum#24L, sum#25L]
+Results [5]: [garage_id#1, name#7, count#26L, sum#27L, sum#28L]
+
+(33) HashAggregate
+Input [5]: [garage_id#1, name#7, count#26L, sum#27L, sum#28L]
+Keys [2]: [garage_id#1, name#7]
+Functions [3]: [count(1), sum(minutes#4L), sum(amount_minor#5L)]
+Aggregate Attributes [3]: [count(1)#19L, sum(minutes#4L)#20L, sum(amount_minor#5L)#21L]
+Results [5]: [garage_id#1, name#7, count(1)#19L AS sessions#12L, sum(minutes#4L)#20L AS total_minutes#13L, sum(amount_minor#5L)#21L AS revenue_minor#14L]
+
+(34) Project
+Output [6]: [garage_id#1, name#7, sessions#12L, total_minutes#13L, (cast(total_minutes#13L as double) / cast(sessions#12L as double)) AS avg_minutes#22, revenue_minor#14L]
+Input [5]: [garage_id#1, name#7, sessions#12L, total_minutes#13L, revenue_minor#14L]
+
+(35) AdaptiveSparkPlan
+Output [6]: [garage_id#1, name#7, sessions#12L, total_minutes#13L, avg_minutes#22, revenue_minor#14L]
+Arguments: isFinalPlan=true
+
+

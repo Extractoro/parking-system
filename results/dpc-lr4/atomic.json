@@ -1,0 +1,16 @@
+{
+  "failed_run": "20261118-120034-29e9ad",
+  "failed_state": "failed",
+  "pointer_unchanged": true,
+  "failed_folder_exists": "False",
+  "good_run": "20261118-120200-d22d73",
+  "published": {
+    "run": "20261118-120200-d22d73",
+    "path": "/data/reports/runs/20261118-120200-d22d73",
+    "facts": "/data/c09/small/history",
+    "dim": "/data/c09/small/garages",
+    "join": "auto",
+    "written_at": "2026-11-18T12:03:45.666Z"
+  },
+  "pointer_changed": true
+}

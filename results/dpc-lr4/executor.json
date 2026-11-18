@@ -1,0 +1,107 @@
+{
+  "run": "20261118-115737-d5124a",
+  "app": "app-20261118115746-0019",
+  "before": {
+    "run": "20261118-115513-2da31e",
+    "path": "/data/reports/runs/20261118-115513-2da31e",
+    "facts": "/data/c09/big/history",
+    "dim": "/data/c09/big/garages",
+    "join": "shuffle",
+    "written_at": "2026-11-18T11:56:27.988Z"
+  },
+  "killed_at_s": 43.42212679999648,
+  "finished_at_s": 72.66240370000014,
+  "job": {
+    "run": "20261118-115737-d5124a",
+    "state": "done",
+    "facts": "/data/c09/big/history",
+    "join": "shuffle",
+    "seconds": 71.8,
+    "exit_code": 0
+  },
+  "published": {
+    "run": "20261118-115737-d5124a",
+    "path": "/data/reports/runs/20261118-115737-d5124a",
+    "facts": "/data/c09/big/history",
+    "dim": "/data/c09/big/garages",
+    "join": "shuffle",
+    "written_at": "2026-11-18T11:58:46.859Z"
+  },
+  "events": {
+    "log": "eventlog_v2_app-20261118115746-0019",
+    "added": [
+      {
+        "id": "1",
+        "host": "172.20.0.21",
+        "time": 1795003076280
+      },
+      {
+        "id": "0",
+        "host": "172.20.0.3",
+        "time": 1795003077710
+      }
+    ],
+    "removed": [
+      {
+        "id": "0",
+        "reason": "worker lost: 172.20.0.3:37549 got disassociated",
+        "time": 1795003099890
+      }
+    ],
+    "failed_tasks": [
+      {
+        "stage": 3,
+        "attempt": 0,
+        "reason": "ExecutorLostFailure",
+        "executor": "0",
+        "detail": "worker lost: 172.20.0.3:37549 got disassociated"
+      },
+      {
+        "stage": 3,
+        "attempt": 0,
+        "reason": "ExecutorLostFailure",
+        "executor": "0",
+        "detail": "worker lost: 172.20.0.3:37549 got disassociated"
+      }
+    ],
+    "stages": [
+      {
+        "stage": 0,
+        "attempt": 0,
+        "tasks": 1,
+        "failure": ""
+      },
+      {
+        "stage": 1,
+        "attempt": 0,
+        "tasks": 1,
+        "failure": ""
+      },
+      {
+        "stage": 2,
+        "attempt": 0,
+        "tasks": 1,
+        "failure": ""
+      },
+      {
+        "stage": 3,
+        "attempt": 0,
+        "tasks": 5,
+        "failure": ""
+      },
+      {
+        "stage": 6,
+        "attempt": 0,
+        "tasks": 3,
+        "failure": ""
+      },
+      {
+        "stage": 7,
+        "attempt": 0,
+        "tasks": 1,
+        "failure": ""
+      }
+    ]
+  },
+  "problems": []
+}

@@ -1,0 +1,17 @@
+POST /v1/reports/main/refresh {"join": "auto", "dataset": "small"} -> 202 {"job":{"run":"20261118-120410-90f517","state":"running","facts":"/data/c09/small/history","join":"auto","seconds":null,"exit_code":null}}
+job 20261118-120410-90f517 state=done seconds=28.0 (waited 29.0 s)
+published run 20261118-120410-90f517 facts=/data/c09/small/history
+reference facts=/data/c09/small/history computed in 0.737 s (HTTP 0.014 s)
+garage_id        sessions  total_minutes          avg_minutes   revenue_minor  ref
+airport              6181         739960     119.715256430998        92112000  =
+center               6275         770402     122.773227091633        63424000  =
+kharkiv-center       6139         732616     119.338002932074        37900000  =
+lviv-forum           6142         763190     124.257570823836        39242500  =
+lviv-rynok           6060         739437     122.019306930693        45585000  =
+mall                44710        5437290     121.612390963990       336666000  =
+obolon               6075         740000     121.810699588477        38115000  =
+odesa-port           6178         748531     121.160731628359        46377000  =
+podil                6086         750625     123.336345711469        53963000  =
+station              6154         750282     121.917777055574        54033000  =
+rows 10 / reference 10; sessions 100000, mall share 0.4471
+MATCH: 0 differences

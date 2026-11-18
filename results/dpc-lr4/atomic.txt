@@ -1,0 +1,18 @@
+current before: {
+  "run": "20261118-115737-d5124a",
+  "path": "/data/reports/runs/20261118-115737-d5124a",
+  "facts": "/data/c09/big/history",
+  "dim": "/data/c09/big/garages",
+  "join": "shuffle",
+  "written_at": "2026-11-18T11:58:46.859Z"
+}
+inode 596132
+
+failed run 20261118-120034-29e9ad: state=failed exit_code=1
+  pyspark.errors.exceptions.captured.AnalysisException: [PATH_NOT_FOUND] Path does not exist: file:/data/c09/missing/history. SQLSTATE: 42K03
+folder of the failed run exists: False
+current unchanged (bytes): True; inode 596132
+GET /v1/reports/main: job 20261118-120034-29e9ad failed, published 20261118-115737-d5124a
+
+good run 20261118-120200-d22d73: state=done, published 20261118-120200-d22d73, current changed: True; inode 596223 (a new file renamed over the old one)
+temporary files left in /data/reports: []

@@ -1,0 +1,197 @@
+{
+  "job": {
+    "run": "20261118-120410-90f517",
+    "state": "done",
+    "facts": "/data/c09/small/history",
+    "join": "auto",
+    "seconds": 28.0,
+    "exit_code": 0
+  },
+  "published": {
+    "run": "20261118-120410-90f517",
+    "path": "/data/reports/runs/20261118-120410-90f517",
+    "facts": "/data/c09/small/history",
+    "dim": "/data/c09/small/garages",
+    "join": "auto",
+    "written_at": "2026-11-18T12:04:36.925Z"
+  },
+  "report": [
+    {
+      "garage_id": "airport",
+      "name": "Аеропорт Бориспіль",
+      "sessions": 6181,
+      "total_minutes": 739960,
+      "avg_minutes": 119.71525643099822,
+      "revenue_minor": 92112000
+    },
+    {
+      "garage_id": "center",
+      "name": "Центр",
+      "sessions": 6275,
+      "total_minutes": 770402,
+      "avg_minutes": 122.77322709163347,
+      "revenue_minor": 63424000
+    },
+    {
+      "garage_id": "kharkiv-center",
+      "name": "Харків Центр",
+      "sessions": 6139,
+      "total_minutes": 732616,
+      "avg_minutes": 119.33800293207362,
+      "revenue_minor": 37900000
+    },
+    {
+      "garage_id": "lviv-forum",
+      "name": "Форум Львів",
+      "sessions": 6142,
+      "total_minutes": 763190,
+      "avg_minutes": 124.25757082383588,
+      "revenue_minor": 39242500
+    },
+    {
+      "garage_id": "lviv-rynok",
+      "name": "Площа Ринок",
+      "sessions": 6060,
+      "total_minutes": 739437,
+      "avg_minutes": 122.01930693069306,
+      "revenue_minor": 45585000
+    },
+    {
+      "garage_id": "mall",
+      "name": "ТЦ Південний",
+      "sessions": 44710,
+      "total_minutes": 5437290,
+      "avg_minutes": 121.61239096399017,
+      "revenue_minor": 336666000
+    },
+    {
+      "garage_id": "obolon",
+      "name": "Оболонь",
+      "sessions": 6075,
+      "total_minutes": 740000,
+      "avg_minutes": 121.81069958847736,
+      "revenue_minor": 38115000
+    },
+    {
+      "garage_id": "odesa-port",
+      "name": "Одеса Порт",
+      "sessions": 6178,
+      "total_minutes": 748531,
+      "avg_minutes": 121.16073162835869,
+      "revenue_minor": 46377000
+    },
+    {
+      "garage_id": "podil",
+      "name": "Поділ",
+      "sessions": 6086,
+      "total_minutes": 750625,
+      "avg_minutes": 123.33634571146895,
+      "revenue_minor": 53963000
+    },
+    {
+      "garage_id": "station",
+      "name": "Вокзал",
+      "sessions": 6154,
+      "total_minutes": 750282,
+      "avg_minutes": 121.91777705557361,
+      "revenue_minor": 54033000
+    }
+  ],
+  "reference": {
+    "published": {
+      "run": "20261118-120410-90f517",
+      "path": "/data/reports/runs/20261118-120410-90f517",
+      "facts": "/data/c09/small/history",
+      "dim": "/data/c09/small/garages",
+      "join": "auto",
+      "written_at": "2026-11-18T12:04:36.925Z"
+    },
+    "facts": "/data/c09/small/history",
+    "dim": "/data/c09/small/garages",
+    "seconds": 0.737,
+    "rows": [
+      {
+        "garage_id": "airport",
+        "name": "Аеропорт Бориспіль",
+        "sessions": 6181,
+        "total_minutes": 739960,
+        "avg_minutes": 119.71525643099822,
+        "revenue_minor": 92112000
+      },
+      {
+        "garage_id": "center",
+        "name": "Центр",
+        "sessions": 6275,
+        "total_minutes": 770402,
+        "avg_minutes": 122.77322709163347,
+        "revenue_minor": 63424000
+      },
+      {
+        "garage_id": "kharkiv-center",
+        "name": "Харків Центр",
+        "sessions": 6139,
+        "total_minutes": 732616,
+        "avg_minutes": 119.33800293207362,
+        "revenue_minor": 37900000
+      },
+      {
+        "garage_id": "lviv-forum",
+        "name": "Форум Львів",
+        "sessions": 6142,
+        "total_minutes": 763190,
+        "avg_minutes": 124.25757082383588,
+        "revenue_minor": 39242500
+      },
+      {
+        "garage_id": "lviv-rynok",
+        "name": "Площа Ринок",
+        "sessions": 6060,
+        "total_minutes": 739437,
+        "avg_minutes": 122.01930693069306,
+        "revenue_minor": 45585000
+      },
+      {
+        "garage_id": "mall",
+        "name": "ТЦ Південний",
+        "sessions": 44710,
+        "total_minutes": 5437290,
+        "avg_minutes": 121.61239096399017,
+        "revenue_minor": 336666000
+      },
+      {
+        "garage_id": "obolon",
+        "name": "Оболонь",
+        "sessions": 6075,
+        "total_minutes": 740000,
+        "avg_minutes": 121.81069958847736,
+        "revenue_minor": 38115000
+      },
+      {
+        "garage_id": "odesa-port",
+        "name": "Одеса Порт",
+        "sessions": 6178,
+        "total_minutes": 748531,
+        "avg_minutes": 121.16073162835869,
+        "revenue_minor": 46377000
+      },
+      {
+        "garage_id": "podil",
+        "name": "Поділ",
+        "sessions": 6086,
+        "total_minutes": 750625,
+        "avg_minutes": 123.33634571146895,
+        "revenue_minor": 53963000
+      },
+      {
+        "garage_id": "station",
+        "name": "Вокзал",
+        "sessions": 6154,
+        "total_minutes": 750282,
+        "avg_minutes": 121.91777705557361,
+        "revenue_minor": 54033000
+      }
+    ]
+  },
+  "problems": [],
+  "verdict": "MATCH"
+}

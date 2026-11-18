@@ -1,0 +1,41 @@
+{
+  "sets": {
+    "small": {
+      "rows": 100000,
+      "mall": 44710,
+      "mall_share": 0.4471,
+      "facts_bytes": 2880884,
+      "dim_bytes": 1806,
+      "dim_rows": 10,
+      "files": 1,
+      "sha256": "909c71a24356144f8b2ffad555d00c1a94cc31d9613bba4e424db5ca50862cf7",
+      "command": "docker compose run --rm generator",
+      "seed": 909
+    },
+    "big": {
+      "rows": 10000000,
+      "mall": 4501837,
+      "mall_share": 0.4501837,
+      "facts_bytes": 264137222,
+      "dim_bytes": 1806,
+      "dim_rows": 10,
+      "files": 49,
+      "sha256": "d8c87fa73e37b3c13287f959248fe48d9656fb5ca44798c55ebe91cacbf873cd",
+      "command": "docker compose run --rm generator --out /data/c09/big --rows 10000000 --jobs 4",
+      "seed": 909
+    },
+    "small-repro": {
+      "rows": 100000,
+      "mall": 44710,
+      "mall_share": 0.4471,
+      "facts_bytes": 2880884,
+      "dim_bytes": 1806,
+      "dim_rows": 10,
+      "files": 1,
+      "sha256": "909c71a24356144f8b2ffad555d00c1a94cc31d9613bba4e424db5ca50862cf7",
+      "command": "docker compose run --rm generator --out /data/c09/small-repro",
+      "seed": 909
+    }
+  },
+  "reproduced": true
+}

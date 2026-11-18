@@ -1,0 +1,13 @@
+Installed 8 packages in 1.12s
+$ docker compose run --rm generator --out /data/c09/small-repro   # the same command as the small set
+garages: 10 rows, hot key 'mall'
+history: 100000/100000
+history.garage_id: hot key share 0.4471 (spec 0.45)
+generated in 17.9 s
+
+set                rows  facts, MB  dim files  seed      mall   share  sha256
+small            100000        2.7   10     1   909     44710  0.4471  909c71a24356144f
+big            10000000      251.9   10    49   909   4501837  0.4502  d8c87fa73e37b3c1
+small-repro      100000        2.7   10     1   909     44710  0.4471  909c71a24356144f
+
+small == small-repro (SHA-256 of all Parquet files): True

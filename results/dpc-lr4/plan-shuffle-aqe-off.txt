@@ -1,0 +1,91 @@
+== Physical Plan ==
+* Project (15)
++- * HashAggregate (14)
+   +- * HashAggregate (13)
+      +- * Project (12)
+         +- * SortMergeJoin Inner (11)
+            :- * Sort (5)
+            :  +- Exchange (4)
+            :     +- * Filter (3)
+            :        +- * ColumnarToRow (2)
+            :           +- Scan parquet  (1)
+            +- * Sort (10)
+               +- Exchange (9)
+                  +- * Filter (8)
+                     +- * ColumnarToRow (7)
+                        +- Scan parquet  (6)
+
+
+(1) Scan parquet 
+Output [3]: [garage_id#1, minutes#4L, amount_minor#5L]
+Batched: true
+Location: InMemoryFileIndex [file:/data/c09/big/history]
+PushedFilters: [IsNotNull(garage_id)]
+ReadSchema: struct<garage_id:string,minutes:bigint,amount_minor:bigint>
+
+(2) ColumnarToRow [codegen id : 1]
+Input [3]: [garage_id#1, minutes#4L, amount_minor#5L]
+
+(3) Filter [codegen id : 1]
+Input [3]: [garage_id#1, minutes#4L, amount_minor#5L]
+Condition : isnotnull(garage_id#1)
+
+(4) Exchange
+Input [3]: [garage_id#1, minutes#4L, amount_minor#5L]
+Arguments: hashpartitioning(garage_id#1, 200), ENSURE_REQUIREMENTS, [plan_id=66]
+
+(5) Sort [codegen id : 2]
+Input [3]: [garage_id#1, minutes#4L, amount_minor#5L]
+Arguments: [garage_id#1 ASC NULLS FIRST], false, 0
+
+(6) Scan parquet 
+Output [2]: [garage_id#6, name#7]
+Batched: true
+Location: InMemoryFileIndex [file:/data/c09/big/garages]
+PushedFilters: [IsNotNull(garage_id)]
+ReadSchema: struct<garage_id:string,name:string>
+
+(7) ColumnarToRow [codegen id : 3]
+Input [2]: [garage_id#6, name#7]
+
+(8) Filter [codegen id : 3]
+Input [2]: [garage_id#6, name#7]
+Condition : isnotnull(garage_id#6)
+
+(9) Exchange
+Input [2]: [garage_id#6, name#7]
+Arguments: hashpartitioning(garage_id#6, 200), ENSURE_REQUIREMENTS, [plan_id=75]
+
+(10) Sort [codegen id : 4]
+Input [2]: [garage_id#6, name#7]
+Arguments: [garage_id#6 ASC NULLS FIRST], false, 0
+
+(11) SortMergeJoin [codegen id : 5]
+Left keys [1]: [garage_id#1]
+Right keys [1]: [garage_id#6]
+Join type: Inner
+Join condition: None
+
+(12) Project [codegen id : 5]
+Output [4]: [garage_id#1, minutes#4L, amount_minor#5L, name#7]
+Input [5]: [garage_id#1, minutes#4L, amount_minor#5L, garage_id#6, name#7]
+
+(13) HashAggregate [codegen id : 5]
+Input [4]: [garage_id#1, minutes#4L, amount_minor#5L, name#7]
+Keys [2]: [garage_id#1, name#7]
+Functions [3]: [partial_count(1), partial_sum(minutes#4L), partial_sum(amount_minor#5L)]
+Aggregate Attributes [3]: [count#23L, sum#24L, sum#25L]
+Results [5]: [garage_id#1, name#7, count#26L, sum#27L, sum#28L]
+
+(14) HashAggregate [codegen id : 5]
+Input [5]: [garage_id#1, name#7, count#26L, sum#27L, sum#28L]
+Keys [2]: [garage_id#1, name#7]
+Functions [3]: [count(1), sum(minutes#4L), sum(amount_minor#5L)]
+Aggregate Attributes [3]: [count(1)#19L, sum(minutes#4L)#20L, sum(amount_minor#5L)#21L]
+Results [5]: [garage_id#1, name#7, count(1)#19L AS sessions#12L, sum(minutes#4L)#20L AS total_minutes#13L, sum(amount_minor#5L)#21L AS revenue_minor#14L]
+
+(15) Project [codegen id : 5]
+Output [6]: [garage_id#1, name#7, sessions#12L, total_minutes#13L, (cast(total_minutes#13L as double) / cast(sessions#12L as double)) AS avg_minutes#22, revenue_minor#14L]
+Input [5]: [garage_id#1, name#7, sessions#12L, total_minutes#13L, revenue_minor#14L]
+
+
