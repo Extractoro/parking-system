@@ -22,7 +22,7 @@ from pathlib import Path
 import httpx
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "dpc" / "api"))
-from app.reference import compare  # noqa: E402
+from app.reference import compare
 
 BASE = os.environ.get("DPC_BASE", "http://localhost:8000")
 TOKEN = os.environ.get("API_TOKEN", "dev-token")
