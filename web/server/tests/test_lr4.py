@@ -101,7 +101,9 @@ def test_2_operation_succeeds_with_one_effect_and_one_notification(api, db, leve
 
     effects = httpx.get(f"{SIM}/effects", params={"key": op["id"]}).json()["effects"][op["id"]]
     assert effects["effects"] == 1
-    n = db.execute("SELECT count(*) AS n FROM notification WHERE user_id = %s", (user,)).fetchone()["n"]
+    # lab 5: the booking adds «Spot confirmed» too; the operation adds exactly one entry.opened
+    n = db.execute("SELECT count(*) AS n FROM notification WHERE user_id = %s AND type = 'entry.opened'",
+                   (user,)).fetchone()["n"]
     assert n == 1
     opened = db.execute("SELECT payload FROM outbox WHERE type = 'entry.opened' AND msg_key = %s",
                         (b["id"],)).fetchall()
@@ -125,7 +127,8 @@ def test_3_repeated_event_gives_no_second_notification(api, db, level):
         assert time.monotonic() < deadline, "not published again"
         time.sleep(0.2)
     time.sleep(3)  # the worker reads the repeated message
-    assert db.execute("SELECT count(*) AS n FROM notification WHERE user_id = %s", (user,)).fetchone()["n"] == 1
+    assert db.execute("SELECT count(*) AS n FROM notification WHERE user_id = %s AND type = 'entry.opened'",
+                      (user,)).fetchone()["n"] == 1
     assert db.execute("SELECT count(*) AS n FROM processed_message WHERE event_id = %s",
                       (ev["id"],)).fetchone()["n"] == 1
     now = api.get(r.headers["Location"], headers=auth(user)).json()
