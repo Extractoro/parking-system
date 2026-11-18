@@ -1,0 +1,42 @@
+{
+  "seed": 1009,
+  "start": "2026-11-16T07:00:00+00:00",
+  "minutes": 60,
+  "rate_per_minute": 200,
+  "window_minutes": 5,
+  "id_field": "event_id",
+  "time_field": "event_time",
+  "fields": {
+    "garage_id": {
+      "kind": "choice",
+      "values": ["mall", "center", "station", "airport"],
+      "weights": [9, 4, 4, 3]
+    },
+    "plate": {
+      "kind": "custom",
+      "function": "plate"
+    },
+    "direction": {
+      "kind": "choice",
+      "values": ["in", "out"]
+    }
+  },
+  "scenarios": {
+    "normal": {},
+    "duplicates": {
+      "duplicate_share": 0.05
+    },
+    "late": {
+      "late_share": 0.1,
+      "late_minutes": [1, 6]
+    }
+  },
+  "tick": {
+    "after_minutes": 10,
+    "fields": {
+      "garage_id": "tick",
+      "plate": "tick",
+      "direction": "tick"
+    }
+  }
+}

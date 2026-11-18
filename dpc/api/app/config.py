@@ -63,7 +63,12 @@ REPORTS_DIR = os.environ.get("REPORTS_DIR", "/data/reports")
 REPORT_SCRIPT = os.environ.get("REPORT_SCRIPT", "report.py")
 RUNNER_TIMEOUT_S = _float("RUNNER_TIMEOUT_S", 5.0)
 
-PROBLEM_BASE =os.environ.get("PROBLEM_BASE", "https://example.edu/problems/")
+# lab 5: the batch calculation of /v1/panel/batch when the run has no row in panel_run (decision P34)
+PANEL_BATCH_FILE = os.environ.get("PANEL_BATCH_FILE", "/data/events/normal.jsonl")
+PANEL_WINDOW_MINUTES = _int("WINDOW_MINUTES", 5)
+PANEL_WATERMARK_MINUTES = _int("WATERMARK_MINUTES", 5)
+
+PROBLEM_BASE = os.environ.get("PROBLEM_BASE", "https://example.edu/problems/")
 
 FAULTS = os.environ.get("FAULTS", "off") == "on"
 FAULT_DIR = os.environ.get("FAULT_DIR", "/faults")

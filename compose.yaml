@@ -88,14 +88,14 @@ x-spark: &spark
     context: ./dpc
     dockerfile: spark/Dockerfile
   image: project-dpc-spark:${APP_TAG:-dev}
-  environment:
+  environment: &spark-env
     SPARK_CONF_DIR: /opt/spark-conf
     DATABASE_URL: postgresql://app:app@postgres:5432/app
     KAFKA_BOOTSTRAP: kafka:9092
     EVENTS_TOPIC: ${EVENTS_TOPIC:-barrier-events}
     SPARK_AQE: ${SPARK_AQE:-on}
     BROADCAST_THRESHOLD: ${BROADCAST_THRESHOLD:-10m}
-    WATERMARK_MINUTES: ${WATERMARK_MINUTES:-10}
+    WATERMARK_MINUTES: ${WATERMARK_MINUTES:-5}
   volumes:
     - data:/data
     - ./dpc/spark/jobs:/jobs:ro
@@ -490,6 +490,8 @@ services:
   # DPC lab 4 (O4.1): one-off generator of the Parquet history straight into the data volume.
   #   docker compose run --rm generator                                       # small: 1e5 rows, seed 909
   #   docker compose run --rm generator --out /data/c09/big --rows 10000000 --jobs 4
+  # DPC lab 5 (O5.1): the event sets /data/events/{normal,duplicates,late,control}.jsonl
+  #   docker compose run --rm --entrypoint sh generator /tools/generator/events_c09.sh
   generator:
     <<: *spark
     profiles: ["tools"]
@@ -512,6 +514,17 @@ services:
       - "-c"
       - "mkdir -p /data/spark-events && exec spark-submit --master spark://spark-master:7077 --conf spark.ui.port=4041 --conf
         spark.cores.max=2 --conf spark.executor.memory=1g /jobs/stream.py"
+    # lab 5: the main run reads barrier-events (run main, checkpoint /data/checkpoints/main); the runs of the
+    # experiments are separate containers of this service with their own topic, RUN_ID and checkpoint
+    # (experiments/dpc_lr5.py, README section of DPC lab 5)
+    environment:
+      <<: *spark-env
+      EVENTS_TOPIC: ${STREAM_TOPIC:-${EVENTS_TOPIC:-barrier-events}}
+      RUN_ID: ${STREAM_RUN_ID:-main}
+      WATERMARK_MINUTES: ${STREAM_WATERMARK_MINUTES:-${WATERMARK_MINUTES:-5}}
+      EVENTS_FILE: ${STREAM_EVENTS_FILE:-/data/events/normal.jsonl}
+      WINDOW_MINUTES: ${WINDOW_MINUTES:-5}
+      TRACK_EVENTS: ${TRACK_EVENTS:-0}
     ports:
       - "${SPARK_STREAM_UI_PORT:-4041}:4041"
     depends_on:
