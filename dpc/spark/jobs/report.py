@@ -65,6 +65,10 @@ def session(args: argparse.Namespace) -> SparkSession:
         builder = builder.config("spark.sql.adaptive.skewJoin.skewedPartitionFactor", args.skew_factor)
     if args.skew_threshold:
         builder = builder.config("spark.sql.adaptive.skewJoin.skewedPartitionThresholdInBytes", args.skew_threshold)
+    if args.force_skew:
+        # the split of a skewed join part breaks the partitioning by garage_id that the aggregation after the join
+        # relies on; without this flag AQE refuses the split (it would need one more Exchange) and only coalesces
+        builder = builder.config("spark.sql.adaptive.forceOptimizeSkewedJoin", "true")
     if args.advisory:
         builder = builder.config("spark.sql.adaptive.advisoryPartitionSizeInBytes", args.advisory)
     if args.partitions:
@@ -178,6 +182,7 @@ def main() -> None:
     parser.add_argument("--skew-factor", default="", help="skewJoin.skewedPartitionFactor")
     parser.add_argument("--skew-threshold", default="", help="skewJoin.skewedPartitionThresholdInBytes, e.g. 32m")
     parser.add_argument("--advisory", default="", help="adaptive.advisoryPartitionSizeInBytes, e.g. 16m")
+    parser.add_argument("--force-skew", action="store_true", help="adaptive.forceOptimizeSkewedJoin = true")
     parser.add_argument("--metrics", action="store_true", help="write _metrics.json with the stage task metrics")
     args = parser.parse_args()
 
