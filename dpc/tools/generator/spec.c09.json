@@ -1,0 +1,59 @@
+{
+  "seed": 909,
+  "reference": {
+    "name": "garages",
+    "rows": 10,
+    "key": "garage_id",
+    "hot_key": "mall",
+    "columns": {
+      "garage_id": {
+        "kind": "custom",
+        "function": "garage_id"
+      },
+      "name": {
+        "kind": "custom",
+        "function": "garage_name"
+      },
+      "city": {
+        "kind": "custom",
+        "function": "garage_city"
+      },
+      "tariff_minor_per_hour": {
+        "kind": "custom",
+        "function": "garage_tariff"
+      }
+    }
+  },
+  "facts": {
+    "name": "history",
+    "rows": 100000,
+    "columns": {
+      "session_id": {
+        "kind": "seq",
+        "prefix": "s",
+        "width": 9
+      },
+      "garage_id": {
+        "kind": "ref",
+        "table": "garages",
+        "hot_share": 0.45
+      },
+      "plate": {
+        "kind": "custom",
+        "function": "plate"
+      },
+      "entered": {
+        "kind": "custom",
+        "function": "entered"
+      },
+      "minutes": {
+        "kind": "custom",
+        "function": "minutes"
+      },
+      "amount_minor": {
+        "kind": "custom",
+        "function": "amount_minor"
+      }
+    }
+  }
+}

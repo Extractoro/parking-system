@@ -8,6 +8,7 @@
 #   (none)          core of both courses
 #   observability   prometheus, grafana, kafka-ui, otel-collector, jaeger
 #   extras          redis, keycloak, ray-worker-extra, spark-history
+#   tools           generator (DPC lab 4 data, one-off: docker compose run --rm generator)
 # Example: docker compose --profile observability up -d
 
 # ---------------------------------------------------------------------------------------------
@@ -486,6 +487,23 @@ services:
       - "mkdir -p /data/spark-events && exec spark-class org.apache.spark.deploy.history.HistoryServer"
     ports:
       - "${SPARK_HISTORY_PORT:-18080}:18080"
+  # DPC lab 4 (O4.1): one-off generator of the Parquet history straight into the data volume.
+  #   docker compose run --rm generator                                       # small: 1e5 rows, seed 909
+  #   docker compose run --rm generator --out /data/c09/big --rows 10000000 --jobs 4
+  generator:
+    <<: *spark
+    profiles: ["tools"]
+    restart: "no"
+    volumes:
+      - data:/data
+      - ./dpc/tools:/tools:ro
+    entrypoint:
+      - "python"
+      - "/tools/generator/generate_history.py"
+      - "/tools/generator/spec.c09.json"
+      - "--extend"
+      - "/tools/generator/columns.c09.py"
+    command: ["--out", "/data/c09/small"]
 
   stream:
     <<: *spark
