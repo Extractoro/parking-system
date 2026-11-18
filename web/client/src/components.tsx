@@ -69,6 +69,9 @@ export function Header({
           <NavLink to="compute" current={view === 'compute'} onNavigate={onNavigate}>
             Compute
           </NavLink>
+          <NavLink to="report" current={view === 'report'} onNavigate={onNavigate}>
+            Report
+          </NavLink>
         </nav>
         {bell}
         {user && (

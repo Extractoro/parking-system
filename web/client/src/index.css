@@ -1627,3 +1627,27 @@ fieldset.field {
     display: none;
   }
 }
+
+/* DPC lab 4: the report page */
+.field.inline {
+  display: inline-flex;
+  flex-direction: row;
+  align-items: center;
+  gap: 8px;
+}
+
+.field.inline .input {
+  width: auto;
+}
+
+.report-table .num {
+  text-align: right;
+}
+
+.ok-mark {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  color: var(--success);
+  font-size: 13px;
+}

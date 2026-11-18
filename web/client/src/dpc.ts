@@ -1,5 +1,5 @@
 // HTTP client of the DPC api (dpc/openapi.yaml): barrier entries, the garage occupancy and the
-// parallel integral of lab 2 (/v1/compute).
+// parallel integral of lab 2 (/v1/compute), the Spark report of lab 4 (/v1/reports/main).
 // The DPC api is called directly on :8000 with the API token (Authorization: Bearer); CORS allows
 // DPC_CLIENT_ORIGIN. Errors are Problem Details, the same ApiError as the Web client.
 
@@ -98,6 +98,49 @@ export interface ComputeJob {
   finished_at: string | null
 }
 
+export type ReportJobState = 'running' | 'done' | 'failed' | 'none' | 'unknown'
+
+export interface ReportRow {
+  garage_id: string
+  name: string
+  sessions: number
+  total_minutes: number
+  avg_minutes: number
+  revenue_minor: number
+}
+
+export interface ReportJob {
+  run: string | null
+  state: ReportJobState
+  facts?: string | null
+  join?: string
+  seconds?: number | null
+  exit_code?: number | null
+}
+
+export interface ReportPublished {
+  run: string
+  path: string
+  facts: string
+  dim: string
+  join: string
+  written_at: string
+}
+
+export interface Report {
+  job: ReportJob
+  published: ReportPublished | null
+  rows: ReportRow[]
+}
+
+export interface ReportReference {
+  published: ReportPublished | null
+  facts: string
+  dim: string
+  seconds: number
+  rows: ReportRow[]
+}
+
 async function request<T>(path: string, init: RequestInit = {}): Promise<{ body: T; headers: Headers }> {
   const headers = new Headers(init.headers)
   headers.set('Authorization', `Bearer ${DPC_TOKEN}`)
@@ -152,6 +195,17 @@ export const dpc = {
 
   computeList: (limit = 12) =>
     request<{ items: ComputeJob[]; running: string | null }>(`/v1/compute?limit=${limit}`).then((r) => r.body),
+
+  /** POST /v1/reports/main/refresh: 202 {job}; 409 report-running while a report job runs. */
+  refreshReport: (dataset?: 'small' | 'big') =>
+    request<{ job: ReportJob }>('/v1/reports/main/refresh', {
+      method: 'POST',
+      body: JSON.stringify(dataset ? { dataset } : {}),
+    }).then((r) => r.body.job),
+
+  report: () => request<Report>('/v1/reports/main').then((r) => r.body),
+
+  reportReference: () => request<ReportReference>('/v1/reports/main/reference').then((r) => r.body),
 
   garage: (garageId: string) => request<GarageState>(`/v1/garage/${encodeURIComponent(garageId)}`).then((r) => r.body),
 }
