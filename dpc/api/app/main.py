@@ -9,7 +9,9 @@ Where each lab plugs in (item numbers of the guide):
                     app/entries.py: the dispatcher (EXECUTION=ray, IN_FLIGHT_LIMIT), the receiver
                     POST /internal/effects with the effect table, fault("after_effect_before_ack")
                     in the task (D3.3, D3.4 not chosen)
-  TODO (O4.2)       POST /v1/reports/main/refresh calls the given Spark runner (RUNNER_URL)
+  DONE (O4.2-O4.5, D4.3) app/reports.py: POST /v1/reports/main/refresh -> spark-runner (RUNNER_URL),
+                    GET /v1/reports/main (pointer /data/reports/current), app/reference.py: GET
+                    /v1/reports/main/reference without Spark (D4.1, D4.2, D4.4 not chosen)
   TODO (O5.x)       GET /v1/panel, /v1/panel/batch: the windows written by your stream job
   TODO (O6.x)       GET /v1/coordinator, /v1/history; coordinators are separate processes
 Protect your /v1 routers with `dependencies=[Depends(auth.require_token)]`.
@@ -21,7 +23,7 @@ from contextlib import asynccontextmanager
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
-from . import compute, config, db, entries, middleware, problems, service
+from . import compute, config, db, entries, middleware, problems, reports, service
 from .jsonlog import log
 
 
@@ -58,3 +60,4 @@ app.include_router(service.router)
 app.include_router(entries.router)
 app.include_router(entries.internal_router)  # the effect receiver of lab 3; nginx does not publish the api
 app.include_router(compute.router)
+app.include_router(reports.router)

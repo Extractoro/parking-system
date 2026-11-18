@@ -13,6 +13,8 @@ dependencies = [
     "py-spy>=0.4.2",
     # lab 2: the integral is computed in numpy blocks
     "numpy>=2.3",
+    # lab 4: the reference of the Spark report reads the Parquet set without Spark
+    "pyarrow>=26",
 ]
 
 [dependency-groups]

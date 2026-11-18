@@ -55,7 +55,15 @@ COMPUTE_RETRY_AFTER_S = _int("COMPUTE_RETRY_AFTER_S", 2)
 COMPUTE_KEEP = _int("COMPUTE_KEEP", 100)
 COMPUTE_NICE = _int("COMPUTE_NICE", 10)
 
-PROBLEM_BASE = os.environ.get("PROBLEM_BASE", "https://example.edu/problems/")
+# lab 4: the batch report. Data sets of the generator: {REPORT_DATA_DIR}/{small|big}/{history,garages};
+# runs in {REPORTS_DIR}/runs/{run}, the pointer of the published run {REPORTS_DIR}/current
+REPORT_DATA_DIR = os.environ.get("REPORT_DATA_DIR", "/data/c09")
+REPORT_DATASET = os.environ.get("REPORT_DATASET", "small")
+REPORTS_DIR = os.environ.get("REPORTS_DIR", "/data/reports")
+REPORT_SCRIPT = os.environ.get("REPORT_SCRIPT", "report.py")
+RUNNER_TIMEOUT_S = _float("RUNNER_TIMEOUT_S", 5.0)
+
+PROBLEM_BASE =os.environ.get("PROBLEM_BASE", "https://example.edu/problems/")
 
 FAULTS = os.environ.get("FAULTS", "off") == "on"
 FAULT_DIR = os.environ.get("FAULT_DIR", "/faults")
