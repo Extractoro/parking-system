@@ -8,7 +8,7 @@ A crash before COMMIT leaves the rows unpublished: they are sent again after the
 event id (at least once; the consumers deduplicate by (consumer, event id)). SKIP LOCKED lets a second
 publisher take other rows instead of waiting. An empty batch waits OUTBOX_IDLE_S (200 ms).
 
-Also here: the cleanup of expired idempotency keys and expired login sessions (lab 3), once per
+Also here: the cleanup of expired idempotency keys, login sessions (lab 3) and WebSocket tickets (lab 5), once per
 IDEMPOTENCY_CLEANUP_S seconds, in batches of IDEMPOTENCY_CLEANUP_BATCH rows. `python -m app.publisher --cleanup-once` runs one
 pass and exits (used by the tests).
 """
@@ -19,7 +19,7 @@ import sys
 import psycopg
 from aiokafka.errors import KafkaError
 
-from . import background, broker, config, db, events, idempotency, users
+from . import background, broker, config, db, events, idempotency, tickets, users
 from .faults import fault
 from .jsonlog import log
 
@@ -78,6 +78,9 @@ async def cleanup_loop(stop: asyncio.Event) -> None:
             sessions = await users.cleanup_expired_sessions(config.IDEMPOTENCY_CLEANUP_BATCH)
             if sessions:
                 log("session.cleanup", deleted=sessions)
+            expired = await tickets.cleanup_expired(config.IDEMPOTENCY_CLEANUP_BATCH)
+            if expired:
+                log("ws_ticket.cleanup", deleted=expired)
         except (psycopg.Error, OSError) as exc:  # database down: try again on the next round
             log("idempotency.cleanup_failed", error=type(exc).__name__)
         try:

@@ -16,7 +16,7 @@ from argon2.exceptions import InvalidHashError, VerificationError
 from fastapi import APIRouter, Header, Response
 from pydantic import BaseModel, Field
 
-from . import config, db
+from . import config, db, events
 from .problems import Problem
 from .users import CurrentUser, bearer_token, token_hash, unauthorized
 
@@ -85,12 +85,21 @@ async def login(body: LoginBody) -> dict[str, Any]:
 
 @router.post("/auth/logout", status_code=204)
 async def logout(authorization: Annotated[str | None, Header()] = None) -> Response:
-    """Deletes the session of the token. Safe to repeat: an already deleted or expired one gives 204 too."""
+    """Deletes the session of the token. Safe to repeat: an already deleted or expired one gives 204 too.
+
+    Lab 5: in the same transaction the message session.revoked {session_token_hash} goes to the outbox
+    (topic notifications); every gateway closes the WebSocket connections opened with tickets of this
+    session with code 1008. Other sessions of the same user keep their connections."""
     token = bearer_token(authorization)
     if token is None:
         raise unauthorized("Send Authorization: Bearer <token> of the session to end")
+    session_hash = token_hash(token)
     async with db.connection() as conn, conn.transaction():
-        await conn.execute("DELETE FROM session WHERE token_hash = %s", (token_hash(token),))
+        cur = await conn.execute("DELETE FROM session WHERE token_hash = %s RETURNING user_id", (session_hash,))
+        row = await cur.fetchone()
+        if row is not None:  # a repeated logout deleted nothing and sends nothing
+            await events.add_message(conn, events.SESSION_REVOKED, row["user_id"],
+                                     {"user_id": row["user_id"], "session_token_hash": session_hash})
     return Response(status_code=204)
 
 

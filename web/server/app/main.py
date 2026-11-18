@@ -8,7 +8,8 @@ Your work goes into new modules that you include below. Where each lab plugs in:
   O4.1-O4.4         long operation (operations.py: POST /v1/bookings/{id}/entries, GET /v1/operations/{op}),
                     outbox in the same transaction (events.py); publisher, worker and relay are separate
                     processes: app/publisher.py, app/worker.py, app/relay.py
-  TODO (O5.1)       POST /v1/ws-tickets; the gateway itself is app/gateway.py
+  O5.1-O5.3         POST /v1/ws-tickets (tickets.py), the feed GET /v1/me/notifications[/head]
+                    (notifications.py); the gateway itself is app/gateway.py
   TODO (O6.3)       SIGTERM: lifecycle.start_draining(), finish started requests
 The contract of all routes is your openapi.yaml (start from openapi.example.yaml).
 """
@@ -19,7 +20,22 @@ from contextlib import asynccontextmanager
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
-from . import auth, bookings, cache, catalog, config, db, metrics, middleware, operations, problems, service, telemetry
+from . import (
+    auth,
+    bookings,
+    cache,
+    catalog,
+    config,
+    db,
+    metrics,
+    middleware,
+    notifications,
+    operations,
+    problems,
+    service,
+    telemetry,
+    tickets,
+)
 from .jsonlog import log
 
 
@@ -47,6 +63,8 @@ app.include_router(auth.router)
 app.include_router(catalog.router)
 app.include_router(bookings.router)
 app.include_router(operations.router)
+app.include_router(tickets.router)
+app.include_router(notifications.router)
 
 # CORS (O3.3): the browser client (Vite, outside Compose) calls the API through nginx from exactly
 # CLIENT_ORIGIN, never "*" and never the Origin echoed back. Any other origin gets no
