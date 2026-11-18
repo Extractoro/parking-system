@@ -51,15 +51,15 @@
 
 | Lab | ID | Ядро/О/Д | Описание | Компонент | Файлы | Тесты | Evidence | Status |
 |---|---|---|---|---|---|---|---|---|
-| ЛР4 | О4.1 | О | Дані для дослідження продуктивності. | — | — | — | — | not_started |
-| ЛР4 | О4.2 | Ядро | Пакетний звіт через API. | — | — | — | — | not_started |
-| ЛР4 | О4.3 | Ядро | Незалежний еталон. | — | — | — | — | not_started |
-| ЛР4 | О4.4 | О | План виконання та перекіс даних. | — | — | — | — | not_started |
-| ЛР4 | О4.5 | О | Втрата виконавця Spark. | — | — | — | — | not_started |
-| ЛР4 | Д4.1 | Д | Реалізація й порівняння обох способів усунення перекосу. | — | — | — | — | not_started |
-| ЛР4 | Д4.2 | Д | Порівняння з’єднання з розсиланням довідника (broadcast join) і з’єднання з перетасуванням (shuffle join). | — | — | — | — | not_started |
-| ЛР4 | Д4.3 | Д | Атомарна публікація звіту. | — | — | — | — | not_started |
-| ЛР4 | Д4.4 | Д | Вплив одного фактора. | — | — | — | — | not_started |
+| ЛР4 | О4.1 | О | Дані для дослідження продуктивності. | generator | `dpc/tools/generator/spec.c09.json`, `columns.c09.py`, `compose.yaml` (`generator`) | - | small 10⁵ рядків 2.7 МБ, big 10⁷ 252 МБ, seed 909, частка `mall` 0.4471 / 0.4502; повторна генерація - ті самі SHA-256 (`results/dpc-lr4/datasets.txt`) | done |
+| ЛР4 | О4.2 | Ядро | Пакетний звіт через API. | api, spark-runner | `dpc/spark/jobs/report.py`, `dpc/api/app/reports.py`, `web/client/src/ReportPage.tsx` | `test_refresh_then_report_equals_reference`, `test_refresh_validation_and_auth` | refresh 202, повторний 409 `report-running`, 10 рядків за 28 с (`results/dpc-lr4/pytest.txt`, `compare-small.txt`) | done |
+| ЛР4 | О4.3 | Ядро | Незалежний еталон. | api | `dpc/api/app/reference.py`, `experiments/dpc_lr4_compare.py` | `test_reference_on_fixed_set`, `test_reference_reads_in_batches`, `test_compare_by_keys` | small і big: 0 розбіжностей за `garage_id` (цілі точно, середнє 1e-9) (`compare-small.txt`, `skew.txt`, `executor.txt`) | done |
+| ЛР4 | О4.4 | О | План виконання та перекіс даних. | spark | `report.py` (`--join shuffle`, `--aqe`, `--force-skew`), `experiments/dpc_lr4.py skew` | - | big, 3 запуски: частина `mall` 23 МБ із 54, max/med 5.1; AQE skew join: стадія 17.9 → 8.3 с, найдовша задача 13.5 → 5.0 с, звіт = еталон (`results/dpc-lr4/skew.txt`, `plan-*.txt`, PC-27) | done |
+| ЛР4 | О4.5 | О | Втрата виконавця Spark. | spark | `experiments/dpc_lr4.py executor` | - | kill `spark-worker-1` під час refresh big: 2 × ExecutorLostFailure, повтор на worker-2, `done`, звіт = еталон (`results/dpc-lr4/executor.txt`) | done |
+| ЛР4 | Д4.1 | Д | Реалізація й порівняння обох способів усунення перекосу. | — | — | — | — | skipped |
+| ЛР4 | Д4.2 | Д | Порівняння з’єднання з розсиланням довідника (broadcast join) і з’єднання з перетасуванням (shuffle join). | — | — | — | — | skipped |
+| ЛР4 | Д4.3 | Д | Атомарна публікація звіту. | spark | `report.py` (`publish`: tmp + `os.replace`) | - | невдалий запуск (`PATH_NOT_FOUND`) - `current` побайтно той самий; успішний - новий inode (`results/dpc-lr4/atomic.txt`) | done |
+| ЛР4 | Д4.4 | Д | Вплив одного фактора. | — | — | — | — | skipped |
 
 ## ЛР5
 

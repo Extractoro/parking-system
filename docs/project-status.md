@@ -1,5 +1,30 @@
 # Стан проєкту C09 «Паркінги»
 
+## Етап 9 - DPC ЛР4: **виконано** (2026-11-18, відповідальна Дарина)
+
+Пункти: О4.2, О4.3 (ядро), О4.1, О4.4, О4.5, Д4.3. `checks.yaml` → `dpc.items += О4.1, О4.4, О4.5, Д4.3`,
+`dpc.reports` (`job.state`, `rows`, ключ `garage_id`, допуск 1e-9). Стенд: `docker compose up -d api spark-master
+spark-worker-1 spark-worker-2 spark-runner`; дані - `docker compose run --rm generator` (новий сервіс, профіль
+`tools`). Образ `project-dpc-api` перезібрано (pyarrow). Міграцій немає.
+
+| Перевірка | Результат |
+|---|---|
+| `pytest dpc/api/tests` (`--with pyarrow`, `EXECUTION=ray`) | 47 passed, 2 skipped (13 ЛР1 + 23 ЛР2 + 6 ЛР3 + 5 ЛР4); перший прогін після окремого перезапуску `ray-head` - 11 failed (клієнт Ray api не перепідключився, PC-28), після `restart api` - зелено |
+| `pytest web/server/tests` (регрес) | 59 passed |
+| `npx @redocly/cli lint dpc/openapi.yaml` | valid, 0 помилок, 5 давніх попереджень |
+| `tsc -b`, `eslint`, `npm run build`; `docker compose config --quiet` | без помилок; CONFIG_OK |
+| О4.1 (`dpc_lr4.py datasets`) | small 10⁵ / 2.7 МБ / `mall` 0.4471, big 10⁷ / 252 МБ / 0.4502, seed 909; повторна генерація small - ті самі SHA-256 |
+| О4.2, О4.3 (`dpc_lr4_compare.py --refresh --dataset small`) | 10 рядків, 0 розбіжностей; задача 28 с, еталон 0.7 с |
+| О4.4 (`dpc_lr4.py skew`, big, `--join shuffle`, 3 + 3 запуски) | off: стадія з'єднання 17.9 с, найдовша задача 13.5 с, max/med 5.1; AQE skew join: 8.3 с, 5.0 с, 3.1; задача 37.5 → 27.2 с; 6/6 = еталон |
+| О4.5 (`dpc_lr4.py executor`) | kill `spark-worker-1` на t+41 с: виконавець 0 removed, 2 × ExecutorLostFailure, `done` на t+73 с, звіт = еталон |
+| Д4.3 (`dpc_lr4.py atomic`) | `PATH_NOT_FOUND` → `failed`, `current` побайтно той самий; успішний запуск - новий inode, тимчасових файлів немає |
+| Клієнт (Edge, Playwright, `scripts/screenshots/dpc-lr4.py`) | сторінка Report: «Matches the reference»; знімки Spark UI (стадія до й після AQE, мертвий виконавець) через сервер історії |
+
+Plan Change: PC-26 (уточнення: великий набір 10⁷ для О4.4 і О4.5, дані в томі, `job.state none`, досліди на Python,
+англійські написи клієнта), PC-27 (`forceOptimizeSkewedJoin` для поділу частини з'єднання), PC-28 (досліди лише з
+сервісами ЛР4). Нові рішення P27-P33. Не зроблено: Д4.1, Д4.2, Д4.4 (не вибрані); відмову драйвера Spark не
+досліджували.
+
 ## Етап 8 - Web ЛР5: **виконано** (2026-11-18, відповідальний Вадим)
 
 Пункти: О5.1, О5.2 (ядро), О5.3, О5.4. `checks.yaml` → `web.items += О5.3, О5.4`, `web.gateways` - :8091, :8092.

@@ -2,7 +2,8 @@
 # bounded queue, a pool of workers recognizes the plate and changes the occupancy of the garage.
 # Service routes are those of dpc/openapi.example.yaml. x-course marks: receiver, request-state,
 # resource-state. "{uuid}" in an example becomes a new id in every request.
-# Lab 2: /v1/compute (the parallel integral). Routes of DPC labs 3-6 are added in their labs.
+# Lab 2: /v1/compute (the parallel integral). Lab 4: /v1/reports/main (Spark report and reference).
+# Routes of DPC labs 5-6 are added in their labs.
 openapi: 3.1.0
 info:
   title: C09 «Паркінги» — DPC, в'їзди й виїзди
@@ -375,12 +376,270 @@ paths:
         "404":
           $ref: "#/components/responses/NotFound"
 
+  /v1/reports/main/refresh:
+    post:
+      operationId: refreshReport
+      summary: Запустити пакетний звіт Spark (ЛР4)
+      description: |
+        Звіт картки C09: кількість сесій, середня тривалість стоянки й виручка за паркінгами. api передає задачу
+        `report.py` запускачу `spark-runner` (`POST /jobs`); задача з'єднує факти `history` з довідником `garages`,
+        групує за `garage_id, name` і пише результат у новий каталог `/data/reports/runs/{run}`, а потім атомарно
+        замінює вказівник `/data/reports/current` (Д4.3). Тіло необов'язкове: `dataset` - `small` (типово,
+        `REPORT_DATASET`, 10⁵ рядків) або `big` (10⁷ рядків); `join` - `auto` (типово, розсилання довідника) або
+        `shuffle` (з'єднання з перетасуванням, дослід О4.4). Відповідь 202 надходить одразу; стан дає
+        `GET /v1/reports/main`. Одночасно виконується одна задача звіту: інший запуск - 409 `report-running`.
+      requestBody:
+        required: false
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ReportRefresh"
+            examples:
+              normal:
+                value: {}
+              big-shuffle:
+                value:
+                  dataset: big
+                  join: shuffle
+      responses:
+        "202":
+          description: Задачу звіту запущено
+          headers:
+            Location:
+              schema:
+                type: string
+              example: /v1/reports/main
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [job]
+                properties:
+                  job:
+                    $ref: "#/components/schemas/ReportJob"
+              example:
+                job:
+                  run: 20261118-110454-1bf54c
+                  state: running
+                  facts: /data/c09/small/history
+                  join: auto
+                  seconds: null
+                  exit_code: null
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "409":
+          description: Задача звіту вже виконується (`report-running`, поле `run` - її запуск)
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/Problem"
+              example:
+                type: https://example.edu/problems/report-running
+                title: A report is already running
+                status: 409
+                detail: Wait for the running report to finish, then refresh again
+                instance: /v1/reports/main/refresh
+                run: 20261118-110454-1bf54c
+        "502":
+          description: Запускач відхилив задачу (`runner-error`)
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/Problem"
+        "503":
+          description: Запускач Spark недоступний (`runner-unavailable`)
+          headers:
+            Retry-After:
+              schema:
+                type: integer
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/Problem"
+  /v1/reports/main:
+    get:
+      operationId: getReport
+      summary: Стан останньої задачі звіту й опублікований звіт
+      description: |
+        `job` - найновіша задача `report.py` запускача: `running`, `done`, `failed`; `none` - запускач не знає жодної
+        (ще не запускали або його перезапущено), `unknown` - запускач недоступний. `published` і `rows` - запуск, на
+        який указує `/data/reports/current`; до першого успішного запуску `published` = null, `rows` = []
+        (відповідь 200, не 404). Невдалий запуск не змінює опублікованого звіту: `job.state` = `failed`, а
+        `published.run` - попередній. Рядки впорядковано за `garage_id`, але порівнювати їх треба за ключем.
+        Лічильники й суми - цілі (`int64`), гроші - копійки; `avg_minutes` = `total_minutes / sessions`.
+      responses:
+        "200":
+          description: Звіт
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Report"
+              example:
+                job:
+                  run: 20261118-110454-1bf54c
+                  state: done
+                  facts: /data/c09/small/history
+                  join: auto
+                  seconds: 28.1
+                  exit_code: 0
+                published:
+                  run: 20261118-110454-1bf54c
+                  path: /data/reports/runs/20261118-110454-1bf54c
+                  facts: /data/c09/small/history
+                  dim: /data/c09/small/garages
+                  join: auto
+                  written_at: "2026-11-18T11:05:20.412Z"
+                rows:
+                  - garage_id: center
+                    name: Центр
+                    sessions: 6275
+                    total_minutes: 770402
+                    avg_minutes: 122.77322709163347
+                    revenue_minor: 63424000
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+  /v1/reports/main/reference:
+    get:
+      operationId: getReportReference
+      summary: Незалежний еталон звіту без Spark (О4.3)
+      description: |
+        Той самий набір, що й опублікований запуск (`published.facts`, `published.dim`; без звіту - набір
+        `REPORT_DATASET`). Файли Parquet читаються `pyarrow.dataset` порціями (batches), кожен рядок додається до
+        словника `garage_id → (кількість, сума хвилин, сума копійок)` у цілих Python; середнє - сума / кількість.
+        Поля рядків ті самі, що в звіті. Результат кешується до зміни файлів набору. 404 `no-data` - набору немає.
+      responses:
+        "200":
+          description: Еталон
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ReportReference"
+              example:
+                published: null
+                facts: /data/c09/small/history
+                dim: /data/c09/small/garages
+                seconds: 0.119
+                rows:
+                  - garage_id: center
+                    name: Центр
+                    sessions: 6275
+                    total_minutes: 770402
+                    avg_minutes: 122.77322709163347
+                    revenue_minor: 63424000
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "404":
+          $ref: "#/components/responses/NotFound"
+
 components:
   securitySchemes:
     apiToken:
       type: http
       scheme: bearer
   schemas:
+    ReportRefresh:
+      type: object
+      additionalProperties: false
+      properties:
+        dataset:
+          type: string
+          enum: [small, big]
+          description: набір генератора; типово REPORT_DATASET (small)
+        join:
+          type: string
+          enum: [auto, shuffle]
+          default: auto
+    ReportJob:
+      type: object
+      required: [run, state]
+      properties:
+        run:
+          type: [string, "null"]
+        state:
+          type: string
+          enum: [running, done, failed, none, unknown]
+        facts:
+          type: [string, "null"]
+        join:
+          type: string
+        seconds:
+          type: [number, "null"]
+          description: тривалість задачі в запускачі (разом із запуском Spark)
+        exit_code:
+          type: [integer, "null"]
+    ReportPublished:
+      type: object
+      required: [run, path, facts, dim, join, written_at]
+      properties:
+        run:
+          type: string
+        path:
+          type: string
+        facts:
+          type: string
+        dim:
+          type: string
+        join:
+          type: string
+        written_at:
+          type: string
+          format: date-time
+    ReportRow:
+      type: object
+      required: [garage_id, name, sessions, total_minutes, avg_minutes, revenue_minor]
+      properties:
+        garage_id:
+          type: string
+        name:
+          type: string
+        sessions:
+          type: integer
+          format: int64
+        total_minutes:
+          type: integer
+          format: int64
+        avg_minutes:
+          type: number
+          description: total_minutes / sessions
+        revenue_minor:
+          type: integer
+          format: int64
+          description: виручка в копійках (неповна година = повна)
+    Report:
+      type: object
+      required: [job, published, rows]
+      properties:
+        job:
+          $ref: "#/components/schemas/ReportJob"
+        published:
+          oneOf:
+            - $ref: "#/components/schemas/ReportPublished"
+            - type: "null"
+        rows:
+          type: array
+          items:
+            $ref: "#/components/schemas/ReportRow"
+    ReportReference:
+      type: object
+      required: [published, facts, dim, seconds, rows]
+      properties:
+        published:
+          oneOf:
+            - $ref: "#/components/schemas/ReportPublished"
+            - type: "null"
+        facts:
+          type: string
+        dim:
+          type: string
+        seconds:
+          type: number
+          description: час обчислення еталона (з кешу - час першого обчислення)
+        rows:
+          type: array
+          items:
+            $ref: "#/components/schemas/ReportRow"
     Problem:
       type: object
       required:
@@ -408,6 +667,9 @@ components:
                 type: string
               message:
                 type: string
+        run:
+          type: [string, "null"]
+          description: report-running - запуск задачі звіту, що виконується
     EntryCreate:
       type: object
       additionalProperties: false

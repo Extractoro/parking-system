@@ -115,6 +115,18 @@
 | P25 | Позначка `finished` запиту в режимі ray ставиться на коміті приймача (запит уже кінцевий для GET), а не на підтвердженні задачі; `in_flight` у режимі ray - незавершені задачі; нові метрики `in_flight_max`, `in_flight_limit`, `execution`, `effects_accepted`, `effects_repeated`; `GET /v1/garage/{id}` повертає `execution` | О1.5 вимірює той самий інтервал в обох режимах |
 | P26 | Рядки журналу задачі (`fault.hit`, `task.done`) дублюються у вивід PID 1 контейнера вузла Ray; один `httpx.Client` на процес-виконавець | `docker compose logs ray-worker` показує відмову; новий клієнт на кожну доставку коштував ~60 мс |
 
+## Модель DPC ЛР4 (етап 9, 2026-11-18)
+
+| № | Рішення | Причина |
+|---|---|---|
+| P27 | Дані - генератор комплекту з описом `dpc/tools/generator/spec.c09.json` + `columns.c09.py`; одноразовий сервіс `generator` (профіль `tools`, образ Spark) пише Parquet у том `data`: `/data/c09/small` (10⁵ рядків) і `/data/c09/big` (10⁷), seed 909. Довідник `garages` (10 паркінгів, перший - гарячий `mall`) і тариф для `amount_minor` будуються з одного словника `GARAGES`; ключ довідника - власна колонка `garage_id` замість `seq` | том бачать spark-* і api; одне джерело тарифу - еталон і звіт не розходяться з даними |
+| P28 | `amount_minor = ceil(minutes / 60) × тариф`, `minutes` - лог-нормальний розподіл (медіана 90 хв, 10-600), `entered` - момент UTC за 300 днів 2026 р. з денними годинами | картка C09; неповна година = повна (як у Web) |
+| P29 | `report.py`: `select` трьох колонок фактів → `join` з `garages(garage_id, name)` → `groupBy(garage_id, name)`: `count`, `sum(minutes)`, `sum(amount_minor)` у `bigint`, `avg_minutes = total_minutes / sessions`. На драйвер збираються лише 10 агрегованих рядків; з них пишуться Parquet і `rows.json` каталогу запуску | одне виконання дає і результат, і остаточний план AQE та метрики; факти на драйвер не збираються |
+| P30 | Д4.3: запуск пише лише `/data/reports/runs/{run}` (`mode("error")`), потім вказівник `/data/reports/current` (JSON: run, path, facts, dim) - тимчасовий файл у тому самому каталозі, `fsync`, `os.replace`. api читає `current` → `rows.json` запуску | заміна вказівника - одне перейменування; невдалий запуск завершується до нього |
+| P31 | api не зберігає стану задачі: `job` - найновіша задача `report.py` з `GET /jobs` запускача, звіт - з `current`. Повторний запуск - 409 запускача → 409 `report-running`; до першого звіту - 200 з `job.state` `none`, `rows` [] | перезапуск api нічого не втрачає; перевірка чекає на `job.state`, а 404 зламав би очікування |
+| P32 | Еталон - `app/reference.py`: `pyarrow.dataset` порціями по 262144 рядки, цикл по рядках у словник цілих Python, набір - той, що в `current`; кеш за назвами, розмірами й часом зміни файлів. Порівняння `compare()` за ключами: цілі й рядки - те саме значення того самого типу, float - `isclose(rel=abs=1e-9)` | О4.3; одна функція в тестах, скрипті й `checks.yaml` (допуск 1e-9) |
+| P33 | О4.4 - режим `--join shuffle` (розсилання вимкнено й для AQE), базовий `--aqe off`; варіант - AQE `skewJoin` з `skewedPartitionThresholdInBytes` 8 МБ, `skewedPartitionFactor` 3, `advisoryPartitionSizeInBytes` 4 МБ і `forceOptimizeSkewedJoin` (PC-27). Метрики стадій - REST API власного UI драйвера наприкінці запуску (`_metrics.json`) | основний звіт лишається з розсиланням довідника; варіанти відрізняються лише AQE |
+
 ## Модель Web ЛР3 (етап 5, 2026-11-10)
 
 | № | Рішення | Причина |

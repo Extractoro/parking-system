@@ -78,6 +78,9 @@ flowchart LR
     D -->|задачі process_entry| RAY["Ray: ray-head, ray-worker ×2"]
     RAY -->|POST /internal/effects| D
     D -->|черга, приймач ефектів, процеси| PG
+    C -->|Report| D
+    D -->|POST /jobs| SR["spark-runner"] --> SW["spark-worker ×2"]
+    SW & D -->|Parquet, звіт| V[("том data")]
 ```
 
 ### Спільний проєкт
@@ -132,6 +135,7 @@ docker compose up -d
 | Web ЛР5 | `docker compose up -d nginx publisher worker relay external-sim gateway-a gateway-b` |
 | DPC ЛР1-ЛР2 | `docker compose up -d api` |
 | DPC ЛР3 | `docker compose up -d api ray-head ray-worker` |
+| DPC ЛР4 | `docker compose up -d api spark-master spark-worker-1 spark-worker-2 spark-runner`; дані - `docker compose run --rm generator` |
 
 Код задач Ray виконують `ray-head` і `ray-worker` з образу `api`: після зміни `dpc/api/app` -
 `docker compose up -d --build api ray-head ray-worker`.
@@ -139,7 +143,7 @@ docker compose up -d
 Тести (проти запущеного стенда):
 
 ```bash
-uv run --no-project --python 3.13 --with pytest --with httpx --with "psycopg[binary]" --with numpy --with websockets pytest web/server/tests dpc/api/tests -v
+uv run --no-project --python 3.13 --with pytest --with httpx --with "psycopg[binary]" --with numpy --with pyarrow --with websockets pytest web/server/tests dpc/api/tests -v
 ```
 
 Клієнт: `cd web/client && cp .env.example .env.local && npm install && npm run dev` → http://localhost:5173.
@@ -366,9 +370,51 @@ flowchart LR
 Регрес: О1.4 у режимі ray - `invariant_ok` true; наскрізний шлях Web ЛР4 - `entered`, в'їзд 1.
 Докладно: [results/dpc-lr3/README.md](results/dpc-lr3/README.md).
 
-### DPC ЛР4-ЛР6
+### DPC ЛР4. Пакетний звіт у Spark
 
-_Заповнюється в ЛР4-ЛР6._
+Звіт картки: сесії, середня тривалість стоянки й виручка за паркінгами; гарячий ключ - `mall` (45 % рядків).
+Стенд: `docker compose up -d api spark-master spark-worker-1 spark-worker-2 spark-runner`; дані - у томі `data`:
+
+```bash
+docker compose run --rm generator                                                 # small: 1e5 рядків, seed 909
+docker compose run --rm generator --out /data/c09/big --rows 10000000 --jobs 4    # big: 1e7 рядків
+```
+
+```mermaid
+flowchart LR
+    A["api: POST /v1/reports/main/refresh"] -->|POST /jobs| R["spark-runner (драйвер)"]
+    R --> W["spark-worker-1, -2: Parquet → join garages → groupBy garage_id"]
+    R -->|Parquet + rows.json| N["/data/reports/runs/{run}"] -->|"tmp + os.replace"| P["/data/reports/current"]
+    G["api: GET /v1/reports/main"] --> P
+    F["api: GET .../reference (pyarrow, без Spark)"] --> P
+```
+
+| Набір | Рядків | Розмір фактів | seed | Частка `mall` |
+|---|---|---|---|---|
+| small | 10⁵ | 2.7 МБ | 909 | 0.4471 |
+| big | 10⁷ | 252 МБ, 49 файлів | 909 | 0.4502 |
+
+Задача `dpc/spark/jobs/report.py`: факти `history` з'єднуються з довідником `garages` і групуються за
+`(garage_id, name)`; лічильники й суми - `bigint` (гроші - копійки), `avg_minutes = total_minutes / sessions`.
+Еталон `dpc/api/app/reference.py` читає ті самі файли `pyarrow` порціями й додає рядки в словник цілих Python;
+порівняння - за `garage_id`, цілі точно, середнє в межах 1e-9. Запуск пише новий каталог і лише потім одним
+`os.replace` замінює вказівник, тому невдалий запуск не змінює опублікованого звіту. Типово довідник розсилається
+(broadcast join, факти не перетасовуються); `--join shuffle` вимикає розсилання для досліду перекосу.
+
+| Пункт | Де реалізовано | Перевірка та свідчення |
+|---|---|---|
+| О4.1 Дані | `dpc/tools/generator/spec.c09.json`, `columns.c09.py`, сервіс `generator` | таблиця вище; повторна генерація small - ті самі SHA-256 |
+| О4.2 Звіт через API | `report.py`, `dpc/api/app/reports.py`, сторінка Report клієнта | refresh 202, повторний - 409 `report-running`; 10 рядків за 28 с |
+| О4.3 Еталон | `reference.py`, `GET /v1/reports/main/reference` | small і big: 0 розбіжностей (`test_lr4.py`, `dpc_lr4_compare.py`) |
+| О4.4 План і перекіс | `--join shuffle`, `--aqe`, пороги skew join, `plan-*.txt` | частина `mall` - 23 МБ із 54; AQE: стадія з'єднання 17.9 → 8.3 с, найдовша задача 13.5 → 5.0 с, звіт = еталон |
+| О4.5 Втрата виконавця | `dpc_lr4.py executor` | kill `spark-worker-1` на 41-й с: 2 задачі `ExecutorLostFailure` повторено на worker-2, `done`, звіт = еталон |
+| Д4.3 Атомарна публікація | `report.py` (`publish`) | запуск з неіснуючим шляхом - `failed`, `current` побайтно той самий |
+
+Досліди О4.4-О4.5 виконувались лише з сервісами ЛР4 (PC-28). Докладно: [results/dpc-lr4/README.md](results/dpc-lr4/README.md).
+
+### DPC ЛР5-ЛР6
+
+_Заповнюється в ЛР5-ЛР6._
 
 ## 7. Досліди
 
@@ -385,6 +431,7 @@ _Заповнюється в ЛР4-ЛР6._
 | Черга, гонка, час, зупинка (DPC ЛР1) | `dpc_lr1_overload.py`, `_race`, `_timing`, `_drain` | `results/dpc-lr1/` |
 | Точність, режими, прискорення (DPC ЛР2) | `dpc_lr2_compute.py accuracy\|modes\|bench\|health` | `results/dpc-lr2/` |
 | Відмова після ефекту, local проти ray, обмеження задач (DPC ЛР3) | `dpc_lr3.py fault\|compare\|inflight`; режими `EXECUTION=local\|ray`, `RECEIVER_DELAY_MS` | `results/dpc-lr3/` |
+| Звіт = еталон, набори, перекіс, втрата виконавця, вказівник (DPC ЛР4) | `dpc_lr4_compare.py`, `dpc_lr4.py datasets\|skew\|executor\|atomic` (`--python 3.14 --with httpx --with pyarrow`); режими `--join shuffle`, `--aqe off\|on` | `results/dpc-lr4/` |
 
 Умови, прогноз, вимірювання й висновки кожного досліду - у `results/<ЛР>/README.md`.
 
@@ -399,6 +446,7 @@ _Заповнюється в ЛР4-ЛР6._
 | `after_external_before_commit` (Web ЛР4) | `docker compose exec worker touch /faults/after_external_before_commit` |
 | Зупинка шлюзу (Web ЛР5) | `docker compose stop gateway-a`, потім `docker compose start gateway-a` |
 | SIGTERM з повною чергою (DPC Д1.4) | `docker compose stop api`, потім `docker compose start api` |
+| Втрата виконавця Spark (DPC О4.5) | `docker compose kill spark-worker-1` під час refresh, потім `docker compose up -d spark-worker-1`; журнал - таблиця виконавців Spark UI (:4040 або сервер історії :18080, профіль `extras`) |
 | `after_effect_before_ack` (DPC ЛР3; у задачі Ray після відповіді приймача) | `docker compose exec api touch /faults/after_effect_before_ack`; журнал - `docker compose logs ray-head ray-worker`; Ray сам повторює задачу |
 
 Перевірка - `fault.hit` у `docker compose logs <сервіс>`; повне скидання - `docker compose down -v`.
@@ -410,6 +458,7 @@ _Заповнюється в ЛР4-ЛР6._
 - Сповіщення наживо може прийти двічі або не прийти (розрив, зупинка шлюзу); рівно один раз - за позицією в клієнті, пропущене дочитується зі стрічки.
 - Черга DPC у пам'яті: аварія процесу (не SIGTERM) втрачає `queued`-запити (`lost-on-restart`).
 - DPC ЛР3: один ефект на ключ перевірено для відмови процесу-виконавця Ray; відмову самого api і втрату вузла Ray не досліджували.
+- DPC ЛР4: звіт = еталон на двох наборах; втрату виконавця перевірено на стадії читання; відмову драйвера (`spark-runner`) не досліджували - запуск треба повторити, `current` лишається попереднім.
 - Прискорення DPC виміряно у ВМ з 4 логічними CPU (2 ядра × 2 потоки).
 
 Повний перелік - у `results/<ЛР>/README.md`.
@@ -418,7 +467,7 @@ _Заповнюється в ЛР4-ЛР6._
 
 | Учасник | Реалізовані пункти й досліди |
 |---|---|
-| Дарина | Web ЛР1, ЛР3; DPC ЛР1, ЛР2; екрани клієнта |
+| Дарина | Web ЛР1, ЛР3; DPC ЛР1, ЛР2, ЛР4; екрани клієнта |
 | Вадим | Web ЛР2, ЛР4, ЛР5; DPC ЛР3; інфраструктура, зв'язок Web↔DPC |
 
 ### Використані бібліотеки
@@ -430,6 +479,7 @@ _Заповнюється в ЛР4-ЛР6._
 | websockets | клієнт-скрипт дослідів і тестів ЛР5 | `experiments/feed_client.py`, `test_lr5.py` |
 | argon2-cffi | хеш пароля | `web/server/app/auth.py` |
 | numpy, multiprocessing | обчислення блоками, пул процесів | `dpc/api/app/integrate.py` |
+| PySpark, pyarrow | пакетний звіт; еталон і генератор Parquet | `dpc/spark/jobs/report.py`, `dpc/api/app/reference.py`, `dpc/tools/generator/` |
 | React, Vite | клієнт | `web/client/` |
 | py-spy, matplotlib | профіль і рисунки дослідів | `experiments/` |
 
