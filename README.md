@@ -129,6 +129,7 @@ docker compose up -d
 |---|---|
 | Web ЛР1-ЛР3 | `docker compose up -d nginx publisher` |
 | Web ЛР4 | `docker compose up -d nginx publisher worker relay external-sim api` |
+| Web ЛР5 | `docker compose up -d nginx publisher worker relay external-sim gateway-a gateway-b` |
 | DPC ЛР1-ЛР2 | `docker compose up -d api` |
 | DPC ЛР3 | `docker compose up -d api ray-head ray-worker` |
 
@@ -138,7 +139,7 @@ docker compose up -d
 Тести (проти запущеного стенда):
 
 ```bash
-uv run --no-project --python 3.13 --with pytest --with httpx --with "psycopg[binary]" --with numpy pytest web/server/tests dpc/api/tests -v
+uv run --no-project --python 3.13 --with pytest --with httpx --with "psycopg[binary]" --with numpy --with websockets pytest web/server/tests dpc/api/tests -v
 ```
 
 Клієнт: `cd web/client && cp .env.example .env.local && npm install && npm run dev` → http://localhost:5173.
@@ -244,9 +245,47 @@ sequenceDiagram
 Доставка подій - щонайменше один раз; повтори відсікає `processed_message` і ключ симулятора = id операції.
 Докладно: [results/web-lr4/README.md](results/web-lr4/README.md).
 
-### Web ЛР5-ЛР6
+### Web ЛР5. Сповіщення через WebSocket
 
-_Заповнюється в ЛР5-ЛР6._
+Схема доставки:
+
+```mermaid
+flowchart LR
+    C["причина: бронювання,<br>результат worker,<br>перевірка 15 хв"] --> N["add_notification:<br>notification + outbox<br>в одній транзакції"]
+    N --> P["publisher"] --> K["Kafka<br>notifications<br>key = user id"]
+    K -- "група gateway-a" --> GA["gateway-a :8091"]
+    K -- "група gateway-b" --> GB["gateway-b :8092"]
+    GA --> W1["з'єднання користувача<br>на gateway-a"]
+    GB --> W2["з'єднання користувача<br>на gateway-b"]
+```
+
+| Пункт | Де реалізовано | Перевірка та свідчення |
+|---|---|---|
+| О5.1 Авторизоване підключення | `POST /v1/ws-tickets` (`tickets.py`, `migrations/009`); `gateway.py`: `Origin` і погашення квитка до `accept()` | повторний, прострочений, чужий Origin, без квитка → відмова (403 на рукостискання); вихід → 1008 лише для з'єднань цієї сесії (`auth.txt`) |
+| О5.2 Доставка через два шлюзи | `notifications.py` (`notification.created` в outbox), `gateway.py` (група на шлюз, `user → з'єднання`) | клієнти одного користувача на :8091 і :8092 отримали ті самі `(id, position)`, інший користувач - нічого (`two.txt`) |
+| О5.3 Стрічка й відновлення | `GET /v1/me/notifications?after=`, `/head`; алгоритм клієнта | сповіщення між підпискою й `head` застосовано раз; зупинка gateway-a → дочитано 3 пропущені; 50 паралельних → позиції 1..50, клієнт із розривами отримав кожне раз |
+| О5.4 Клієнт сповіщень | `web/client/src/feed.ts`, `Notifications.tsx` | дзвіночок, список, тост, Live / Reconnecting…, пауза 1-30 с (рисунки `docs/reports/img/web-lr5-*.png`) |
+
+Квиток - 32 випадкові байти, 30 с, одноразовий (у базі sha256); з'єднання належить сесії, для якої видано
+квиток. Вихід в одній транзакції видаляє сесію і пише `session.revoked`: кожен шлюз закриває з'єднання цієї
+сесії кодом 1008, інші сесії користувача лишаються. Відмова до прийняття - `close(1008)` до `accept()`, що
+uvicorn віддає як HTTP 403 (PC-22).
+
+Алгоритм клієнта: квиток → WebSocket (живі кадри в буфер) → `head` → історія від `last_applied` до `head` →
+буфер без уже застосованих → живі кадри; позиція з розривом → спершу історія до неї; обрив → новий квиток
+з паузою, що зростає. `last_applied` - у `sessionStorage` окремо для кожного користувача. Запис, зафіксований
+пізніше, не губиться: позиції видає лічильник користувача під `FOR UPDATE`, тож порядок позицій = порядок
+комітів, усе до `head` уже зафіксовано, а пізніший запис отримає позицію після `head`.
+
+Керована відмова (картка C09): `docker compose stop gateway-a` → клієнти gateway-a бачать «Reconnecting…»,
+за 2.5 с через nginx підключаються до gateway-b і дочитують пропущене з історії; `docker compose start gateway-a`.
+Межі: історія безстрокова, застарілого курсора немає (Д5.8 не робили); кожен шлюз читає всю тему (без реєстру
+Д5.1); «Місце звільнилося» не зроблено - у системі немає підписок на рівень.
+Докладно: [results/web-lr5/README.md](results/web-lr5/README.md).
+
+### Web ЛР6
+
+_Заповнюється в ЛР6._
 
 ### DPC ЛР1. Сервіс із чергою та модель виконання
 
@@ -342,6 +381,7 @@ _Заповнюється в ЛР4-ЛР6._
 | Ідемпотентність, скасування (Web О2.2, Д2.5) | `web_idempotency.py`, `web_cancel_twice.py` | `results/web-lr2/` |
 | Вхід, доступ, CORS (Web ЛР3) | `web_lr3_checks.py` | `results/web-lr3/checks.txt` |
 | Довга операція й відмови (Web ЛР4) | `web_lr4.py e2e\|publisher\|worker\|rejected\|simdown\|dpcdown` | `results/web-lr4/` |
+| Квиток, два шлюзи, відновлення (Web ЛР5) | `web_lr5.py auth\|two\|window\|gateway\|parallel\|e2e\|ending` (`--with websockets`) | `results/web-lr5/` |
 | Черга, гонка, час, зупинка (DPC ЛР1) | `dpc_lr1_overload.py`, `_race`, `_timing`, `_drain` | `results/dpc-lr1/` |
 | Точність, режими, прискорення (DPC ЛР2) | `dpc_lr2_compute.py accuracy\|modes\|bench\|health` | `results/dpc-lr2/` |
 | Відмова після ефекту, local проти ray, обмеження задач (DPC ЛР3) | `dpc_lr3.py fault\|compare\|inflight`; режими `EXECUTION=local\|ray`, `RECEIVER_DELAY_MS` | `results/dpc-lr3/` |
@@ -357,6 +397,7 @@ _Заповнюється в ЛР4-ЛР6._
 | `after_commit_before_response` (Web ЛР2) | `docker compose exec app-a touch /faults/after_commit_before_response` |
 | `publisher_before_send` (Web ЛР4) | `docker compose exec publisher touch /faults/publisher_before_send` |
 | `after_external_before_commit` (Web ЛР4) | `docker compose exec worker touch /faults/after_external_before_commit` |
+| Зупинка шлюзу (Web ЛР5) | `docker compose stop gateway-a`, потім `docker compose start gateway-a` |
 | SIGTERM з повною чергою (DPC Д1.4) | `docker compose stop api`, потім `docker compose start api` |
 | `after_effect_before_ack` (DPC ЛР3; у задачі Ray після відповіді приймача) | `docker compose exec api touch /faults/after_effect_before_ack`; журнал - `docker compose logs ray-head ray-worker`; Ray сам повторює задачу |
 
@@ -366,6 +407,7 @@ _Заповнюється в ЛР4-ЛР6._
 - Ключ ідемпотентності захищає лише повтор з тим самим ключем; живе 24 год.
 - Перехоплений токен діє до виходу або 8 год; кількість спроб входу не обмежена.
 - Поки симулятор недоступний, обробник чекає на одній події без межі спроб.
+- Сповіщення наживо може прийти двічі або не прийти (розрив, зупинка шлюзу); рівно один раз - за позицією в клієнті, пропущене дочитується зі стрічки.
 - Черга DPC у пам'яті: аварія процесу (не SIGTERM) втрачає `queued`-запити (`lost-on-restart`).
 - DPC ЛР3: один ефект на ключ перевірено для відмови процесу-виконавця Ray; відмову самого api і втрату вузла Ray не досліджували.
 - Прискорення DPC виміряно у ВМ з 4 логічними CPU (2 ядра × 2 потоки).
@@ -377,14 +419,15 @@ _Заповнюється в ЛР4-ЛР6._
 | Учасник | Реалізовані пункти й досліди |
 |---|---|
 | Дарина | Web ЛР1, ЛР3; DPC ЛР1, ЛР2; екрани клієнта |
-| Вадим | Web ЛР2, ЛР4; DPC ЛР3; інфраструктура, зв'язок Web↔DPC |
+| Вадим | Web ЛР2, ЛР4, ЛР5; DPC ЛР3; інфраструктура, зв'язок Web↔DPC |
 
 ### Використані бібліотеки
 
 | Бібліотека | Для чого | Де |
 |---|---|---|
 | FastAPI, psycopg | HTTP і PostgreSQL | `web/server/`, `dpc/api/` |
-| aiokafka | публікація й читання подій | `publisher.py`, `worker.py`, `relay.py` |
+| aiokafka | публікація й читання подій | `publisher.py`, `worker.py`, `relay.py`, `gateway.py` |
+| websockets | клієнт-скрипт дослідів і тестів ЛР5 | `experiments/feed_client.py`, `test_lr5.py` |
 | argon2-cffi | хеш пароля | `web/server/app/auth.py` |
 | numpy, multiprocessing | обчислення блоками, пул процесів | `dpc/api/app/integrate.py` |
 | React, Vite | клієнт | `web/client/` |

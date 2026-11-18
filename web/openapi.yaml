@@ -155,7 +155,10 @@ paths:
         - auth
       operationId: logout
       summary: Вихід
-      description: Видаляє сесію токена. Повтор із тим самим (уже недійсним) токеном - теж 204. Без заголовка `Authorization` - 401.
+      description: |
+        Видаляє сесію токена. Повтор із тим самим (уже недійсним) токеном - теж 204. Без заголовка
+        `Authorization` - 401. У тій самій транзакції в outbox записується `session.revoked`: обидва шлюзи
+        закривають WebSocket-з'єднання цієї сесії кодом 1008 (інші сесії користувача лишаються).
       responses:
         "204":
           description: Вихід виконано (або сесії вже немає)
@@ -834,22 +837,39 @@ paths:
         - notifications
       operationId: createWsTicket
       summary: Одноразовий квиток для WebSocket
+      description: |
+        Квиток - 32 випадкові байти (base64url), діє 30 с і відкриває одне з'єднання. У базі - лише sha256
+        квитка, користувач і sha256 токена сесії, для якої його видано: вихід цієї сесії закриває її з'єднання.
       responses:
         "201":
           description: Квиток
+          headers:
+            Cache-Control:
+              schema:
+                type: string
+                const: no-store
           content:
             application/json:
               schema:
                 type: object
                 required:
                   - ticket
+                  - expires_in
                   - expires_at
                 properties:
                   ticket:
                     type: string
+                  expires_in:
+                    type: integer
+                    description: Секунд до кінця дії
+                    const: 30
                   expires_at:
                     type: string
                     format: date-time
+              example:
+                ticket: 3q2-7wEJ4mZq0B1vTqzO4wq2S8b5yS1bX7mWQ9aU2pk
+                expires_in: 30
+                expires_at: "2026-11-18T09:20:10.738Z"
         "401":
           $ref: "#/components/responses/Unauthorized"
   /v1/ws:
@@ -858,8 +878,14 @@ paths:
         - notifications
       operationId: openNotificationChannel
       summary: Канал сповіщень WebSocket через шлюз
-      description: Квиток передається в `?ticket=`. `Origin` — лише походження клієнта. Формат кадрів описано тут або 
-        в AsyncAPI.
+      description: |
+        Квиток передається в `?ticket=`. До прийняття з'єднання шлюз перевіряє `Origin` (рівно походження
+        клієнта, `CLIENT_ORIGIN`) і погашає квиток одним `UPDATE ... WHERE used_at IS NULL AND expires_at > now()`
+        за живої сесії. Інакше з'єднання закривається кодом 1008 ще до прийняття, і сервер відповідає на
+        рукостискання 403. Перший кадр - `{"type": "hello", "gateway": "gateway-a"}`, далі кожен кадр - одне
+        сповіщення (схема `Notification`, канал `notifications` в AsyncAPI). Вихід сесії (`POST /v1/auth/logout`)
+        або кінець її строку закриває відкриті з'єднання цієї сесії кодом 1008. Пропущене під час розриву
+        клієнт дочитує з `GET /v1/me/notifications` від останньої застосованої позиції.
       security: []
       parameters:
         - name: ticket
@@ -872,6 +898,80 @@ paths:
           description: З'єднання встановлено (WebSocket)
         "403":
           $ref: "#/components/responses/Forbidden"
+  /v1/me/notifications:
+    get:
+      tags:
+        - notifications
+      operationId: listNotifications
+      summary: Стрічка сповіщень після позиції
+      description: |
+        Власні сповіщення з `position > after` у порядку позиції. Позиції користувача йдуть 1, 2, 3, ... без
+        пропусків у порядку фіксації транзакцій, тож читання сторінками від останньої застосованої позиції
+        нічого не пропускає. Історія зберігається безстроково (застарілого курсора немає).
+      parameters:
+        - name: after
+          in: query
+          required: false
+          description: Остання застосована позиція (0 - від початку)
+          schema:
+            type: integer
+            minimum: 0
+            default: 0
+        - $ref: "#/components/parameters/Limit"
+      responses:
+        "200":
+          description: Сповіщення з позиціями, що зростають
+          content:
+            application/json:
+              schema:
+                type: object
+                required:
+                  - items
+                  - next_after
+                properties:
+                  items:
+                    type: array
+                    items:
+                      $ref: "#/components/schemas/Notification"
+                  next_after:
+                    type:
+                      - integer
+                      - "null"
+                    description: "`after` наступної сторінки; null - сторінок більше немає"
+              example:
+                items:
+                  - id: 48533efc-51f2-4e24-a767-71f16f18bea6
+                    position: 1
+                    type: booking.confirmed
+                    text: "Spot confirmed: City Centre, Level 1, 20.11 18:00, 2 h, AA1234BB"
+                    created_at: "2026-11-18T09:19:25.300Z"
+                next_after: null
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+  /v1/me/notifications/head:
+    get:
+      tags:
+        - notifications
+      operationId: getNotificationsHead
+      summary: Поточна найбільша позиція стрічки
+      description: Лічильник змінюється в тій самій транзакції, що й вставка сповіщення, тож усе до `position` уже зафіксовано.
+      responses:
+        "200":
+          description: Позиція (0, якщо сповіщень немає)
+          content:
+            application/json:
+              schema:
+                type: object
+                required:
+                  - position
+                properties:
+                  position:
+                    type: integer
+                    minimum: 0
+        "401":
+          $ref: "#/components/responses/Unauthorized"
 
 components:
   securitySchemes:
@@ -1309,18 +1409,29 @@ components:
           format: date-time
     Notification:
       type: object
+      description: Одне сповіщення; та сама форма в стрічці й у кадрі WebSocket
       required:
+        - id
         - position
-        - kind
-        - payload
+        - type
+        - text
         - created_at
       properties:
+        id:
+          type: string
         position:
           type: integer
-        kind:
+          minimum: 1
+          description: Позиція в стрічці користувача (1, 2, 3, ... без пропусків)
+        type:
           type: string
-        payload:
-          type: object
+          enum:
+            - booking.confirmed
+            - booking.ending
+            - entry.opened
+            - entry.failed
+        text:
+          type: string
         created_at:
           type: string
           format: date-time

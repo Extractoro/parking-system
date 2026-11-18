@@ -68,18 +68,18 @@
 
 | Lab | ID | Ядро/О/Д | Описание | Компонент | Файлы | Тесты | Evidence | Status |
 |---|---|---|---|---|---|---|---|---|
-| ЛР5 | О5.1 | Ядро | Авторизоване підключення. | — | — | — | — | not_started |
-| ЛР5 | О5.2 | Ядро | Доставка через два шлюзи. | — | — | — | — | not_started |
-| ЛР5 | О5.3 | О | Стрічка сповіщень і відновлення. | — | — | — | — | not_started |
-| ЛР5 | О5.4 | О | Клієнт сповіщень. | — | — | — | — | not_started |
-| ЛР5 | Д5.1 | Д | Адресна маршрутизація з реєстром «користувач — шлюз» і орендою; дослід видалення маршруту із затримкою. | — | — | — | — | not_started |
-| ЛР5 | Д5.2 | Д | Відображення присутності користувачів у мережі. | — | — | — | — | not_started |
-| ЛР5 | Д5.3 | Д | Server-Sent Events як другий канал. | — | — | — | — | not_started |
-| ЛР5 | Д5.4 | Д | Розподіл 100 з’єднань і використання пам’яті шлюзом за такого навантаження. | — | — | — | — | not_started |
-| ЛР5 | Д5.5 | Д | Контроль з’єднання. | — | — | — | — | not_started |
-| ЛР5 | Д5.6 | Д | Повільний клієнт. | — | — | — | — | not_started |
-| ЛР5 | Д5.7 | Д | Балансування з’єднань. | — | — | — | — | not_started |
-| ЛР5 | Д5.8 | Д | Застарілий курсор. | — | — | — | — | not_started |
+| ЛР5 | О5.1 | Ядро | Авторизоване підключення. | Web API, gateway, PostgreSQL | tickets.py, gateway.py (`redeem`, Origin), auth.py (`session.revoked`), migrations/009 | test_lr5.py::test_1, 2, 4; experiments/web_lr5.py auth | повторний (обидва шлюзи), прострочений (31 с), чужий/без Origin, без квитка → 403 до accept (PC-22); вихід → 1008 обом з'єднанням сесії, інша сесія відкрита (results/web-lr5/auth.txt) | done |
+| ЛР5 | О5.2 | Ядро | Доставка через два шлюзи. | publisher, Kafka, gateway-a/b | notifications.py (`notification.created` в outbox), events.py, gateway.py (`on_message`) | test_lr5.py::test_3; experiments/web_lr5.py two | :8091 і :8092 - ті самі (id, position), B - 0; `ws.delivered` на обох (results/web-lr5/two.txt) | done |
+| ЛР5 | О5.3 | О | Стрічка сповіщень і відновлення. | Web API, клієнт | notifications.py (`/v1/me/notifications`, `/head`), experiments/feed_client.py, web/client/src/feed.ts | test_lr5.py::test_5, 6; experiments/web_lr5.py window, gateway, parallel | вікно підписка→head: 1 раз; stop gateway-a → 3 дочитано, 0 дублів; 50 паралельних → 1..50, клієнт із 4 розривами - кожне раз (results/web-lr5/) | done |
+| ЛР5 | О5.4 | О | Клієнт сповіщень. | Клієнт | feed.ts, Notifications.tsx, useNotifications.ts, components.tsx | scripts/screenshots/web-lr5.py (Edge) | два вікна на gateway-a/b з тим самим #22; Reconnecting… при зупинці шлюзів; після start - 3 пропущені (docs/reports/img/web-lr5-*.png) | done |
+| ЛР5 | Д5.1 | Д | Адресна маршрутизація з реєстром «користувач — шлюз» і орендою; дослід видалення маршруту із затримкою. | — | — | — | — | skipped |
+| ЛР5 | Д5.2 | Д | Відображення присутності користувачів у мережі. | — | — | — | — | skipped |
+| ЛР5 | Д5.3 | Д | Server-Sent Events як другий канал. | — | — | — | — | skipped |
+| ЛР5 | Д5.4 | Д | Розподіл 100 з’єднань і використання пам’яті шлюзом за такого навантаження. | — | — | — | — | skipped |
+| ЛР5 | Д5.5 | Д | Контроль з’єднання. | — | — | — | — | skipped |
+| ЛР5 | Д5.6 | Д | Повільний клієнт. | — | — | — | — | skipped |
+| ЛР5 | Д5.7 | Д | Балансування з’єднань. | — | — | — | — | skipped |
+| ЛР5 | Д5.8 | Д | Застарілий курсор. | — | — | — | — | skipped |
 
 ## ЛР6
 

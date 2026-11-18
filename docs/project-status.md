@@ -1,5 +1,35 @@
 # Стан проєкту C09 «Паркінги»
 
+## Етап 8 - Web ЛР5: **виконано** (2026-11-18, відповідальний Вадим)
+
+Пункти: О5.1, О5.2 (ядро), О5.3, О5.4. `checks.yaml` → `web.items += О5.3, О5.4`, `web.gateways` - :8091, :8092.
+Стенд: `docker compose up -d nginx publisher worker relay external-sim gateway-a gateway-b` (+ `api` для e2e),
+клієнт Vite :5173. Нова міграція 009 (`ws_ticket`, індекс `booking_ending_idx`); образ `project-web` перезібрано.
+
+| Перевірка | Результат |
+|---|---|
+| Міграція 009 на наявній базі | applied |
+| `pytest web/server/tests` (`--with websockets`) | 59 passed (10 ЛР1 + 11 ЛР2 + 14 ЛР3 + 8 ЛР4 + 7 ЛР5 + 9 правило часу); `test_lr4::test_2, 3` уточнено до `entry.opened` (PC-25) |
+| `pytest dpc/api/tests` (регрес, `EXECUTION=ray`) | 42 passed, 2 skipped (ті самі simpson при малих n) |
+| `npx @redocly/cli lint web/openapi.yaml` | valid, 0 помилок, 12 попереджень |
+| `npx @asyncapi/cli validate web/asyncapi.yaml` | valid (1 info: версія 3.1.0); канал `notifications`, `/v1/ws` |
+| `tsc -b`, `eslint`, `npm run build`; `docker compose config --quiet` | без помилок; CONFIG_OK |
+| О5.1 (`web_lr5.py auth`) | повторний квиток (обидва шлюзи), прострочений (31 с), чужий / без Origin, без квитка, вигаданий → 403 на рукостискання; вихід → 1008 на gateway-a і gateway-b, інша сесія відкрита й отримала наступне |
+| О5.2 (`two`) | :8091 і :8092 одного користувача - ті самі (id, position) через ~80 мс після 201; інший користувач - 0 |
+| О5.3 вікно (`window`) | кадр у буфері, `head` 1, застосовано з історії, жива копія пропущена |
+| О5.3 зупинка шлюзу (`gateway`) | закриття 1012 → через 2.5 с через nginx на gateway-b, позиції 2-4 з історії, 1-4 по разу |
+| 50 паралельних (`parallel`) | позиції 1..50 без пропусків; клієнт: 5 сесій, 50 по одному разу; 15 пар із ранішим `created_at` у більшої позиції |
+| Наскрізний шлях ЛР4 (`e2e`) | «Spot confirmed», «Booking ends at 12:00» (worker сам), «Barrier opened» наживо |
+| «15 хвилин» (`ending`) | один раз; другий раунд - 0 |
+| Тихе з'єднання через nginx (`web_lr5_idle.py`) | 76 с відкрите (ping uvicorn кожні 20 с) |
+| Клієнт (Edge, Playwright, `scripts/screenshots/web-lr5.py`) | два вікна user1 на gateway-a / gateway-b з тим самим #22; Reconnecting… при зупинці обох шлюзів; після start - 3 пропущені, Live; знімки `docs/reports/img/web-lr5-*.png` |
+
+Plan Change: PC-22 (відмова до accept - 403, 1008 - для відкритих), PC-23 (`proxy_connect_timeout 2s` для `/v1/ws`),
+PC-24 (погашення квитка лише за живої сесії, відкликання до реєстрації, кінець строку сесії), PC-25 (дрібні уточнення).
+Нові рішення M35-M41. Не зроблено: Д5.1-Д5.8 (не вибрані); «Місце звільнилося» (немає підписок). Методички
+`web-project-guide-2026.pdf` на диску не знайдено: вимоги ЛР5 - з плану етапу, `docs/requirements-web.md` і
+коментарів каркаса.
+
 ## Етап 7 - DPC ЛР3: **виконано** (2026-11-14, відповідальний Вадим)
 
 Пункти: О3.1, О3.3, О3.4 (ядро), О3.2. `checks.yaml` → `dpc.items += О3.2`. Стенд: `docker compose up -d api ray-head
