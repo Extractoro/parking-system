@@ -47,3 +47,6 @@ docs/reports/
 
 # Packages for DL (scripts/submit.sh)
 submit/
+
+# course guides (methodology PDFs): local only, not for the repository
+docs/guides/
