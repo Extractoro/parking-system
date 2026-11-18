@@ -125,6 +125,20 @@ export interface Session {
   user: Me
 }
 
+/** One notification of the feed (lab 5): the same shape in GET /v1/me/notifications and in the WebSocket. */
+export interface Notice {
+  id: string
+  position: number
+  type: string
+  text: string
+  created_at: string
+}
+
+export interface NoticePage {
+  items: Notice[]
+  next_after: number | null
+}
+
 export interface LevelState {
   id: string
   garage_id: string
@@ -276,6 +290,17 @@ export const api = {
 
   /** Safe to repeat: a cancelled booking answers 200 again and frees nothing twice. */
   cancelBooking: (id: string) => request<Booking>(`${bookingPath(id)}/cancel`, { method: 'POST' }).then((r) => r.body),
+
+  /** Lab 5: a one-time ticket (30 s) for the WebSocket of the gateways; needs the login. */
+  wsTicket: () =>
+    request<{ ticket: string; expires_in: number }>('/v1/ws-tickets', { method: 'POST' }).then((r) => r.body.ticket),
+
+  /** The largest position of the own feed (0 if none); everything up to it is committed. */
+  notificationsHead: () => request<{ position: number }>('/v1/me/notifications/head').then((r) => r.body.position),
+
+  /** Own notifications with position > after, ascending. */
+  notificationsAfter: (after: number, limit = 50) =>
+    request<NoticePage>(`/v1/me/notifications?after=${after}&limit=${limit}`).then((r) => r.body),
 
   /** Reads EVERY page of the list by next_cursor (O1.5 + O1.7). */
   async allBookings(limit = 5): Promise<{ items: Booking[]; pages: number }> {

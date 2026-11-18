@@ -8,7 +8,9 @@ import ComputePage from './ComputePage'
 import { Header } from './components'
 import ErrorBoundary from './ErrorBoundary'
 import LoginPage from './LoginPage'
+import { NotificationBell, Toasts } from './Notifications'
 import type { View } from './shared'
+import { useNotifications } from './useNotifications'
 import { useUrlState } from './useUrlState'
 
 const VIEWS: View[] = ['book', 'bookings', 'access', 'barrier', 'compute']
@@ -49,12 +51,20 @@ export default function App() {
   // the DPC pages use their own DPC token and work without the Web login
   const needsLogin = view === 'book' || view === 'bookings' || view === 'access'
   const user = session?.user ?? null
+  // lab 5: live notifications while logged in (one WebSocket per tab), bell in the header, toasts
+  const notices = useNotifications(user)
   return (
     <>
       <a className="skip" href="#content">
         Skip to content
       </a>
-      <Header view={view} onNavigate={navigate} user={user} onLogout={logout} />
+      <Header
+        view={view}
+        onNavigate={navigate}
+        user={user}
+        onLogout={logout}
+        bell={<NotificationBell state={notices.state} onOpen={notices.markSeen} />}
+      />
       <ErrorBoundary key={`${view}/${user?.id ?? '-'}`}>
         {view === 'compute' ? (
           <ComputePage />
@@ -70,6 +80,7 @@ export default function App() {
           <BookingPage params={params} setParams={setParams} onNavigate={navigate} />
         )}
       </ErrorBoundary>
+      <Toasts toasts={notices.toasts} onDismiss={notices.dismiss} />
     </>
   )
 }

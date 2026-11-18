@@ -36,11 +36,13 @@ export function Header({
   onNavigate,
   user,
   onLogout,
+  bell,
 }: {
   view: View
   onNavigate: (v: View) => void
   user: Me | null
   onLogout: () => void
+  bell?: ReactNode
 }) {
   return (
     <header className="header">
@@ -68,6 +70,7 @@ export function Header({
             Compute
           </NavLink>
         </nav>
+        {bell}
         {user && (
           <div className="account" data-testid="account">
             <span className="avatar" aria-hidden>
