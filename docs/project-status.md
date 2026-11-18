@@ -1,5 +1,27 @@
 # Стан проєкту C09 «Паркінги»
 
+## Етап 10 - DPC ЛР5: **виконано** (2026-11-18, відповідальний Вадим)
+
+Пункти: О5.2, О5.4, О5.5 (ядро), О5.1, О5.3. `checks.yaml` → `dpc.items += О5.1, О5.3`, `dpc.panel` (`windows`,
+ключі `garage_id`, `window_start`, без `batch_id`, `written_at`). Міграція 010 (`panel_run`, `panel_window`,
+`panel_event`). Сервіс `stream` - запуск `main` на `barrier-events`; `WATERMARK_MINUTES` 10 → 5 (`compose.yaml`,
+`.env.example`). Образ `project-dpc-api` перезібрано (новий модуль панелі).
+
+| Перевірка | Результат |
+|---|---|
+| `pytest dpc/api/tests` (`--with numpy --with pyarrow`) | 55 passed, 2 skipped (13 ЛР1 + 23 ЛР2 + 6 ЛР3 + 5 ЛР4 + 8 ЛР5: межі 5 хв, контрольний приклад, дублі, фіналізація, повтор UPSERT, `/v1/panel` = `/v1/panel/batch`, 401); перший прогін після перезбирання `api ray-head ray-worker` - 10 failed (клієнт Ray api, PC-28), після `restart api` - зелено |
+| `npx @redocly/cli lint dpc/openapi.yaml`; `docker compose config --quiet` | valid, 5 давніх попереджень; CONFIG_OK |
+| О5.2, О5.5 (`dpc_lr5.py main`) | `normal.jsonl` → `barrier-events`, запуск `main`: 48 вікон, 12 000 подій, 0 розбіжностей з `/v1/panel/batch` |
+| Контрольний приклад (`control`) | потік з вікном 15 хв = `expected.json` комплекту (4 рядки) |
+| О5.1 (`dedup`) | normal і duplicates (+610) на окремих темах: однакові 48 вікон |
+| О5.4 (`restart`) | kill після 6 000 рядків: offsets 0-27, commits 0-26 → рестарт повторив пакет 27; 48 вікон = прогону без відмови і пакету |
+| О5.3 (`predict`, `lateness`) | прогноз 938 / 209; факт 637 (5.31 %, затримка 16.5 с) / 65 (0.54 %, 37.7 с) |
+| Фільтр tick (`dpc_lr5_pushdown.py`) | без dedup фільтр опущено нижче `EventTimeWatermark` - тому tick відкидається у `foreachBatch` |
+
+Plan Change: PC-29 (tick відфільтровано у `foreachBatch`, а не до агрегування; `run_id` у ключі, `panel_run`,
+`panel_event`; 4 частини стану; досліди - `dpc_lr5.py` через сам сервіс `stream`). Нові рішення P34-P39. Не зроблено:
+Д5.1, Д5.2 (не вибрані); сторінки клієнта для панелі немає; відмову брокера й PostgreSQL під час потоку не досліджували.
+
 ## Етап 9 - DPC ЛР4: **виконано** (2026-11-18, відповідальна Дарина)
 
 Пункти: О4.2, О4.3 (ядро), О4.1, О4.4, О4.5, Д4.3. `checks.yaml` → `dpc.items += О4.1, О4.4, О4.5, Д4.3`,

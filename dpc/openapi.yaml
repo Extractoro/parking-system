@@ -3,7 +3,7 @@
 # Service routes are those of dpc/openapi.example.yaml. x-course marks: receiver, request-state,
 # resource-state. "{uuid}" in an example becomes a new id in every request.
 # Lab 2: /v1/compute (the parallel integral). Lab 4: /v1/reports/main (Spark report and reference).
-# Routes of DPC labs 5-6 are added in their labs.
+# Lab 5: /v1/panel (finalized windows of the streaming job) and /v1/panel/batch. Routes of lab 6 - in lab 6.
 openapi: 3.1.0
 info:
   title: C09 «Паркінги» — DPC, в'їзди й виїзди
@@ -533,7 +533,98 @@ paths:
         "404":
           $ref: "#/components/responses/NotFound"
 
+  /v1/panel:
+    get:
+      operationId: getPanel
+      summary: Фіналізовані вікна потокової задачі (О5.2, О5.4)
+      description: |
+        Рядки `panel_window` запуску `run`, які записала задача Spark `stream.py`: тема `barrier-events`
+        (запуск `main`) або тема досліду. Фіксоване вікно 5 хв від Unix epoch в UTC, [початок, кінець); ключ -
+        `garage_id`; `entries` - події `direction: in`, `exits` - `out`. Допустиме запізнення (watermark) -
+        `WATERMARK_MINUTES` (5 хв); режим append, тож тут лише вікна, у яких кінець ≤ watermark і які більше не
+        змінюються. Службова подія `tick` просуває watermark, але не рахується. Повтор мікропакета після
+        відновлення з checkpoint перезаписує ті самі значення за ключем `(run, garage_id, window_start)`.
+        Невідомий `run` - порожній список.
+      parameters:
+        - $ref: "#/components/parameters/PanelRun"
+      responses:
+        "200":
+          description: Вікна, впорядковані за (window_start, garage_id)
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Panel"
+              example:
+                run: main
+                windows:
+                  - garage_id: airport
+                    window_start: "2026-11-16T07:00:00.000Z"
+                    window_end: "2026-11-16T07:05:00.000Z"
+                    entries: 81
+                    exits: 68
+                    batch_id: "4"
+                    written_at: "2026-11-18T14:31:06.759Z"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+
+  /v1/panel/batch:
+    get:
+      operationId: getPanelBatch
+      summary: Ті самі вікна пакетним розрахунком без Spark (О5.5)
+      description: |
+        Файл JSONL, з якого подавали тему запуску (`panel_run.events_file`; без запису - `PANEL_BATCH_FILE`,
+        типово `/data/events/normal.jsonl`), читається по рядках у порядку доставки. Правила ті самі, що в
+        потоку: межі вікон від Unix epoch UTC, [початок, кінець); `tick` не рахується; повтор `event_id`
+        рахується один раз; повертаються лише вікна з кінцем ≤ max(event_time) − watermark запуску (ті, що
+        потік мав фіналізувати). Запізнення не моделюється: подія рахується у вікні свого часу події. Ключі
+        порівняння з `/v1/panel` - `garage_id`, `window_start`; службові поля `batch_id`, `written_at` тут
+        відсутні. 404 `no-events-file` - файлу немає.
+      parameters:
+        - $ref: "#/components/parameters/PanelRun"
+      responses:
+        "200":
+          description: Вікна пакетного розрахунку
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PanelBatch"
+              example:
+                run: main
+                file: /data/events/normal.jsonl
+                window_minutes: 5
+                watermark_minutes: 5
+                watermark: "2026-11-16T08:05:00.000Z"
+                events: 12000
+                duplicates: 0
+                ticks: 1
+                not_final: 0
+                windows:
+                  - garage_id: airport
+                    window_start: "2026-11-16T07:00:00.000Z"
+                    window_end: "2026-11-16T07:05:00.000Z"
+                    entries: 81
+                    exits: 68
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "404":
+          $ref: "#/components/responses/NotFound"
+
 components:
+  parameters:
+    PanelRun:
+      name: run
+      in: query
+      required: false
+      description: запуск потокової задачі (`main` - сервіс `stream`; інші - досліди ЛР5)
+      schema:
+        type: string
+        default: main
+        pattern: "^[A-Za-z0-9_.-]+$"
+        maxLength: 64
   securitySchemes:
     apiToken:
       type: http
@@ -640,6 +731,74 @@ components:
           type: array
           items:
             $ref: "#/components/schemas/ReportRow"
+    PanelWindow:
+      type: object
+      required: [garage_id, window_start, window_end, entries, exits]
+      properties:
+        garage_id:
+          type: string
+        window_start:
+          type: string
+          format: date-time
+          description: початок вікна, UTC з мілісекундами й Z (включно)
+        window_end:
+          type: string
+          format: date-time
+          description: кінець вікна (не включно)
+        entries:
+          type: integer
+          format: int64
+        exits:
+          type: integer
+          format: int64
+        batch_id:
+          type: string
+          description: мікропакет, який записав рядок (лише /v1/panel)
+        written_at:
+          type: string
+          format: date-time
+          description: час запису рядка в PostgreSQL (лише /v1/panel)
+    Panel:
+      type: object
+      required: [run, windows]
+      properties:
+        run:
+          type: string
+        windows:
+          type: array
+          items:
+            $ref: "#/components/schemas/PanelWindow"
+    PanelBatch:
+      type: object
+      required: [run, file, window_minutes, watermark_minutes, watermark, events, duplicates, ticks, not_final, windows]
+      properties:
+        run:
+          type: string
+        file:
+          type: string
+        window_minutes:
+          type: integer
+        watermark_minutes:
+          type: integer
+        watermark:
+          type: ["string", "null"]
+          format: date-time
+          description: max(event_time) − watermark_minutes; null - файл порожній
+        events:
+          type: integer
+          description: різні event_id без tick
+        duplicates:
+          type: integer
+          description: відкинуті повтори event_id
+        ticks:
+          type: integer
+        not_final:
+          type: integer
+          description: вікна, які ще не фіналізовано (не повертаються)
+        windows:
+          type: array
+          items:
+            $ref: "#/components/schemas/PanelWindow"
     Problem:
       type: object
       required:

@@ -65,13 +65,13 @@
 
 | Lab | ID | Ядро/О/Д | Описание | Компонент | Файлы | Тесты | Evidence | Status |
 |---|---|---|---|---|---|---|---|---|
-| ЛР5 | О5.1 | О | Сценарії джерела та дублікати подій. | — | — | — | — | not_started |
-| ЛР5 | О5.2 | Ядро | Агрегування за часом події. | — | — | — | — | not_started |
-| ЛР5 | О5.3 | О | Вплив допустимого запізнення. | — | — | — | — | not_started |
-| ЛР5 | О5.4 | Ядро | Відновлення без повторного результату. | — | — | — | — | not_started |
-| ЛР5 | О5.5 | Ядро | Порівняння з пакетним розрахунком. | — | — | — | — | not_started |
-| ЛР5 | Д5.1 | Д | Другий профіль вікна. | — | — | — | — | not_started |
-| ЛР5 | Д5.2 | Д | Власний стан із тайм-аутом для сеансу. | — | — | — | — | not_started |
+| ЛР5 | О5.1 | О | Сценарії джерела та дублікати подій. | generator, stream | `dpc/tools/generator/events.c09.json`, `events_c09.sh`, `dpc/spark/jobs/stream.py` (`dropDuplicatesWithinWatermark`) | `test_duplicates_are_counted_once_and_tick_is_not_counted` | normal і duplicates (+610 повторів) на окремих темах: ті самі 48 вікон, 12 000 подій (`results/dpc-lr5/dedup.txt`) | done |
+| ЛР5 | О5.2 | Ядро | Агрегування за часом події. | stream, api | `dpc/spark/jobs/stream.py`, `dpc/api/app/panel.py`, `migrations/010_dpc_panel.sql` | `test_window_boundaries_of_5_minutes`, `test_only_windows_before_the_watermark_are_final` | 48 вікон по 5 хв × 4 паркінги, watermark 5 хв, останнє вікно фіналізує `tick` 08:10 (`results/dpc-lr5/main.txt`) | done |
+| ЛР5 | О5.3 | О | Вплив допустимого запізнення. | stream | `stream.py` (`WATERMARK_MINUTES`, `TRACK_EVENTS`), `experiments/dpc_lr5.py predict\|lateness` | - | `late.jsonl`, пауза 20 мс: watermark 2 хв - відкинуто 637/12 000 (5.31 %), затримка 16.5 с; 5 хв - 65 (0.54 %), 37.7 с; прогноз 938 і 209 (`results/dpc-lr5/lateness.txt`) | done |
+| ЛР5 | О5.4 | Ядро | Відновлення без повторного результату. | stream | checkpoint `/data/checkpoints/<run>`, upsert у `write_batch` | `test_repeated_micro_batch_overwrites_the_same_window` | `docker compose kill stream` після половини подій, рестарт повторив пакет 27; 48 вікон = прогону без відмови (`results/dpc-lr5/restart.txt`) | done |
+| ЛР5 | О5.5 | Ядро | Порівняння з пакетним розрахунком. | api | `dpc/api/app/panel_batch.py`, `GET /v1/panel/batch` | `test_control_example_matches_expected`, `test_stream_panel_equals_batch` | 48 = 48 вікон, 0 розбіжностей (`results/dpc-lr5/main.txt`); контрольний приклад = `expected.json` | done |
+| ЛР5 | Д5.1 | Д | Другий профіль вікна. | — | — | — | — | skipped |
+| ЛР5 | Д5.2 | Д | Власний стан із тайм-аутом для сеансу. | — | — | — | — | skipped |
 
 ## ЛР6
 

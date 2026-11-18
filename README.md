@@ -136,6 +136,7 @@ docker compose up -d
 | DPC ЛР1-ЛР2 | `docker compose up -d api` |
 | DPC ЛР3 | `docker compose up -d api ray-head ray-worker` |
 | DPC ЛР4 | `docker compose up -d api spark-master spark-worker-1 spark-worker-2 spark-runner`; дані - `docker compose run --rm generator` |
+| DPC ЛР5 | `docker compose up -d api stream` (+ `broker`, `spark-master`, `spark-worker-*`); події - `docker compose run --rm --entrypoint sh generator /tools/generator/events_c09.sh` |
 
 Код задач Ray виконують `ray-head` і `ray-worker` з образу `api`: після зміни `dpc/api/app` -
 `docker compose up -d --build api ray-head ray-worker`.
@@ -412,9 +413,62 @@ flowchart LR
 
 Досліди О4.4-О4.5 виконувались лише з сервісами ЛР4 (PC-28). Докладно: [results/dpc-lr4/README.md](results/dpc-lr4/README.md).
 
-### DPC ЛР5-ЛР6
+### DPC ЛР5. Потокова обробка подій шлагбаумів
 
-_Заповнюється в ЛР5-ЛР6._
+Потік картки: тема `barrier-events` (1 партиція, ключ `garage_id`), подія
+`{event_id, garage_id, plate, direction: in|out, event_time}` (`event_time` - ISO 8601 UTC з мс і `Z`, як у
+`POST /v1/entries`). Показник - окремі лічильники в'їздів і виїздів кожного паркінгу у фіксованих 5-хвилинних
+вікнах від Unix epoch UTC, [початок, кінець). Допустиме запізнення (watermark) - 5 хв: контролер картки запізнюється
+до 3 хв, 2 хв - запас.
+
+```mermaid
+flowchart LR
+    G["generator: events_c09.sh"] -->|"/data/events/*.jsonl"| S["надсилання (dpc_lr5.py / jsonl_to_kafka.py)"]
+    S -->|"barrier-events, key garage_id"| K[(Kafka)]
+    K --> J["stream.py: withWatermark 5 хв → dropDuplicatesWithinWatermark(event_id) → window 5 хв × garage_id"]
+    J -->|"append: фіналізовані вікна; foreachBatch upsert"| P[("panel_window (run_id, garage_id, window_start)")]
+    J <-->|"offsets, commits, стан"| C[("/data/checkpoints/<run>")]
+    A1["api: GET /v1/panel"] --> P
+    A2["api: GET /v1/panel/batch (без Spark)"] -->|"той самий JSONL"| G
+```
+
+```bash
+docker compose run --rm --entrypoint sh generator /tools/generator/events_c09.sh   # normal, duplicates, late, control
+docker compose up -d api stream                                                     # запуск main: barrier-events
+uv run experiments/dpc_lr5.py main         # normal.jsonl -> barrier-events, /v1/panel = /v1/panel/batch
+uv run dpc/tools/jsonl_to_kafka.py normal.jsonl barrier-events --key garage_id --bootstrap localhost:9094 --pace-ms 2   # те саме засобом комплекту
+```
+
+Набори (`dpc/tools/generator/events.c09.json`, seed 1009): 4 паркінги довідника ЛР4 (`mall` 45 %, `center`,
+`station`, `airport`), 60 хв від 2026-11-16T07:00Z, 200 подій/хв = 12 000 подій; `duplicates` - +610 точних
+повторів (5 %), `late` - 1 222 події (10 %) затримано на 1-6 хв. Останньою йде службова подія `tick` з часом
+08:10 (кінець + 10 хв). Саме вона просуває watermark до 08:05 ≥ 08:00, тож останнє вікно [07:55, 08:00)
+фіналізується в наступному (порожньому) мікропакеті. `tick` проходить watermark і агрегування окремою групою
+й відкидається у `foreachBatch`: фільтр одразу після `withWatermark` оптимізатор Spark 4.2 опускає нижче
+`EventTimeWatermark`, і tick не просунув би watermark (`results/dpc-lr5/tick-filter-plans.txt`).
+
+Запис - `foreachBatch`: фіналізовані вікна мікропакета (лише вони, append; кілька рядків, тому `collect()` безпечний)
+пишуться однією транзакцією `INSERT … ON CONFLICT (run_id, garage_id, window_start) DO UPDATE`. Spark спершу
+записує в checkpoint зміщення мікропакета (`offsets/N`), потім викликає приймач і лише після нього - `commits/N`.
+Після аварії між ними перезапуск з того самого checkpoint виконує пакет N повторно з тими самими зміщеннями
+й тим самим станом, тож приймач отримує ті самі вікна з тими самими значеннями й перезаписує рядки, а не
+додає другі. Незалежні прогони мають власні `RUN_ID`, тему `barrier-events-<run>` і checkpoint
+`/data/checkpoints/<run>`; `GET /v1/panel/batch` бере файл і watermark запуску з `panel_run`.
+
+| Пункт | Де реалізовано | Перевірка та свідчення |
+|---|---|---|
+| О5.1 Сценарії й дублі | `events.c09.json`, `events_c09.sh`, `dropDuplicatesWithinWatermark` у `stream.py`; горизонт = watermark | `dpc_lr5.py dedup`: normal і duplicates (+610 повторів) на окремих темах - ті самі 48 вікон, 12 000 подій |
+| О5.2 Агрегування за часом події | `dpc/spark/jobs/stream.py`, сервіс `stream`, `GET /v1/panel` | 48 вікон (12 × 4 паркінги), останнє фіналізовано подією `tick` |
+| О5.3 Допустиме запізнення | `WATERMARK_MINUTES`, `TRACK_EVENTS` → `panel_event`, `dpc_lr5.py predict`, `lateness` | `late.jsonl` (1 222 запізнілих на 1-6 хв), одна партиція, пауза 20 мс; очікування до запуску: 938 і 209 відкинутих. Факт: watermark 2 хв - відкинуто 637 з 12 000 (5.31 %), затримка вікна медіана 16.5 с; 5 хв - 65 (0.54 %), 37.7 с. Подій, що запізнились менше за watermark, не відкинуто |
+| О5.4 Відновлення | checkpoint `/data/checkpoints/<run>`, upsert у `foreachBatch` | `dpc_lr5.py restart`: половина подій → `docker compose kill stream` (offsets 0-27, commits 0-26) → рестарт повторив пакет 27 → 48 вікон = прогону без відмови; 16 вікон до відмови не змінились |
+| О5.5 Пакетне порівняння | `dpc/api/app/panel_batch.py`, `GET /v1/panel/batch` | normal: 48 = 48 вікон, 0 розбіжностей; контрольний приклад комплекту (15 хв) - потік і функція = `expected.json` |
+
+Тести - `dpc/api/tests/test_lr5.py` (межі вікон, контрольний приклад, дублі, фіналізація, повтор UPSERT,
+`/v1/panel` = `/v1/panel/batch`). Докладно: [results/dpc-lr5/README.md](results/dpc-lr5/README.md).
+
+### DPC ЛР6
+
+_Заповнюється в ЛР6._
 
 ## 7. Досліди
 
@@ -431,6 +485,7 @@ _Заповнюється в ЛР5-ЛР6._
 | Черга, гонка, час, зупинка (DPC ЛР1) | `dpc_lr1_overload.py`, `_race`, `_timing`, `_drain` | `results/dpc-lr1/` |
 | Точність, режими, прискорення (DPC ЛР2) | `dpc_lr2_compute.py accuracy\|modes\|bench\|health` | `results/dpc-lr2/` |
 | Відмова після ефекту, local проти ray, обмеження задач (DPC ЛР3) | `dpc_lr3.py fault\|compare\|inflight`; режими `EXECUTION=local\|ray`, `RECEIVER_DELAY_MS` | `results/dpc-lr3/` |
+| Потік = пакет, контрольний приклад, дублі, kill/restart, запізнення 2 і 5 хв (DPC ЛР5) | `uv run experiments/dpc_lr5.py main\|control\|dedup\|restart\|predict\|lateness\|restore` (залежності в самому скрипті) | `results/dpc-lr5/` |
 | Звіт = еталон, набори, перекіс, втрата виконавця, вказівник (DPC ЛР4) | `dpc_lr4_compare.py`, `dpc_lr4.py datasets\|skew\|executor\|atomic` (`--python 3.14 --with httpx --with pyarrow`); режими `--join shuffle`, `--aqe off\|on` | `results/dpc-lr4/` |
 
 Умови, прогноз, вимірювання й висновки кожного досліду - у `results/<ЛР>/README.md`.
@@ -446,6 +501,7 @@ _Заповнюється в ЛР5-ЛР6._
 | `after_external_before_commit` (Web ЛР4) | `docker compose exec worker touch /faults/after_external_before_commit` |
 | Зупинка шлюзу (Web ЛР5) | `docker compose stop gateway-a`, потім `docker compose start gateway-a` |
 | SIGTERM з повною чергою (DPC Д1.4) | `docker compose stop api`, потім `docker compose start api` |
+| Аварія потокової задачі (DPC О5.4) | `docker compose kill stream`, потім `docker compose up -d stream` (той самий checkpoint `/data/checkpoints/main`) |
 | Втрата виконавця Spark (DPC О4.5) | `docker compose kill spark-worker-1` під час refresh, потім `docker compose up -d spark-worker-1`; журнал - таблиця виконавців Spark UI (:4040 або сервер історії :18080, профіль `extras`) |
 | `after_effect_before_ack` (DPC ЛР3; у задачі Ray після відповіді приймача) | `docker compose exec api touch /faults/after_effect_before_ack`; журнал - `docker compose logs ray-head ray-worker`; Ray сам повторює задачу |
 
@@ -459,6 +515,7 @@ _Заповнюється в ЛР5-ЛР6._
 - Черга DPC у пам'яті: аварія процесу (не SIGTERM) втрачає `queued`-запити (`lost-on-restart`).
 - DPC ЛР3: один ефект на ключ перевірено для відмови процесу-виконавця Ray; відмову самого api і втрату вузла Ray не досліджували.
 - DPC ЛР4: звіт = еталон на двох наборах; втрату виконавця перевірено на стадії читання; відмову драйвера (`spark-runner`) не досліджували - запуск треба повторити, `current` лишається попереднім.
+- DPC ЛР5: повтор мікропакета безпечний лише для upsert за ключем вікна; checkpoint видаляти не можна (інакше потік почне з початку теми, а дублі попередніх подій вже поза горизонтом). Відмову брокера й PostgreSQL під час запису не досліджували.
 - Прискорення DPC виміряно у ВМ з 4 логічними CPU (2 ядра × 2 потоки).
 
 Повний перелік - у `results/<ЛР>/README.md`.
