@@ -1,0 +1,10 @@
+   0.00s experiment window 2026-11-18T09:48:27+00:00
+   4.40s [window] connected url=ws://localhost:8080 gateway=gateway-a last_applied=0
+   4.46s subscribed; booking bc63b82c created before head is read
+   4.46s [window] pause seconds=3
+   4.49s [window] received position=1
+   7.50s [window] head position=1 buffered=1
+   7.53s [window] apply position=1 via=history type=booking.confirmed id=91bb0c8f
+   7.53s [window] skip position=1 via=live reason=already applied
+   8.54s [window] closed code=None
+   8.56s applied [(1, 'booking.confirmed')] times by id {'91bb0c8f': 1} skipped live duplicates 1

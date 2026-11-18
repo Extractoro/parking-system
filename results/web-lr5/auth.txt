@@ -1,0 +1,34 @@
+   0.00s experiment auth 2026-11-18T09:47:09+00:00
+  11.96s user t5-f3045bb842 with two sessions (two logins)
+  14.88s POST /v1/ws-tickets without login -> 401 unauthorized
+  14.99s POST /v1/ws-tickets -> 201 {'expires_in': 30, 'expires_at': '2026-11-18T09:47:54.232250Z'} ticket length 43 Cache-Control: no-store
+  15.06s ws_ticket row: user t5-f3045bb842 ttl 0:00:29.932218 used_at None (only sha256 stored)
+  15.21s 1) valid ticket through nginx: open, first frame {"type": "hello", "gateway": "gateway-a"}
+  15.43s 2) the same ticket again: refused: HTTP 403 to the handshake (close 1008 before accept)
+  15.74s    the same ticket again, straight to gateway-b: refused: HTTP 403 to the handshake (close 1008 before accept)
+  15.89s 3) another Origin (http://localhost:8082): refused: HTTP 403 to the handshake (close 1008 before accept)
+  15.95s    no Origin at all: refused: HTTP 403 to the handshake (close 1008 before accept)
+  16.05s    the same ticket with the right Origin after that: open, first frame {"type": "hello", "gateway": "gateway-a"}
+  16.08s 4) no ticket: refused: HTTP 403 to the handshake (close 1008 before accept)
+  16.13s    a made-up ticket: refused: HTTP 403 to the handshake (close 1008 before accept)
+  16.20s 5) ticket taken, waiting 31 s (ttl 30 s) ...
+  47.23s    expired ticket: refused: HTTP 403 to the handshake (close 1008 before accept)
+  47.23s 6) logout closes the connections of that session only
+  50.34s [session1@gateway-a] connected url=ws://localhost:8091 gateway=gateway-a last_applied=0
+  50.35s [session1@gateway-b] connected url=ws://localhost:8092 gateway=gateway-b last_applied=0
+  50.36s [session2@nginx] connected url=ws://localhost:8080 gateway=gateway-a last_applied=0
+  50.38s [session1@gateway-a] head position=0 buffered=0
+  50.39s [session1@gateway-b] head position=0 buffered=0
+  50.40s [session2@nginx] head position=0 buffered=0
+  50.50s POST /v1/auth/logout (session 1) -> 204
+  50.50s [session1@gateway-b] closed code=1008
+  50.51s [session1@gateway-a] closed code=1008
+  50.51s session 1 on gateway-a closed with 1008 | on gateway-b closed with 1008
+  50.54s ticket of session 1 taken before the logout: refused: HTTP 403 to the handshake (close 1008 before accept)
+  50.57s new ticket with the token of session 1 -> 401
+  50.73s [session2@nginx] received position=1
+  50.73s [session2@nginx] apply position=1 via=live type=booking.confirmed id=0b5e7939
+  52.78s session 2: still open: True closes [] applied [(1, 'booking.confirmed')]
+  52.78s [session2@nginx] closed code=None
+{"time": "2026-11-18T09:47:59.922+00:00", "instance": "gateway-b", "event": "ws.session_revoked", "user_id": "t5-f3045bb842", "closed": 1}
+{"time": "2026-11-18T09:47:59.921+00:00", "instance": "gateway-a", "event": "ws.session_revoked", "user_id": "t5-f3045bb842", "closed": 1}

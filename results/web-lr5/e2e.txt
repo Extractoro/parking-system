@@ -1,0 +1,14 @@
+   0.00s experiment e2e 2026-11-18T09:49:38+00:00
+   2.44s [e2e] connected url=ws://localhost:8080 gateway=gateway-a last_applied=0
+   2.48s [e2e] head position=0 buffered=0
+   3.39s booking of the current hour d3df0a89
+   3.43s POST .../entries -> 202 /v1/operations/7c362843-6ead-4182-ae52-85b8f4ebdfe7
+   3.51s [e2e] received position=1
+   3.51s [e2e] apply position=1 via=live type=booking.confirmed id=98eb22e2
+   3.93s [e2e] received position=2
+   3.93s [e2e] apply position=2 via=live type=booking.ending id=65b0cdfd
+   6.56s [e2e] received position=3
+   6.56s [e2e] apply position=3 via=live type=entry.opened id=85fba1b3
+   6.69s operation succeeded {'effect_id': 'bar-76ec6a1a27', 'opened_at': '2026-11-18T09:49:44.813Z'}
+   6.70s [e2e] closed code=None
+   6.71s applied live: [(1, 'booking.confirmed', 'Spot confirmed: t5-313f110a, L1, 18.11 11:00, 1 h, LR50000'), (2, 'booking.ending', 'Booking ends at 18.11 12:00: t5-313f110a, L1, LR50000'), (3, 'entry.opened', 'Barrier opened')]

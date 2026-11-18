@@ -1,0 +1,6 @@
+   0.00s experiment parallel 2026-11-18T09:49:28+00:00
+   5.67s 50 bookings in parallel (each starts at random within 3 s): 50 x 201 in 3.04 s, errors 0
+   5.68s pairs where a larger position has an earlier created_at (start of the transaction): 15
+   6.10s positions in the database: 50 from 1 to 50 gaps: []
+   6.10s client: sessions 5 (random drops) applied 50 in order True each id once True ids match the database True live duplicates skipped 8 via {'history': 48, 'live': 2}
+   6.10s gateways of the sessions: ['gateway-a', 'gateway-a', 'gateway-b', 'gateway-a', 'gateway-a']

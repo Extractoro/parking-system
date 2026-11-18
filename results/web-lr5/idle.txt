@@ -1,0 +1,2 @@
+connected through nginx: {'type': 'hello', 'gateway': 'gateway-a'}
+after 76.0 s without notifications: open, ping answered

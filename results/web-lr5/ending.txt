@@ -1,0 +1,9 @@
+   0.00s experiment ending 2026-11-18T09:49:48+00:00
+   2.14s booking of the current hour 5023b9ae ends 2026-11-18T12:00:00+02:00
+   2.14s $ docker compose exec -T worker python -m app.worker --ending-once 60
+{"time": "2026-11-18T09:49:52.284+00:00", "instance": "worker", "event": "notification.ending", "booking_id": "5023b9ae-210e-449e-9d23-29af8492b86d", "user_id": "t5-4319fb1331", "position": 2}
+{"time": "2026-11-18T09:49:52.284+00:00", "instance": "worker", "event": "notification.ending_round", "added": 1, "window_min": 60}
+   4.21s $ docker compose exec -T worker python -m app.worker --ending-once 60
+{"time": "2026-11-18T09:49:54.958+00:00", "instance": "worker", "event": "notification.ending_round", "added": 0, "window_min": 60}
+   6.83s feed 1 booking.confirmed Spot confirmed: t5-350ef3db, L1, 18.11 11:00, 1 h, LR50000
+   6.83s feed 2 booking.ending Booking ends at 18.11 12:00: t5-350ef3db, L1, LR50000
