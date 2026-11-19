@@ -102,10 +102,11 @@ def price(garage: str, occupied: int, spots: int) -> int:
 class Lease:
     """Renews the lease in a thread; `lost` is set when etcd says it expired or nothing renewed it for the TTL."""
 
-    def __init__(self, client: Etcd, lease: str) -> None:
-        self.client, self.id = client, lease
+    def __init__(self, client: Etcd, lease: str, generation: int) -> None:
+        self.client, self.id, self.generation = client, lease, generation
         self.lost = threading.Event()
         self.reason = ""
+        self.lock = threading.Lock()
         self.renewed_at = time.monotonic()
         self.thread = threading.Thread(target=self._run, name="keepalive", daemon=True)
 
@@ -114,9 +115,13 @@ class Lease:
         return self
 
     def lose(self, reason: str) -> None:
-        if not self.lost.is_set():
+        """Logged at the moment the loss is seen (by the keepalive thread or the writer), once."""
+        with self.lock:
+            if self.lost.is_set():
+                return
             self.reason = reason
             self.lost.set()
+        log("role.lost", generation=str(self.generation), reason=reason)
 
     def _run(self) -> None:
         while not self.lost.is_set() and not stop.wait(RENEW_EVERY_S):
@@ -150,7 +155,7 @@ def acquire(client: Etcd) -> tuple[Lease, int] | int:
     if held is None or held["value"] != INSTANCE or str(held["lease"]) != str(lease):
         client.revoke(lease)  # gone already (expired at once): try again
         return int(reply["header"]["revision"])
-    return Lease(client, lease).start(), held["create_revision"]
+    return Lease(client, lease, held["create_revision"]).start(), held["create_revision"]
 
 
 def register(lease: Lease, generation: int) -> list[str]:
@@ -213,9 +218,8 @@ def hold(client: Etcd, lease: Lease, generation: int) -> None:
         write_tariffs(lease, generation, garages)
     elif not lease.lost.is_set() and not stop.is_set():
         lease.lose("no-garages")
-    if stop.is_set() and not lease.lost.is_set():
+    if stop.is_set():
         lease.lose("stopping")
-    log("role.lost", generation=str(generation), reason=lease.reason)
     try:
         client.revoke(lease.id)  # if it is still alive: the next owner need not wait for the TTL
         log("role.released", generation=str(generation))
