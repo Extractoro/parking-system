@@ -1,5 +1,6 @@
 // HTTP client of the DPC api (dpc/openapi.yaml): barrier entries, the garage occupancy and the
-// parallel integral of lab 2 (/v1/compute), the Spark report of lab 4 (/v1/reports/main).
+// parallel integral of lab 2 (/v1/compute), the Spark report of lab 4 (/v1/reports/main), the tariff manager of
+// lab 6 (/v1/coordinator, /v1/tariff, /v1/history, /v1/history/check).
 // The DPC api is called directly on :8000 with the API token (Authorization: Bearer); CORS allows
 // DPC_CLIENT_ORIGIN. Errors are Problem Details, the same ApiError as the Web client.
 
@@ -141,6 +142,49 @@ export interface ReportReference {
   rows: ReportRow[]
 }
 
+export interface Coordinator {
+  role: string
+  owner: string | null
+  generation: string | null
+  lease_ttl_s: number
+  ttl_left_s: number | null
+  registered: { garage_id: string; generation: string; owner: string | null; at: string }[]
+}
+
+export interface Tariff {
+  garage_id: string
+  name: string
+  minor_per_hour: number
+  currency: string
+  generation: string
+  owner: string | null
+  updated_at: string
+  registered: { generation: string; owner: string | null }
+}
+
+export type HistoryReason = 'accepted' | 'unfenced' | 'stale' | 'unregistered' | 'registered'
+
+export interface HistoryRow {
+  id: string
+  garage_id: string
+  minor_per_hour: number | null
+  owner: string
+  generation: string
+  accepted: boolean
+  reason: HistoryReason
+  created_at: string
+}
+
+export interface HistoryCheck {
+  ok: boolean
+  garage_id: string | null
+  garages_checked: number
+  writes: number
+  rejected: number
+  registrations: number
+  violations: ({ kind: 'stale-accepted' | 'tariff-mismatch'; garage_id: string } & Record<string, unknown>)[]
+}
+
 async function request<T>(path: string, init: RequestInit = {}): Promise<{ body: T; headers: Headers }> {
   const headers = new Headers(init.headers)
   headers.set('Authorization', `Bearer ${DPC_TOKEN}`)
@@ -206,6 +250,20 @@ export const dpc = {
   report: () => request<Report>('/v1/reports/main').then((r) => r.body),
 
   reportReference: () => request<ReportReference>('/v1/reports/main/reference').then((r) => r.body),
+
+  coordinator: () => request<Coordinator>('/v1/coordinator').then((r) => r.body),
+
+  tariffs: () => request<{ items: Tariff[] }>('/v1/tariff').then((r) => r.body.items),
+
+  history: (limit = 20, garageId?: string) =>
+    request<{ items: HistoryRow[] }>(
+      `/v1/history?limit=${limit}${garageId ? `&garage_id=${encodeURIComponent(garageId)}` : ''}`,
+    ).then((r) => r.body.items),
+
+  historyCheck: (garageId?: string) =>
+    request<HistoryCheck>(`/v1/history/check${garageId ? `?garage_id=${encodeURIComponent(garageId)}` : ''}`).then(
+      (r) => r.body,
+    ),
 
   garage: (garageId: string) => request<GarageState>(`/v1/garage/${encodeURIComponent(garageId)}`).then((r) => r.body),
 }

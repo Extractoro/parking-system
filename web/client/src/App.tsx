@@ -5,6 +5,7 @@ import BarrierPage from './BarrierPage'
 import BookingPage from './BookingPage'
 import BookingsPage from './BookingsPage'
 import ComputePage from './ComputePage'
+import CoordinatorPage from './CoordinatorPage'
 import ReportPage from './ReportPage'
 import { Header } from './components'
 import ErrorBoundary from './ErrorBoundary'
@@ -14,7 +15,7 @@ import type { View } from './shared'
 import { useNotifications } from './useNotifications'
 import { useUrlState } from './useUrlState'
 
-const VIEWS: View[] = ['book', 'bookings', 'access', 'barrier', 'compute', 'report']
+const VIEWS: View[] = ['book', 'bookings', 'access', 'barrier', 'compute', 'report', 'coordinator']
 
 export default function App() {
   const [params, setParams] = useUrlState()
@@ -71,6 +72,8 @@ export default function App() {
           <ComputePage />
         ) : view === 'report' ? (
           <ReportPage />
+        ) : view === 'coordinator' ? (
+          <CoordinatorPage />
         ) : view === 'barrier' ? (
           <BarrierPage params={params} setParams={setParams} />
         ) : needsLogin && !user ? (
