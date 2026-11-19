@@ -1,0 +1,165 @@
+{
+  "repeats": 5,
+  "poll_s": 0.02,
+  "runs": [
+    {
+      "action": "stop",
+      "old": "coordinator-a",
+      "old_generation": 90,
+      "new": "coordinator-b",
+      "new_generation": 92,
+      "command_s": 0.98,
+      "to_role_acquired_s": 0.651,
+      "to_registered_s": 0.653,
+      "log_role_acquired_s": 0.579,
+      "log_generation_registered_s": 0.596,
+      "old_owner_log": [
+        "role.lost (stopping)",
+        "role.released"
+      ]
+    },
+    {
+      "action": "stop",
+      "old": "coordinator-b",
+      "old_generation": 92,
+      "new": "coordinator-a",
+      "new_generation": 94,
+      "command_s": 1.411,
+      "to_role_acquired_s": 0.981,
+      "to_registered_s": 0.985,
+      "log_role_acquired_s": 0.94,
+      "log_generation_registered_s": 0.97,
+      "old_owner_log": [
+        "role.lost (stopping)",
+        "role.released"
+      ]
+    },
+    {
+      "action": "stop",
+      "old": "coordinator-a",
+      "old_generation": 94,
+      "new": "coordinator-b",
+      "new_generation": 96,
+      "command_s": 1.159,
+      "to_role_acquired_s": 0.762,
+      "to_registered_s": 0.766,
+      "log_role_acquired_s": 0.719,
+      "log_generation_registered_s": 0.758,
+      "old_owner_log": [
+        "role.lost (stopping)",
+        "role.released"
+      ]
+    },
+    {
+      "action": "stop",
+      "old": "coordinator-b",
+      "old_generation": 96,
+      "new": "coordinator-a",
+      "new_generation": 98,
+      "command_s": 1.775,
+      "to_role_acquired_s": 1.183,
+      "to_registered_s": 1.189,
+      "log_role_acquired_s": 1.169,
+      "log_generation_registered_s": 1.201,
+      "old_owner_log": [
+        "role.lost (stopping)",
+        "role.released"
+      ]
+    },
+    {
+      "action": "stop",
+      "old": "coordinator-a",
+      "old_generation": 98,
+      "new": "coordinator-b",
+      "new_generation": 100,
+      "command_s": 1.661,
+      "to_role_acquired_s": 1.129,
+      "to_registered_s": 1.133,
+      "log_role_acquired_s": 1.082,
+      "log_generation_registered_s": 1.135,
+      "old_owner_log": [
+        "role.lost (stopping)",
+        "role.released"
+      ]
+    },
+    {
+      "action": "kill",
+      "old": "coordinator-b",
+      "old_generation": 100,
+      "new": "coordinator-a",
+      "new_generation": 102,
+      "command_s": 1.468,
+      "to_role_acquired_s": 5.539,
+      "to_registered_s": 5.541,
+      "log_role_acquired_s": 5.497,
+      "log_generation_registered_s": 5.512,
+      "old_owner_log": []
+    },
+    {
+      "action": "kill",
+      "old": "coordinator-a",
+      "old_generation": 102,
+      "new": "coordinator-b",
+      "new_generation": 104,
+      "command_s": 0.767,
+      "to_role_acquired_s": 4.49,
+      "to_registered_s": 4.493,
+      "log_role_acquired_s": 4.47,
+      "log_generation_registered_s": 4.485,
+      "old_owner_log": []
+    },
+    {
+      "action": "kill",
+      "old": "coordinator-b",
+      "old_generation": 104,
+      "new": "coordinator-a",
+      "new_generation": 106,
+      "command_s": 0.846,
+      "to_role_acquired_s": 5.033,
+      "to_registered_s": 5.036,
+      "log_role_acquired_s": 4.991,
+      "log_generation_registered_s": 5.001,
+      "old_owner_log": []
+    },
+    {
+      "action": "kill",
+      "old": "coordinator-a",
+      "old_generation": 106,
+      "new": "coordinator-b",
+      "new_generation": 108,
+      "command_s": 0.807,
+      "to_role_acquired_s": 5.625,
+      "to_registered_s": 5.627,
+      "log_role_acquired_s": 5.572,
+      "log_generation_registered_s": 5.59,
+      "old_owner_log": []
+    },
+    {
+      "action": "kill",
+      "old": "coordinator-b",
+      "old_generation": 108,
+      "new": "coordinator-a",
+      "new_generation": 110,
+      "command_s": 0.748,
+      "to_role_acquired_s": 5.513,
+      "to_registered_s": 5.515,
+      "log_role_acquired_s": 5.479,
+      "log_generation_registered_s": 5.499,
+      "old_owner_log": []
+    }
+  ],
+  "median": {
+    "stop": {
+      "to_role_acquired_s": 0.981,
+      "to_registered_s": 0.985,
+      "log_role_acquired_s": 0.94,
+      "command_s": 1.411
+    },
+    "kill": {
+      "to_role_acquired_s": 5.513,
+      "to_registered_s": 5.515,
+      "log_role_acquired_s": 5.479,
+      "command_s": 0.807
+    }
+  }
+}

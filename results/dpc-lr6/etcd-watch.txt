@@ -1,0 +1,5 @@
+# MSYS_NO_PATHCONV=1 python dpc/tools/etcd_watch.py /roles/tariff-manager --every 0.1
+# during: docker compose stop coordinator-a; start; docker compose kill coordinator-b (~10 s later); start
+13:54:09.789  owner coordinator-a  create_revision 110  lease 7587899013199810600  ttl 4
+13:54:14.359  owner coordinator-b  create_revision 112  lease 7587899013199811122  ttl 4
+13:54:31.707  owner coordinator-a  create_revision 114  lease 7587899013199811290  ttl 4

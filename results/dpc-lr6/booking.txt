@@ -1,0 +1,6 @@
+Web copies the tariff set by the DPC manager into a booking (garage center, 2 hours)
+  DPC GET /v1/tariff before: 5800 (owner coordinator-a, generation 114); Web GET /v1/garages: 5800
+  POST /v1/bookings -> 201: tariff_minor_per_hour 5800, price_minor 11600, hours 2
+  DPC GET /v1/tariff after: 5800
+  booking tariff = DPC tariff at booking time, price = tariff * hours: True
+  cancelled: 200 cancelled

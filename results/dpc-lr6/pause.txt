@@ -1,0 +1,22 @@
+O6.3: pause of the owner coordinator-a for 9 s (LEASE_TTL_S=5), FENCING=on, garages mall,center
+  coordinator-a owns the role, generation 70; WRITE_GAP_MS=2000; history after id 918
+  paused coordinator-a (1.74 s for the command); sleep 9
+  unpaused; during the pause the role was held by coordinator-b, generation 72
+  coordinator-a after the pause:
+    11:49:42.434  role.lost  {"generation": "70", "reason": "lease-expired"}
+    11:49:42.437  tariff.write  {"garage_id": "mall", "minor_per_hour": 3100, "generation": "70", "accepted": false, "reason": "stale", "registered": "72"}
+    11:49:42.453  role.waiting  {"role": "/roles/tariff-manager", "revision": 72}
+  coordinator-b:
+    11:49:36.702  role.acquired  {"generation": "72", "lease_ttl_s": 5}
+    11:49:36.708  generation.registered  {"garage_id": "mall", "generation": "72"}
+    11:49:36.716  generation.registered  {"garage_id": "center", "generation": "72"}
+  tariff_history of mall after the mark (id, owner, generation, tariff, accepted, reason):
+       919  11:49:25.928  coordinator-a  gen 70  3100  True  accepted
+       921  11:49:36.704  coordinator-b  gen 72  None  True  registered
+       923  11:49:36.722  coordinator-b  gen 72  3000  True  accepted
+       925  11:49:39.766  coordinator-b  gen 72  3000  True  accepted
+       927  11:49:42.431  coordinator-a  gen 70  3100  False  stale
+       928  11:49:42.840  coordinator-b  gen 72  3000  True  accepted
+       930  11:49:45.866  coordinator-b  gen 72  3000  True  accepted
+  /v1/history/check?garage_id=mall: ok=True writes=427 rejected=4 registrations=25 violations=[]
+  /v1/history/check (all garages): ok=True writes=848 rejected=4

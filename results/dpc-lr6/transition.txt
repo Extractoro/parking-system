@@ -1,0 +1,19 @@
+O6.1: role transition, LEASE_TTL_S=5, renew every 1.5 s, poll 20 ms, 5 repeats
+from: the command docker compose stop|kill <owner> is started (host monotonic clock)
+to:   role key holds the other coordinator (= its role.acquired); fence of mall holds its generation
+
+stop:
+  stop coordinator-a gen 90 -> coordinator-b gen 92: role.acquired +0.651 s (log 0.579), registered +0.653 s (log 0.596), command 0.98 s; old: ['role.lost (stopping)', 'role.released']
+  stop coordinator-b gen 92 -> coordinator-a gen 94: role.acquired +0.981 s (log 0.94), registered +0.985 s (log 0.97), command 1.411 s; old: ['role.lost (stopping)', 'role.released']
+  stop coordinator-a gen 94 -> coordinator-b gen 96: role.acquired +0.762 s (log 0.719), registered +0.766 s (log 0.758), command 1.159 s; old: ['role.lost (stopping)', 'role.released']
+  stop coordinator-b gen 96 -> coordinator-a gen 98: role.acquired +1.183 s (log 1.169), registered +1.189 s (log 1.201), command 1.775 s; old: ['role.lost (stopping)', 'role.released']
+  stop coordinator-a gen 98 -> coordinator-b gen 100: role.acquired +1.129 s (log 1.082), registered +1.133 s (log 1.135), command 1.661 s; old: ['role.lost (stopping)', 'role.released']
+  median: role.acquired 0.981 s, registered 0.985 s, log role.acquired 0.94 s, command 1.411 s
+
+kill:
+  kill coordinator-b gen 100 -> coordinator-a gen 102: role.acquired +5.539 s (log 5.497), registered +5.541 s (log 5.512), command 1.468 s; old: []
+  kill coordinator-a gen 102 -> coordinator-b gen 104: role.acquired +4.49 s (log 4.47), registered +4.493 s (log 4.485), command 0.767 s; old: []
+  kill coordinator-b gen 104 -> coordinator-a gen 106: role.acquired +5.033 s (log 4.991), registered +5.036 s (log 5.001), command 0.846 s; old: []
+  kill coordinator-a gen 106 -> coordinator-b gen 108: role.acquired +5.625 s (log 5.572), registered +5.627 s (log 5.59), command 0.807 s; old: []
+  kill coordinator-b gen 108 -> coordinator-a gen 110: role.acquired +5.513 s (log 5.479), registered +5.515 s (log 5.499), command 0.748 s; old: []
+  median: role.acquired 5.513 s, registered 5.515 s, log role.acquired 5.479 s, command 0.807 s

@@ -1,0 +1,22 @@
+Without protection: FENCING=off (only dpc-race skips the check), TARIFF_GARAGES=dpc-race, dpc-race 2 of 5 spots, base 2750: A rounds 3850 up to 3900, B down to 3800
+  coordinator-a owns the role, generation 86; WRITE_GAP_MS=2000; history after id 969
+  paused coordinator-a (0.68 s for the command); sleep 9
+  unpaused; during the pause the role was held by coordinator-b, generation 88
+  coordinator-a after the pause:
+    11:50:53.114  role.lost  {"generation": "86", "reason": "lease-expired"}
+    11:50:53.128  tariff.write  {"garage_id": "dpc-race", "minor_per_hour": 3900, "generation": "86", "accepted": true}
+    11:50:56.143  role.waiting  {"role": "/roles/tariff-manager", "revision": 88}
+  coordinator-b:
+    11:50:47.699  role.acquired  {"generation": "88", "lease_ttl_s": 5}
+    11:50:47.709  generation.registered  {"garage_id": "dpc-race", "generation": "88"}
+  tariff_history of dpc-race after the mark (id, owner, generation, tariff, accepted, reason):
+       970  11:50:39.746  coordinator-a  gen 86  3900  True  unfenced
+       971  11:50:47.702  coordinator-b  gen 88  None  True  registered
+       972  11:50:47.721  coordinator-b  gen 88  3800  True  unfenced
+       973  11:50:50.750  coordinator-b  gen 88  3800  True  unfenced
+       974  11:50:53.112  coordinator-a  gen 86  3900  True  unfenced
+       975  11:50:53.775  coordinator-b  gen 88  3800  True  unfenced
+       976  11:50:56.787  coordinator-b  gen 88  3800  True  unfenced
+  /v1/history/check?garage_id=dpc-race: ok=False writes=7 rejected=0 registrations=3 violations=[{"kind": "stale-accepted", "id": "974", "garage_id": "dpc-race", "minor_per_hour": 3900, "owner": "coordinator-a", "generation": "86", "reason": "unfenced", "registered": "88", "created_at": "2026-11-19T11:50:53.112975+00:00"}]
+  accepted writes (owner, tariff): [('coordinator-a', 3900), ('coordinator-b', 3800)]
+restored: FENCING=on, coordinators on mall,center; owner coordinator-a, generation 90; dpc-race cleaned

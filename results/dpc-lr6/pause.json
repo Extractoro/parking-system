@@ -1,0 +1,196 @@
+{
+  "gap_ms": 2000,
+  "garage": "mall",
+  "generation_a": 70,
+  "paused_at": "2026-11-19T11:49:32.718696+00:00",
+  "owner_during_pause": "coordinator-b",
+  "generation_during_pause": 72,
+  "coordinator_a": [
+    {
+      "time": "2026-11-19T11:49:25.933+00:00",
+      "instance": "coordinator-a",
+      "event": "tariff.write",
+      "garage_id": "mall",
+      "minor_per_hour": 3100,
+      "generation": "70",
+      "accepted": true
+    },
+    {
+      "time": "2026-11-19T11:49:27.961+00:00",
+      "instance": "coordinator-a",
+      "event": "tariff.write",
+      "garage_id": "center",
+      "minor_per_hour": 5800,
+      "generation": "70",
+      "accepted": true
+    },
+    {
+      "time": "2026-11-19T11:49:42.434+00:00",
+      "instance": "coordinator-a",
+      "event": "role.lost",
+      "generation": "70",
+      "reason": "lease-expired"
+    },
+    {
+      "time": "2026-11-19T11:49:42.437+00:00",
+      "instance": "coordinator-a",
+      "event": "tariff.write",
+      "garage_id": "mall",
+      "minor_per_hour": 3100,
+      "generation": "70",
+      "accepted": false,
+      "reason": "stale",
+      "registered": "72"
+    },
+    {
+      "time": "2026-11-19T11:49:42.453+00:00",
+      "instance": "coordinator-a",
+      "event": "role.waiting",
+      "role": "/roles/tariff-manager",
+      "revision": 72
+    }
+  ],
+  "coordinator_b": [
+    {
+      "time": "2026-11-19T11:49:36.702+00:00",
+      "instance": "coordinator-b",
+      "event": "role.acquired",
+      "role": "/roles/tariff-manager",
+      "generation": "72",
+      "lease": "7587899013199809315",
+      "lease_ttl_s": 5
+    },
+    {
+      "time": "2026-11-19T11:49:36.708+00:00",
+      "instance": "coordinator-b",
+      "event": "generation.registered",
+      "garage_id": "mall",
+      "generation": "72"
+    },
+    {
+      "time": "2026-11-19T11:49:36.716+00:00",
+      "instance": "coordinator-b",
+      "event": "generation.registered",
+      "garage_id": "center",
+      "generation": "72"
+    }
+  ],
+  "history": [
+    {
+      "id": 919,
+      "garage_id": "mall",
+      "minor_per_hour": 3100,
+      "owner": "coordinator-a",
+      "generation": 70,
+      "accepted": true,
+      "reason": "accepted",
+      "created_at": "2026-11-19 11:49:25.928129+00:00"
+    },
+    {
+      "id": 921,
+      "garage_id": "mall",
+      "minor_per_hour": null,
+      "owner": "coordinator-b",
+      "generation": 72,
+      "accepted": true,
+      "reason": "registered",
+      "created_at": "2026-11-19 11:49:36.704331+00:00"
+    },
+    {
+      "id": 923,
+      "garage_id": "mall",
+      "minor_per_hour": 3000,
+      "owner": "coordinator-b",
+      "generation": 72,
+      "accepted": true,
+      "reason": "accepted",
+      "created_at": "2026-11-19 11:49:36.722961+00:00"
+    },
+    {
+      "id": 925,
+      "garage_id": "mall",
+      "minor_per_hour": 3000,
+      "owner": "coordinator-b",
+      "generation": 72,
+      "accepted": true,
+      "reason": "accepted",
+      "created_at": "2026-11-19 11:49:39.766219+00:00"
+    },
+    {
+      "id": 927,
+      "garage_id": "mall",
+      "minor_per_hour": 3100,
+      "owner": "coordinator-a",
+      "generation": 70,
+      "accepted": false,
+      "reason": "stale",
+      "created_at": "2026-11-19 11:49:42.431896+00:00"
+    },
+    {
+      "id": 928,
+      "garage_id": "mall",
+      "minor_per_hour": 3000,
+      "owner": "coordinator-b",
+      "generation": 72,
+      "accepted": true,
+      "reason": "accepted",
+      "created_at": "2026-11-19 11:49:42.840034+00:00"
+    },
+    {
+      "id": 930,
+      "garage_id": "mall",
+      "minor_per_hour": 3000,
+      "owner": "coordinator-b",
+      "generation": 72,
+      "accepted": true,
+      "reason": "accepted",
+      "created_at": "2026-11-19 11:49:45.866380+00:00"
+    }
+  ],
+  "check": {
+    "ok": true,
+    "garage_id": "mall",
+    "garages_checked": 1,
+    "writes": 427,
+    "rejected": 4,
+    "registrations": 25,
+    "violations": []
+  },
+  "tariff": [
+    {
+      "garage_id": "center",
+      "name": "City Centre",
+      "minor_per_hour": 5800,
+      "currency": "UAH",
+      "generation": "72",
+      "owner": "coordinator-b",
+      "updated_at": "2026-11-19T11:49:45.879475+00:00",
+      "registered": {
+        "generation": "72",
+        "owner": "coordinator-b"
+      }
+    },
+    {
+      "garage_id": "mall",
+      "name": "South Mall",
+      "minor_per_hour": 3000,
+      "currency": "UAH",
+      "generation": "72",
+      "owner": "coordinator-b",
+      "updated_at": "2026-11-19T11:49:45.866380+00:00",
+      "registered": {
+        "generation": "72",
+        "owner": "coordinator-b"
+      }
+    }
+  ],
+  "check_all": {
+    "ok": true,
+    "garage_id": null,
+    "garages_checked": 2,
+    "writes": 848,
+    "rejected": 4,
+    "registrations": 50,
+    "violations": []
+  }
+}
