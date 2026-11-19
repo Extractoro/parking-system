@@ -71,6 +71,8 @@ x-api: &api
     RECEIVER_DELAY_MS: ${RECEIVER_DELAY_MS:-0}
     RECEIVER_URL: http://api:8000
     FENCING: ${FENCING:-on}
+    ROLE_KEY: /roles/tariff-manager
+    LEASE_TTL_S: ${LEASE_TTL_S:-5}
     FAULTS: "on"
   volumes:
     - data:/data
@@ -123,6 +125,10 @@ x-coordinator: &coordinator
     API_URL: http://api:8000
     API_TOKEN: ${API_TOKEN:-dev-token}
     LEASE_TTL_S: ${LEASE_TTL_S:-5}
+    ROLE_KEY: /roles/tariff-manager
+    RENEW_EVERY_S: ${RENEW_EVERY_S:-1.5}
+    TARIFF_EVERY_S: ${TARIFF_EVERY_S:-3}
+    TARIFF_GARAGES: ${TARIFF_GARAGES:-mall,center}
     FAULTS: "on"
   volumes:
     - faults:/faults
@@ -545,16 +551,24 @@ services:
       - "--data-dir=/etcd-data"
     ports:
       - "${ETCD_PORT:-2379}:2379"
+    # revisions of etcd are the generations of lab 6: they must not start again from 1 after a recreate,
+    # or a new owner gets a generation below the one registered on the resource (decision P41)
+    volumes:
+      - etcddata:/etcd-data
   coordinator-a:
     <<: *coordinator
     environment:
       <<: *coordinator-env
       INSTANCE: coordinator-a
+      ROUNDING: up
+      WRITE_GAP_MS: ${WRITE_GAP_MS_A:-0}
   coordinator-b:
     <<: *coordinator
     environment:
       <<: *coordinator-env
       INSTANCE: coordinator-b
+      ROUNDING: down
+      WRITE_GAP_MS: ${WRITE_GAP_MS_B:-0}
 
   # ===========================================================================================
   # Profile "observability": shared by both parts
@@ -602,6 +616,7 @@ services:
 
 volumes:
   pgdata:
+  etcddata:
   faults:
   simdata:
   data:

@@ -18,7 +18,7 @@ since we read it (keys and values in base64):
     reply["succeeded"]   # False - someone was first; the failure branch returned the current value
 
 Other targets of compare: "CREATE" (create_revision, 0 - the key does not exist), "VALUE", "LEASE".
-Taking the role, the generation and fencing on the resource are yours (O6.1-O6.3).
+Taking the role and the generation: main.py; the check of the generation: the resource (dpc/api/app/tariff.py).
 """
 
 import base64
@@ -83,11 +83,14 @@ class Etcd:
     def delete(self, key: str) -> None:
         self.call("/v3/kv/deleterange", {"key": b64(key)})
 
-    def watch(self, key: str, timeout_s: float = 3600) -> Iterator[dict[str, Any]]:
-        """Yields events of the key: {"type": "PUT" | "DELETE", "value": ..., "create_revision": ...}."""
+    def watch(self, key: str, timeout_s: float = 3600, start_revision: int | None = None) -> Iterator[dict[str, Any]]:
+        """Yields events of the key: {"type": "PUT" | "DELETE", "value": ..., "create_revision": ...}.
+        start_revision: also the events since this revision (none is missed between a read and the watch);
+        timeout_s: a silent stream raises TimeoutError (an OSError) after this many seconds."""
+        create = {"key": b64(key), **({"start_revision": str(start_revision)} if start_revision else {})}
         request = urllib.request.Request(
             self.url + "/v3/watch",
-            data=json.dumps({"create_request": {"key": b64(key)}}).encode(),
+            data=json.dumps({"create_request": create}).encode(),
             headers={"Content-Type": "application/json"},
         )
         with urllib.request.urlopen(request, timeout=timeout_s) as stream:
