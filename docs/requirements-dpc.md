@@ -77,10 +77,10 @@
 
 | Lab | ID | Ядро/О/Д | Описание | Компонент | Файлы | Тесты | Evidence | Status |
 |---|---|---|---|---|---|---|---|---|
-| ЛР6 | О6.1 | Ядро | Отримання ролі через оренду. | — | — | — | — | not_started |
-| ЛР6 | О6.2 | Ядро | Захист ресурсу перевіркою покоління. | — | — | — | — | not_started |
-| ЛР6 | О6.3 | О | Старий власник після паузи та перевірка історії. | — | — | — | — | not_started |
-| ЛР6 | Д6.1 | Д | Перевірка лінеаризовності історії одного регістра. | — | — | — | — | not_started |
-| ЛР6 | Д6.2 | Д | Годинники Лемпорта в журналах координаторів і ресурсу. | — | — | — | — | not_started |
-| ЛР6 | Д6.3 | Д | Запис архітектурного рішення у відповідь на зміну обмеження. | — | — | — | — | not_started |
-| ЛР6 | Д6.4 | Д | Розгортання платформи на кількох вузлах (Docker Swarm або Kubernetes) і повторення дослідів ЛР3 і ЛР6 з від… | — | — | — | — | not_started |
+| ЛР6 | О6.1 | Ядро | Отримання ролі через оренду. | coordinator, api | `dpc/coordinator/main.py`, `etcd.py`, `dpc/api/app/tariff.py` (`GET /v1/coordinator`) | `test_coordinator_reports_the_owner_of_the_role` | оренда 5 с, продовження 1.5 с, покоління = create_revision; перехід після `stop` - медіана 0.98 с, після `kill` - 5.51 с, 5 + 5 повторень (`results/dpc-lr6/transition.txt`) | done |
+| ЛР6 | О6.2 | Ядро | Захист ресурсу перевіркою покоління. | api | `migrations/011_dpc_tariff_fencing.sql`, `dpc/api/app/tariff.py` (`POST /v1/tariff/generations`, `PUT /v1/tariff/{garage_id}`) | `test_only_a_larger_generation_is_registered`, `test_stale_and_unregistered_generations_are_rejected` | одна транзакція з `fence FOR UPDATE`; застаріле й незареєстроване - 409 і рядок історії (`results/dpc-lr6/pytest.txt`) | done |
+| ЛР6 | О6.3 | О | Старий власник після паузи та перевірка історії. | coordinator, api | `GET /v1/history`, `GET /v1/history/check`, `experiments/dpc_lr6.py pause\|unfenced` | `test_check_finds_violations_in_prepared_history` | пауза A 9 с: B - покоління 72, запис A (70) відхилено `stale`, check ok; без захисту на `dpc-race`: 3900 і 3800, check ok = false (`results/dpc-lr6/pause.txt`, `unfenced.txt`) | done |
+| ЛР6 | Д6.1 | Д | Перевірка лінеаризовності історії одного регістра. | — | — | — | — | skipped |
+| ЛР6 | Д6.2 | Д | Годинники Лемпорта в журналах координаторів і ресурсу. | — | — | — | — | skipped |
+| ЛР6 | Д6.3 | Д | Запис архітектурного рішення у відповідь на зміну обмеження. | — | — | — | — | skipped |
+| ЛР6 | Д6.4 | Д | Розгортання платформи на кількох вузлах (Docker Swarm або Kubernetes) і повторення дослідів ЛР3 і ЛР6 з від… | — | — | — | — | skipped |

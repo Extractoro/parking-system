@@ -20,7 +20,7 @@ web:
 dpc:
   openapi: dpc/openapi.yaml
   base: http://localhost:8000
-  items: [О1.5, Д1.4, О2.2, О3.2, О4.1, О4.4, О4.5, Д4.3, О5.1, О5.3]
+  items: [О1.5, Д1.4, О2.2, О3.2, О4.1, О4.4, О4.5, Д4.3, О5.1, О5.3, О6.3]
   resource: {path: /v1/garage/center, ok_field: invariant_ok}
   metrics: [queue_length, in_flight, rejected]
   # lab 2: relative tolerance (O2.2: rounding <= 1e-13 at bench_n, method error < 1e-13 for n >= 1e4),
@@ -35,6 +35,12 @@ dpc:
   # /v1/panel/batch (the same JSONL without Spark); events: docker compose run --rm --entrypoint sh generator
   # /tools/generator/events_c09.sh, then uv run experiments/dpc_lr5.py main (normal.jsonl -> barrier-events)
   panel: {field: windows, keys: [garage_id, window_start], ignore_fields: [batch_id, written_at]}
+  # lab 6: the role /roles/tariff-manager in etcd holds the name of the coordinator (= its service); lease TTL 5 s,
+  # renewed every 1.5 s; GET /v1/history/check -> ok (no accepted write of an older generation after a newer one was
+  # registered for the same garage; the tariff = the last accepted write). Pause: docker compose pause coordinator-a
+  coordinators: {coordinator-a: coordinator-a, coordinator-b: coordinator-b}
+  lease_ttl_s: 5
+  history: {check: /v1/history/check, ok_field: ok}
   # services: {api: dpc-api}
 
 # Joint scenario (web -> dpc -> web): filled in at stage 13. Template placeholder, not used yet.

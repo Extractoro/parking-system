@@ -3,7 +3,8 @@
 # Service routes are those of dpc/openapi.example.yaml. x-course marks: receiver, request-state,
 # resource-state. "{uuid}" in an example becomes a new id in every request.
 # Lab 2: /v1/compute (the parallel integral). Lab 4: /v1/reports/main (Spark report and reference).
-# Lab 5: /v1/panel (finalized windows of the streaming job) and /v1/panel/batch. Routes of lab 6 - in lab 6.
+# Lab 5: /v1/panel (finalized windows of the streaming job) and /v1/panel/batch.
+# Lab 6: /v1/tariff (the protected write of the tariff manager), /v1/coordinator, /v1/history, /v1/history/check.
 openapi: 3.1.0
 info:
   title: C09 «Паркінги» — DPC, в'їзди й виїзди
@@ -613,8 +614,235 @@ paths:
         "404":
           $ref: "#/components/responses/NotFound"
 
+  /v1/tariff/generations:
+    post:
+      operationId: registerGeneration
+      summary: Реєстрація покоління менеджера тарифу на ресурсі (О6.2)
+      description: |
+        Новий власник ролі `/roles/tariff-manager` реєструє своє покоління (create_revision ключа ролі в etcd) для
+        тарифу кожного паркінгу, яким керує. Одна транзакція: `SELECT ... FROM fence WHERE resource =
+        'tariff/<garage_id>' FOR UPDATE`; покоління більше за зареєстроване - записати в `fence` і в історію
+        (`reason: registered`); те саме покоління того самого власника - 200 `repeated: true` (повтор після
+        втраченої відповіді); інакше 409 `generation-not-newer`. 404 - у паркінгу немає тарифу.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/Registration"
+            example:
+              garage_id: mall
+              owner: coordinator-b
+              generation: 14
+      responses:
+        "200":
+          description: Покоління зареєстровано
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/RegistrationResult"
+              example:
+                garage_id: mall
+                owner: coordinator-b
+                generation: "14"
+                registered: true
+                repeated: false
+                previous_generation: "12"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "409":
+          $ref: "#/components/responses/GenerationRefused"
+
+  /v1/tariff/{garage_id}:
+    put:
+      operationId: writeTariff
+      summary: Захищений запис поточного тарифу паркінгу (О6.2, О6.3)
+      description: |
+        Одна транзакція: блокування рядка `fence` паркінгу (`FOR UPDATE`), порівняння покоління із зареєстрованим,
+        `UPDATE tariff` і рядок `tariff_history`. Покоління дорівнює зареєстрованому - запис прийнято
+        (`reason: accepted`). Менше - 409 `stale-generation` (старий власник, наприклад після паузи), більше -
+        409 `unregistered-generation`; відхилений запис теж лишається в історії (`accepted: false`). Перевірку
+        виконує ресурс, а не координатор. `FENCING=off` пропускає порівняння (`reason: unfenced`) лише для
+        тестового паркінгу `dpc-race` (дослід без захисту); інші паркінги перевіряються завжди.
+      parameters:
+        - name: garage_id
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/TariffWrite"
+            example:
+              minor_per_hour: 3100
+              owner: coordinator-a
+              generation: 12
+      responses:
+        "200":
+          description: Запис прийнято
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/TariffWriteResult"
+              example:
+                garage_id: mall
+                minor_per_hour: 3100
+                owner: coordinator-a
+                generation: "12"
+                accepted: true
+                reason: accepted
+                history_id: "28"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "409":
+          $ref: "#/components/responses/GenerationRefused"
+
+  /v1/tariff:
+    get:
+      operationId: listTariffs
+      summary: Поточні тарифи з поколінням і власником запису
+      description: |
+        Тарифи паркінгів (без тестових `t-*`) із поколінням і власником прийнятого запису, що встановив значення,
+        та зареєстрованим поколінням `fence`. Web читає ту саму таблицю `tariff` і копіює значення в бронювання.
+      responses:
+        "200":
+          description: Тарифи
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Tariffs"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+
+  /v1/coordinator:
+    get:
+      operationId: getCoordinator
+      summary: Власник ролі менеджера тарифу та покоління (О6.1)
+      description: |
+        Читання ключа `/roles/tariff-manager` в etcd: `owner` - значення ключа (ім'я координатора), `generation` -
+        його create_revision, `lease_ttl_s` - строк оренди, `ttl_left_s` - залишок. `owner: null` - роль нікому не
+        належить. `registered` - зареєстровані на ресурсі покоління паркінгів. 503 `etcd-unavailable` - etcd не
+        відповідає.
+      responses:
+        "200":
+          description: Власник і покоління
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Coordinator"
+              example:
+                role: /roles/tariff-manager
+                owner: coordinator-b
+                generation: "14"
+                lease: "7587899013199807571"
+                lease_ttl_s: 5
+                ttl_left_s: 4
+                etcd_revision: "14"
+                registered:
+                  - garage_id: mall
+                    generation: "14"
+                    owner: coordinator-b
+                    at: "2026-11-19T09:57:19.413+00:00"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "503":
+          description: etcd недоступний
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/Problem"
+
+  /v1/history:
+    get:
+      operationId: getHistory
+      summary: Історія операцій захищеного ресурсу тарифу (О6.3)
+      description: |
+        Рядки `tariff_history`, нові першими: реєстрації поколінь (`registered`), прийняті записи (`accepted`,
+        `unfenced`) і відхилені (`stale`, `unregistered`). У межах паркінгу порядок `id` - порядок блокування
+        `fence`.
+      parameters:
+        - name: limit
+          in: query
+          required: false
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 1000
+            default: 50
+        - $ref: "#/components/parameters/HistoryGarage"
+      responses:
+        "200":
+          description: Історія
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/History"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+
+  /v1/history/check:
+    get:
+      operationId: checkHistory
+      summary: Перевірка історії й інваріанта тарифу (О6.3)
+      description: |
+        Одна команда перевіряє всю історію (або одного паркінгу) в одному знімку: `stale-accepted` - прийнятий
+        запис покоління, меншого за покоління, зареєстроване для того самого паркінгу раніше (за `id`);
+        `tariff-mismatch` - поточний тариф не дорівнює значенню, поколінню й власнику останнього прийнятого
+        запису. `ok` - порушень немає.
+      parameters:
+        - $ref: "#/components/parameters/HistoryGarage"
+      responses:
+        "200":
+          description: Результат перевірки
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/HistoryCheck"
+              example:
+                ok: false
+                garage_id: dpc-race
+                garages_checked: 1
+                writes: 7
+                rejected: 0
+                registrations: 2
+                violations:
+                  - kind: stale-accepted
+                    id: "512"
+                    garage_id: dpc-race
+                    minor_per_hour: 3900
+                    owner: coordinator-a
+                    generation: "40"
+                    reason: unfenced
+                    registered: "42"
+                    created_at: "2026-11-19T10:20:31.204+00:00"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+
 components:
   parameters:
+    HistoryGarage:
+      name: garage_id
+      in: query
+      required: false
+      description: лише операції одного паркінгу
+      schema:
+        type: string
+        maxLength: 64
     PanelRun:
       name: run
       in: query
@@ -1134,7 +1362,204 @@ components:
         finished_at:
           type: [string, "null"]
           format: date-time
+    Registration:
+      type: object
+      additionalProperties: false
+      required: [garage_id, owner, generation]
+      properties:
+        garage_id:
+          type: string
+        owner:
+          type: string
+          pattern: "^[A-Za-z0-9_.-]+$"
+          maxLength: 64
+        generation:
+          type: integer
+          minimum: 1
+          description: create_revision ключа ролі в etcd
+    RegistrationResult:
+      type: object
+      required: [garage_id, owner, generation, registered, repeated]
+      properties:
+        garage_id:
+          type: string
+        owner:
+          type: string
+        generation:
+          type: string
+        registered:
+          type: boolean
+        repeated:
+          type: boolean
+        previous_generation:
+          type: string
+    TariffWrite:
+      type: object
+      additionalProperties: false
+      required: [minor_per_hour, owner, generation]
+      properties:
+        minor_per_hour:
+          type: integer
+          minimum: 1
+          maximum: 10000000
+          description: тариф у копійках за годину
+        owner:
+          type: string
+          pattern: "^[A-Za-z0-9_.-]+$"
+          maxLength: 64
+        generation:
+          type: integer
+          minimum: 1
+    TariffWriteResult:
+      type: object
+      required: [garage_id, minor_per_hour, owner, generation, accepted, reason, history_id]
+      properties:
+        garage_id:
+          type: string
+        minor_per_hour:
+          type: integer
+        owner:
+          type: string
+        generation:
+          type: string
+        accepted:
+          type: boolean
+        reason:
+          type: string
+          enum: [accepted, unfenced]
+        history_id:
+          type: string
+    Tariffs:
+      type: object
+      required: [items]
+      properties:
+        items:
+          type: array
+          items:
+            type: object
+            required: [garage_id, name, minor_per_hour, currency, generation, owner, updated_at, registered]
+            properties:
+              garage_id:
+                type: string
+              name:
+                type: string
+              minor_per_hour:
+                type: integer
+              currency:
+                type: string
+              generation:
+                type: string
+                description: покоління прийнятого запису (0 - тариф із сиду)
+              owner:
+                type: [string, "null"]
+              updated_at:
+                type: string
+                format: date-time
+              registered:
+                type: object
+                properties:
+                  generation:
+                    type: string
+                  owner:
+                    type: [string, "null"]
+    Coordinator:
+      type: object
+      required: [role, owner, generation, lease_ttl_s, registered]
+      properties:
+        role:
+          type: string
+        owner:
+          type: [string, "null"]
+        generation:
+          type: [string, "null"]
+          description: create_revision ключа ролі
+        lease:
+          type: string
+        lease_ttl_s:
+          type: integer
+        ttl_left_s:
+          type: [integer, "null"]
+        etcd_revision:
+          type: [string, "null"]
+        registered:
+          type: array
+          items:
+            type: object
+            properties:
+              garage_id:
+                type: string
+              generation:
+                type: string
+              owner:
+                type: [string, "null"]
+              at:
+                type: string
+                format: date-time
+    HistoryRow:
+      type: object
+      required: [id, garage_id, owner, generation, accepted, reason, created_at]
+      properties:
+        id:
+          type: string
+        garage_id:
+          type: string
+        minor_per_hour:
+          type: [integer, "null"]
+        owner:
+          type: string
+        generation:
+          type: string
+        accepted:
+          type: boolean
+        reason:
+          type: string
+          enum: [accepted, unfenced, stale, unregistered, registered]
+        created_at:
+          type: string
+          format: date-time
+    History:
+      type: object
+      required: [items]
+      properties:
+        items:
+          type: array
+          items:
+            $ref: "#/components/schemas/HistoryRow"
+    HistoryCheck:
+      type: object
+      required: [ok, garages_checked, writes, rejected, registrations, violations]
+      properties:
+        ok:
+          type: boolean
+        garage_id:
+          type: [string, "null"]
+        garages_checked:
+          type: integer
+        writes:
+          type: integer
+        rejected:
+          type: integer
+        registrations:
+          type: integer
+        violations:
+          type: array
+          items:
+            type: object
+            required: [kind, garage_id]
+            additionalProperties: true
+            properties:
+              kind:
+                type: string
+                enum: [stale-accepted, tariff-mismatch]
+              garage_id:
+                type: string
   responses:
+    GenerationRefused:
+      description: Покоління не прийнято (застаріле, незареєстроване або не більше за зареєстроване)
+      content:
+        application/problem+json:
+          schema:
+            $ref: "#/components/schemas/Problem"
     BadRequest:
       description: Некоректний запит
       content:

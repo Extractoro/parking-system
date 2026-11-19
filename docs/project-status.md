@@ -1,5 +1,27 @@
 # Стан проєкту C09 «Паркінги»
 
+## Етап 11 - DPC ЛР6: **виконано** (2026-11-19, відповідальний Вадим)
+
+Пункти: О6.1, О6.2 (ядро), О6.3. `checks.yaml` → `dpc.items += О6.3`, `dpc.coordinators`, `lease_ttl_s: 5`, `dpc.history`.
+Міграція 011 (`tariff.generation/owner`, `fence`, `tariff_history`); сервіси `etcd` (новий том `etcddata`),
+`coordinator-a`, `coordinator-b`; образи `project-dpc-api`, `project-dpc-coordinator` перезібрано. Клієнт - сторінка
+Coordinator.
+
+| Перевірка | Результат |
+|---|---|
+| `pytest dpc/api/tests` (координатори працюють) | 61 passed, 2 skipped (+6 ЛР6: реєстрація лише більшого покоління, `stale`/`unregistered` → 409, check на підготовлених даних, власник ролі, 401) |
+| `pytest web/server/tests` (регрес, тариф змінюється кожні 3 с) | 59 passed |
+| Наскрізний шлях Web ЛР4 (`web_lr4.py e2e`) | `succeeded` → `entered`, DPC `done` |
+| `npx @redocly/cli lint dpc/openapi.yaml`; `docker compose config --quiet`; `tsc -b`, `eslint` | valid, 5 давніх попереджень; CONFIG_OK; без помилок |
+| О6.1 (`dpc_lr6.py transition`, 5 + 5) | від команди до ключа з новим власником: `stop` медіана 0.98 с (0.65-1.18), `kill` 5.51 с (4.49-5.63); реєстрація +2-4 мс |
+| О6.3 (`pause`, `pause --gap-ms 0`) | B захопив роль (72 / 80), запис A зі старим поколінням (70 / 78) відхилено `stale`, A сам записав `role.lost (lease-expired)`, check ok |
+| Без захисту (`unfenced`) | `FENCING=off` на `dpc-race`: A 3900 (86) після реєстрації 88, B 3800; check ok = false; потім FENCING=on |
+| Тариф у бронюванні (`booking`) | DPC 5800 → каталог Web 5800 → бронювання 5800, ціна 11600 за 2 год |
+
+Plan Change: PC-30 (fence на паркінг і `garage_id` у реєстрації; реєстрації в історії; сид 905 не створено - тариф
+`dpc-race` створює дослід; том etcd; SIGTERM відкликає оренду, тому О6.1 - `stop` і `kill`; `WRITE_GAP_MS`; досліди -
+`dpc_lr6.py`). Нові рішення P40-P45. Не зроблено: Д6.1-Д6.4 (не вибрані); відмову etcd не досліджували.
+
 ## Етап 10 - DPC ЛР5: **виконано** (2026-11-18, відповідальний Вадим)
 
 Пункти: О5.2, О5.4, О5.5 (ядро), О5.1, О5.3. `checks.yaml` → `dpc.items += О5.1, О5.3`, `dpc.panel` (`windows`,

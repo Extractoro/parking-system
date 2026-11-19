@@ -81,6 +81,9 @@ flowchart LR
     C -->|Report| D
     D -->|POST /jobs| SR["spark-runner"] --> SW["spark-worker ×2"]
     SW & D -->|Parquet, звіт| V[("том data")]
+    CA["coordinator-a"] & CB["coordinator-b"] -->|оренда /roles/tariff-manager| E[("etcd")]
+    CA & CB -->|"PUT /v1/tariff + покоління"| D
+    C -->|Coordinator| D
 ```
 
 ### Спільний проєкт
@@ -91,13 +94,16 @@ flowchart LR
 |---|---|---|
 | каталог, `booking`, `level_hour`, користувачі, операції, outbox | Web | DPC читає `booking`, `level` у правилі в'їзду |
 | зайнятість `garage_state`, `entry_request`, `entry`, `effect` (ЛР3) | DPC | Web обчислює `entered` з `entry` |
-| `tariff` | DPC (ЛР6) | Web копіює в бронювання |
+| `tariff`, `fence`, `tariff_history` (ЛР6) | DPC: лише власник ролі менеджера тарифу через ресурс із перевіркою покоління | Web показує тариф у каталозі й копіює його в бронювання на момент створення |
 
 - **Web → DPC:** `relay` читає `entry.opened` з `domain-events` і надсилає `POST /v1/entries`
   (`event_id` = id операції, `booking_id`, `Idempotency-Key`). 202 - offset підтверджено; 429/5xx/мережа -
   повтор з паузою 1-8 с; інший 4xx остаточний.
 - **Повтори:** той самий `event_id` DPC повертає тим самим запитом; другий в'їзд за бронюванням забороняє
   `UNIQUE (booking_id) WHERE direction = 'in'`.
+- **Тариф:** ставить лише DPC (координатор-власник кожні 3 с за заповненістю, рішення B9). Web його не змінює:
+  `GET /v1/garages` читає поточний `tariff`, бронювання зберігає `tariff_minor_per_hour` і `price = тариф × години`
+  (перевірка - `results/dpc-lr6/booking.txt`: тариф DPC 5800 → бронювання 5800, ціна 11600 за 2 год).
 - **Наскрізний приклад:** бронювання → «Open barrier» → операція `succeeded` → relay → в'їзд DPC `done` →
   бронювання `entered` у клієнті (`results/web-lr4/e2e.txt`). DPC зупинено на 20 с - relay дочекався,
   в'їзд записано один раз (`dpcdown.txt`).
@@ -136,6 +142,7 @@ docker compose up -d
 | DPC ЛР1-ЛР2 | `docker compose up -d api` |
 | DPC ЛР3 | `docker compose up -d api ray-head ray-worker` |
 | DPC ЛР4 | `docker compose up -d api spark-master spark-worker-1 spark-worker-2 spark-runner`; дані - `docker compose run --rm generator` |
+| DPC ЛР6 | `docker compose up -d api etcd coordinator-a coordinator-b` |
 | DPC ЛР5 | `docker compose up -d api stream` (+ `broker`, `spark-master`, `spark-worker-*`); події - `docker compose run --rm --entrypoint sh generator /tools/generator/events_c09.sh` |
 
 Код задач Ray виконують `ray-head` і `ray-worker` з образу `api`: після зміни `dpc/api/app` -
@@ -466,9 +473,53 @@ uv run dpc/tools/jsonl_to_kafka.py normal.jsonl barrier-events --key garage_id -
 Тести - `dpc/api/tests/test_lr5.py` (межі вікон, контрольний приклад, дублі, фіналізація, повтор UPSERT,
 `/v1/panel` = `/v1/panel/batch`). Докладно: [results/dpc-lr5/README.md](results/dpc-lr5/README.md).
 
-### DPC ЛР6
+### DPC ЛР6. Координація менеджера динамічного тарифу
 
-_Заповнюється в ЛР6._
+Роль картки - менеджер динамічного тарифу; захищений запис - поточний тариф паркінгу. Два координатори
+(`dpc/coordinator`, лише стандартна бібліотека) змагаються за ключ etcd `/roles/tariff-manager`; власник кожні 3 с
+ставить тариф `base · (1 + occupied/spots)` (база `mall` 3000, `center` 4000 коп), округлений до 100 коп: A вгору,
+B вниз. Ресурс - api DPC: приймає запис лише з поточним зареєстрованим поколінням.
+
+```mermaid
+flowchart LR
+    CA["coordinator-a"] & CB["coordinator-b"] -->|"lease TTL 5 с, keepalive 1.5 с;<br>txn IF create_revision == 0 THEN PUT"| E[("etcd: /roles/tariff-manager")]
+    E -->|"create_revision = покоління"| CA
+    CA -->|"POST /v1/tariff/generations<br>PUT /v1/tariff/{id} {minor, owner, generation}"| R["api DPC: одна транзакція<br>fence FOR UPDATE → перевірка → tariff + tariff_history"]
+    R --> PG[("tariff, fence, tariff_history")]
+    W["Web: каталог, бронювання"] -->|читає| PG
+```
+
+- **Оренда й TTL.** Оренда 5 с, продовження кожні 1.5 с окремим потоком; захоплення - одна транзакція
+  `IF create_revision(key) == 0 THEN PUT key=<ім'я> lease=<id>`; без ролі - watch ключа від ревізії невдалої
+  транзакції. Втрата (keepalive повернув TTL 0, немає продовження весь TTL, або 409 від ресурсу) - запис припинено
+  одразу, `role.lost`. SIGTERM відкликає оренду.
+- **Покоління** - `create_revision` ключа ролі: ревізія etcd монотонна, на відміну від часу чи випадкового числа.
+  Дані etcd у томі `etcddata`, щоб ревізії не почалися з 1 після перестворення контейнера.
+- **Чому перевірка на ресурсі.** Координатор може вважати себе власником довше, ніж є (пауза процесу, збирання сміття,
+  мережа): між перевіркою «я власник» і записом минає час. Тому ресурс у тій самій транзакції, що й зміна, порівнює
+  покоління із зареєстрованим у `fence` (рядок на паркінг `tariff/<id>`, PC-30): рівне - прийнято; менше - 409 `stale`;
+  більше - 409 `unregistered`; відхилений запис теж лишається в `tariff_history`.
+- **Історія.** `GET /v1/history` - операції ресурсу; `GET /v1/history/check` одним знімком перевіряє, що немає
+  прийнятого запису старого покоління після реєстрації нового і що тариф = останньому прийнятому запису.
+
+```bash
+docker compose up -d api etcd coordinator-a coordinator-b
+MSYS_NO_PATHCONV=1 python dpc/tools/etcd_watch.py /roles/tariff-manager
+uv run experiments/dpc_lr6.py transition   # О6.1: stop і kill власника, 5 + 5 повторень
+uv run experiments/dpc_lr6.py pause        # О6.3: pause coordinator-a; sleep 9; unpause
+uv run experiments/dpc_lr6.py unfenced     # без захисту: FENCING=off на dpc-race
+```
+
+| Пункт | Де реалізовано | Перевірка та свідчення |
+|---|---|---|
+| О6.1 Роль через оренду | `dpc/coordinator/main.py`, `etcd.py`; `GET /v1/coordinator` (`dpc/api/app/tariff.py`) | перехід ролі від старту команди до ключа з новим власником (= `role.acquired`), 5 повторень: `stop` - медіана 0.98 с (0.65-1.18), `kill` - 5.51 с (4.49-5.63, оренда спливає за TTL); реєстрація покоління - ще +2-4 мс |
+| О6.2 Перевірка покоління на ресурсі | міграція 011 (`fence`, `tariff_history`), `POST /v1/tariff/generations`, `PUT /v1/tariff/{garage_id}` | тести: реєструється лише більше покоління; застаріле й незареєстроване - 409, тариф не змінено, рядки історії `stale`, `unregistered` |
+| О6.3 Пауза старого власника | `GET /v1/history`, `GET /v1/history/check`, `dpc_lr6.py pause` | A (покоління 70) призупинено на 9 с → B захопив роль, зареєстрував 72; після відновлення A сам записав `role.lost (lease-expired)`, його запис 3100 з поколінням 70 відхилено `stale`; check `ok = true`. Те саме з паузою у випадковий момент (78 → 80) |
+| О6.3 Без захисту | `FENCING=off` лише для `dpc-race`, `dpc_lr6.py unfenced` | A (86) записав 3900 після реєстрації 88, B - 3800; обидва прийнято, check `ok = false` (`stale-accepted`, запис 974) |
+
+Клієнт - сторінка **Coordinator** (`?view=coordinator`): власник і покоління (опитування раз на секунду), поточні
+тарифи, останні 20 операцій ресурсу з результатом і причиною, результат перевірки історії. Тести -
+`dpc/api/tests/test_lr6.py`. Докладно: [results/dpc-lr6/README.md](results/dpc-lr6/README.md).
 
 ## 7. Досліди
 
@@ -486,6 +537,7 @@ _Заповнюється в ЛР6._
 | Точність, режими, прискорення (DPC ЛР2) | `dpc_lr2_compute.py accuracy\|modes\|bench\|health` | `results/dpc-lr2/` |
 | Відмова після ефекту, local проти ray, обмеження задач (DPC ЛР3) | `dpc_lr3.py fault\|compare\|inflight`; режими `EXECUTION=local\|ray`, `RECEIVER_DELAY_MS` | `results/dpc-lr3/` |
 | Потік = пакет, контрольний приклад, дублі, kill/restart, запізнення 2 і 5 хв (DPC ЛР5) | `uv run experiments/dpc_lr5.py main\|control\|dedup\|restart\|predict\|lateness\|restore` (залежності в самому скрипті) | `results/dpc-lr5/` |
+| Перехід ролі, пауза власника, без захисту, тариф у бронюванні (DPC ЛР6) | `uv run experiments/dpc_lr6.py transition\|pause\|unfenced\|booking\|restore` | `results/dpc-lr6/` |
 | Звіт = еталон, набори, перекіс, втрата виконавця, вказівник (DPC ЛР4) | `dpc_lr4_compare.py`, `dpc_lr4.py datasets\|skew\|executor\|atomic` (`--python 3.14 --with httpx --with pyarrow`); режими `--join shuffle`, `--aqe off\|on` | `results/dpc-lr4/` |
 
 Умови, прогноз, вимірювання й висновки кожного досліду - у `results/<ЛР>/README.md`.
@@ -503,6 +555,7 @@ _Заповнюється в ЛР6._
 | SIGTERM з повною чергою (DPC Д1.4) | `docker compose stop api`, потім `docker compose start api` |
 | Аварія потокової задачі (DPC О5.4) | `docker compose kill stream`, потім `docker compose up -d stream` (той самий checkpoint `/data/checkpoints/main`) |
 | Втрата виконавця Spark (DPC О4.5) | `docker compose kill spark-worker-1` під час refresh, потім `docker compose up -d spark-worker-1`; журнал - таблиця виконавців Spark UI (:4040 або сервер історії :18080, профіль `extras`) |
+| Пауза власника ролі довше TTL (DPC О6.3) | `docker compose pause coordinator-a; sleep 9; docker compose unpause coordinator-a`; журнал - `role.lost`, `tariff.write accepted false reason stale` у `docker compose logs coordinator-a`; стан відновлюється сам |
 | `after_effect_before_ack` (DPC ЛР3; у задачі Ray після відповіді приймача) | `docker compose exec api touch /faults/after_effect_before_ack`; журнал - `docker compose logs ray-head ray-worker`; Ray сам повторює задачу |
 
 Перевірка - `fault.hit` у `docker compose logs <сервіс>`; повне скидання - `docker compose down -v`.
@@ -516,6 +569,9 @@ _Заповнюється в ЛР6._
 - DPC ЛР3: один ефект на ключ перевірено для відмови процесу-виконавця Ray; відмову самого api і втрату вузла Ray не досліджували.
 - DPC ЛР4: звіт = еталон на двох наборах; втрату виконавця перевірено на стадії читання; відмову драйвера (`spark-runner`) не досліджували - запуск треба повторити, `current` лишається попереднім.
 - DPC ЛР5: повтор мікропакета безпечний лише для upsert за ключем вікна; checkpoint видаляти не можна (інакше потік почне з початку теми, а дублі попередніх подій вже поза горизонтом). Відмову брокера й PostgreSQL під час запису не досліджували.
+- DPC ЛР6: між захопленням ролі й реєстрацією покоління (мілісекунди) старий власник ще може записати з чинним
+  зареєстрованим поколінням - це не порушення; запис в обхід API перевірка не бачить; після аварії власника тариф не
+  оновлюється до ~5.6 с (TTL); etcd - один вузол, його відмову не досліджували.
 - Прискорення DPC виміряно у ВМ з 4 логічними CPU (2 ядра × 2 потоки).
 
 Повний перелік - у `results/<ЛР>/README.md`.
@@ -525,7 +581,7 @@ _Заповнюється в ЛР6._
 | Учасник | Реалізовані пункти й досліди |
 |---|---|
 | Дарина | Web ЛР1, ЛР3; DPC ЛР1, ЛР2, ЛР4; екрани клієнта |
-| Вадим | Web ЛР2, ЛР4, ЛР5; DPC ЛР3; інфраструктура, зв'язок Web↔DPC |
+| Вадим | Web ЛР2, ЛР4, ЛР5; DPC ЛР3, ЛР5, ЛР6; інфраструктура, зв'язок Web↔DPC |
 
 ### Використані бібліотеки
 
