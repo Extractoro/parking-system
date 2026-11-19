@@ -14,7 +14,9 @@ Where each lab plugs in (item numbers of the guide):
                     /v1/reports/main/reference without Spark (D4.1, D4.2, D4.4 not chosen)
   DONE (O5.1-O5.5)  app/panel.py: GET /v1/panel (panel_window of spark/jobs/stream.py), GET /v1/panel/batch
                     without Spark over the same JSONL (D5.1, D5.2 not chosen)
-  TODO (O6.x)       GET /v1/coordinator, /v1/history; coordinators are separate processes
+  DONE (O6.1-O6.3)  app/tariff.py: the protected resource of the tariff manager - POST /v1/tariff/generations,
+                    PUT /v1/tariff/{garage_id} with the generation check in one transaction, GET /v1/coordinator
+                    (etcd), /v1/history, /v1/history/check; the coordinators are dpc/coordinator (D6.x not chosen)
 Protect your /v1 routers with `dependencies=[Depends(auth.require_token)]`.
 """
 
@@ -24,7 +26,7 @@ from contextlib import asynccontextmanager
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
-from . import compute, config, db, entries, middleware, panel, problems, reports, service
+from . import compute, config, db, entries, middleware, panel, problems, reports, service, tariff
 from .jsonlog import log
 
 
@@ -63,3 +65,4 @@ app.include_router(entries.internal_router)  # the effect receiver of lab 3; ngi
 app.include_router(compute.router)
 app.include_router(reports.router)
 app.include_router(panel.router)
+app.include_router(tariff.router)

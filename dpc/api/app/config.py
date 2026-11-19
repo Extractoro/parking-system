@@ -48,7 +48,10 @@ IN_FLIGHT_LIMIT = _int("IN_FLIGHT_LIMIT", 8)  # O3.2: unfinished Ray tasks at mo
 RECEIVER_DELAY_MS = _int("RECEIVER_DELAY_MS", 0)  # O3.2 experiment: a slow receiver
 # where a Ray task delivers its effect (POST /internal/effects of the api, not published by nginx)
 RECEIVER_URL = os.environ.get("RECEIVER_URL", "http://api:8000")
-FENCING = os.environ.get("FENCING", "on") == "on"  # O6.3
+# lab 6: the role of the tariff manager in etcd; FENCING=off skips the generation check for UNSAFE_GARAGE only (O6.3)
+FENCING = os.environ.get("FENCING", "on") == "on"
+ROLE_KEY = os.environ.get("ROLE_KEY", "/roles/tariff-manager")
+LEASE_TTL_S = _int("LEASE_TTL_S", 5)
 # lab 2: one computation at a time; relative tolerance of the result (O2.2); niceness of the pool processes
 COMPUTE_TOLERANCE = _float("COMPUTE_TOLERANCE", 1e-9)
 COMPUTE_RETRY_AFTER_S = _int("COMPUTE_RETRY_AFTER_S", 2)
