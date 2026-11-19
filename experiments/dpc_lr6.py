@@ -27,6 +27,11 @@ unfenced    the same pause on the test garage dpc-race with FENCING=off (api) an
             (coordinators), dpc-race at 2 of 5 spots: A (rounds up) and B (rounds down) both write, different
             tariffs, /v1/history/check?garage_id=dpc-race ok = false. Restores FENCING=on, the coordinators and
             dpc-race (tariff, fence, history removed, occupied 0) afterwards; the results are saved first.
+            --keep: dpc-race (its tariff and history) stays for the pictures of the client, the output is
+            unfenced-keep.json; clean it afterwards with `restore`.
+booking     Web shows and copies the tariff of DPC (decision B9): user1 books the level center-1 for 2 h of a future
+            day through nginx; the booking keeps tariff_minor_per_hour = the tariff of center at that moment
+            (GET /v1/tariff of DPC before and after, GET /v1/garages of Web), price = tariff * 2; then cancelled.
 restore     api and coordinators as configured (FENCING=on, WRITE_GAP_MS 0, mall and center), dpc-race cleaned.
 Outputs: results/dpc-lr6/<command>.json; the text goes to stdout (tee it to results/dpc-lr6/<command>.txt).
 """
@@ -312,16 +317,18 @@ def wait_api() -> None:
     raise TimeoutError("api")
 
 
-def restore() -> None:
+def restore(keep: bool = False) -> None:
     compose("up", "-d", "--force-recreate", "--no-deps", "api")
     wait_api()
     compose("up", "-d", "--force-recreate", "--no-deps", "coordinator-a", "coordinator-b")
-    clean_race()
+    if not keep:
+        clean_race()
     owner, gen = wait_owner()
-    say(f"restored: FENCING=on, coordinators on mall,center; owner {owner}, generation {gen}; dpc-race cleaned")
+    say(f"restored: FENCING=on, coordinators on mall,center; owner {owner}, generation {gen}; "
+        f"dpc-race {'kept' if keep else 'cleaned'}")
 
 
-def unfenced(gap_ms: int) -> None:
+def unfenced(gap_ms: int, keep: bool) -> None:
     say("Without protection: FENCING=off (only dpc-race skips the check), TARIFF_GARAGES=dpc-race, "
         "dpc-race 2 of 5 spots, base 2750: A rounds 3850 up to 3900, B down to 3800")
     prepare_race()
@@ -334,19 +341,50 @@ def unfenced(gap_ms: int) -> None:
                     h["reason"] != "registered"}
         say(f"  accepted writes (owner, tariff): {sorted(accepted)}")
         r["accepted_pairs"] = sorted(accepted)
-        save("unfenced", r)
+        save("unfenced-keep" if keep else "unfenced", r)
     finally:
-        restore()
+        restore(keep)
+
+
+def booking() -> None:
+    web = os.environ.get("WEB_BASE", "http://localhost:8080")
+    token = httpx.post(f"{web}/v1/auth/login", json={"login": "user1", "password": "user1-pass"},
+                       timeout=10).json()["access_token"]
+    headers = {"Authorization": f"Bearer {token}"}
+
+    def dpc_center() -> dict:
+        return next(t for t in api.get("/v1/tariff").json()["items"] if t["garage_id"] == "center")
+
+    before = dpc_center()
+    catalog = next(g for g in httpx.get(f"{web}/v1/garages", timeout=10).json()["items"] if g["id"] == "center")
+    day = datetime(2046, 2, 1 + datetime.now().microsecond % 27, 10, tzinfo=UTC)
+    r = httpx.post(f"{web}/v1/bookings", headers={**headers, "Idempotency-Key": str(time.time_ns())}, timeout=10,
+                   json={"level_id": "center-1", "from_hour": day.isoformat(), "hours": 2, "plate": "AA1234TT"})
+    b = r.json()
+    after = dpc_center()
+    say("Web copies the tariff set by the DPC manager into a booking (garage center, 2 hours)")
+    say(f"  DPC GET /v1/tariff before: {before['minor_per_hour']} (owner {before['owner']}, generation "
+        f"{before['generation']}); Web GET /v1/garages: {catalog['tariff_minor_per_hour']}")
+    say(f"  POST /v1/bookings -> {r.status_code}: tariff_minor_per_hour {b.get('tariff_minor_per_hour')}, "
+        f"price_minor {b.get('price_minor')}, hours {b.get('hours')}")
+    say(f"  DPC GET /v1/tariff after: {after['minor_per_hour']}")
+    ok = (r.status_code == 201 and b["tariff_minor_per_hour"] in (before["minor_per_hour"], after["minor_per_hour"])
+          and b["price_minor"] == 2 * b["tariff_minor_per_hour"])
+    say(f"  booking tariff = DPC tariff at booking time, price = tariff * hours: {ok}")
+    c = httpx.post(f"{web}/v1/bookings/{b['id']}/cancel", headers=headers, timeout=10)
+    say(f"  cancelled: {c.status_code} {c.json().get('status')}")
+    save("booking", {"before": before, "catalog": catalog, "booking": b, "after": after, "ok": ok})
 
 
 def main() -> None:
     p = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
-    p.add_argument("command", choices=["transition", "pause", "unfenced", "restore"])
+    p.add_argument("command", choices=["transition", "pause", "unfenced", "booking", "restore"])
     p.add_argument("--repeats", type=int, default=5)
     p.add_argument("--gap-ms", type=int, default=2000)
+    p.add_argument("--keep", action="store_true")
     a = p.parse_args()
     {"transition": lambda: transition(a.repeats), "pause": lambda: pause(a.gap_ms),
-     "unfenced": lambda: unfenced(a.gap_ms), "restore": restore}[a.command]()
+     "unfenced": lambda: unfenced(a.gap_ms, a.keep), "booking": booking, "restore": restore}[a.command]()
 
 
 if __name__ == "__main__":
